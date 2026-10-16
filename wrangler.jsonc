@@ -1,0 +1,27 @@
+{
+  // Cloudflare Workers Static Assets 配置
+  //
+  // 说明：Cloudflare 现在把新项目引导到 Workers（Pages 已进入维护模式），
+  //       而「构建输出目录」不再填在控制台，改为在这里的 assets.directory 指定。
+  //
+  //   控制台 Build command : pnpm run build   ->  生成 public/
+  //   本文件 assets.directory: ./public       ->  把这个目录当静态站发布
+  //
+  // 纯静态站注意：不要加 "binding" 或 "run_worker_first"，
+  //   否则会报 "Cannot use assets with a binding in an assets-only Worker"。
+
+  "$schema": "./node_modules/wrangler/config-schema.json",
+
+  // 需与 Cloudflare 控制台里的项目名一致
+  "name": "wooyun-blog",
+
+  // 取创建当天的日期（YYYY-MM-DD）
+  "compatibility_date": "2026-10-16",
+
+  "assets": {
+    // Hexo 的输出目录
+    "directory": "./public"
+    // 若以后生成了 public/404.html，可启用下面这行让错误链接显示该页面
+    // "not_found_handling": "404-page"
+  }
+}
