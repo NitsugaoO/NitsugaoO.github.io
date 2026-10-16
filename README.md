@@ -183,3 +183,58 @@ git clone --depth=1 -b master https://github.com/jerryc127/hexo-theme-butterfly.
 ```
 
 因为配色全部走 `source/css/everforest.css` 覆盖，**主题升级不会影响你的配色**。
+
+---
+
+## 部署（两个平台）
+
+本博客同时发布到两处，**push 到 GitHub 即自动构建**，无需手动操作：
+
+| 平台 | 网址 | 说明 |
+|---|---|---|
+| GitHub Pages | <https://nitsugaoo.github.io/> | 海外访问快 |
+| Cloudflare Workers | <https://blog.wooyun.workers.dev/> | 国内有时需代理 |
+
+### 发布流程（三个命令缺一不可）
+
+```bash
+cd C:\Users\Agustin\blog
+git add -A
+git commit -m "新增：xxx"
+git push        # ← 少了这步，网站不会更新（Cloudflare/GitHub 拉的是远程仓库）
+```
+
+等 1~2 分钟即可在两个地址看到新内容。
+
+### 两个平台各自的配置
+
+**GitHub Pages** — 由 `.github/workflows/pages.yml` 驱动：
+`pnpm install` → `pnpm run build` → 把 `public/` 发布出去。
+
+**Cloudflare Workers** — 控制台配置：
+
+| 字段 | 值 |
+|---|---|
+| Build command | `pnpm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Build output directory | 不在这里，由仓库的 `wrangler.jsonc` 指定（`assets.directory = ./public`） |
+| 环境变量 | `NODE_VERSION = 22` |
+
+### 两个关键约束
+
+**① `url` 只能填一个（当前填的是 Cloudflare 地址）**
+
+它决定 RSS、sitemap 和页面 canonical 链接。另一个平台的页面会把这个地址当作“规范地址”——这是有意为之，能让搜索引擎知道两个地址是同一篇内容，避免被判重复。
+
+**② 仓库名不能随便改**
+
+仓库特意叫 `NitsugaoO.github.io`。因为 GitHub Pages 默认把站点发布在 `用户名.github.io/仓库名/`（带子路径），而 Cloudflare 是根路径——**资源路径前缀不一致会导致 CSS/JS 404**。用这个名字后 GitHub 也发布到根路径，两边配置才能共用一份。
+
+### 如果构建失败
+
+去 GitHub 的 **Actions** 标签页看日志；Cloudflare 则看 **Workers & Pages → 项目 → Deployments**。
+
+最常见的两个坑：
+
+- **`Setup pnpm : failure`** —— workflow 里同时写了 `version` 和 `package.json` 的 `packageManager` 字段，两者冲突。只保留后者。
+- **Cloudflare 报 API token 失效** —— 去项目 Settings 重新授权 GitHub。
