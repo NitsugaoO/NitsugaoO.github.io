@@ -1,0 +1,511 @@
+/* ============================================================================
+ * Everforest for Butterfly
+ * ----------------------------------------------------------------------------
+ * 把 Butterfly 主题的全部配色替换为 Everforest (hard 档) 配色。
+ *
+ * 色值来源：C:\Users\Agustin\Themes\themes\everforest\tokens.yaml
+ *          （即 sainnhe/everforest 的 hard 高对比档）
+ *
+ * 原理：Butterfly 5.x 把所有颜色收敛为 CSS 自定义属性（--global-bg 等），
+ *      本文件在主题样式之后加载，直接覆盖这些变量，不修改主题源码 ——
+ *      所以 `git pull` 升级主题永远不会冲突。
+ *
+ * 改色方法：
+ *   1. 修改下方「色板」段的 --ef-* 变量（对齐 tokens.yaml）
+ *   2. 重新 hexo generate 即可，全站两套模式同步变化
+ *
+ * 结构：
+ *   一、暗色模式 (Everforest hard dark)
+ *   二、亮色模式 (Everforest hard light)
+ *   三、语法高亮（代码块内）
+ *   四、细节微调
+ * ========================================================================= */
+
+
+/* ============================================================================
+ * 一、暗色模式 —— Everforest hard dark
+ * ========================================================================= */
+
+html[data-theme='dark'] {
+  /* ---- 1.1 色板（唯一需要修改的地方） -------------------------------- */
+  --ef-bg-dim:  #1e2326;   /* 最暗底层 */
+  --ef-bg0:     #272e33;   /* 一级背景：页面 */
+  --ef-bg1:     #2e383c;   /* 二级面板：卡片、侧栏、代码块 */
+  --ef-bg2:     #374145;   /* 浮层/选中：按钮、工具条 */
+  --ef-bg3:     #414b50;   /* 描边与边框 */
+  --ef-fg:      #d3c6aa;   /* 正文 */
+  --ef-grey0:   #7a8478;   /* 最淡文字 / 注释 */
+  --ef-grey1:   #859289;   /* 更淡文字 */
+  --ef-grey2:   #9da9a0;   /* 次要文字 */
+  --ef-red:     #e67e80;
+  --ef-orange:  #e69875;
+  --ef-yellow:  #dbbc7f;
+  --ef-green:   #a7c080;   /* 主强调色 */
+  --ef-aqua:    #83c092;
+  --ef-blue:    #7fbbb3;
+  --ef-purple:  #d699b6;
+
+  /* ---- 1.2 全局 ------------------------------------------------------ */
+  --global-bg:            var(--ef-bg0);
+  --font-color:           var(--ef-fg);
+  --card-bg:              var(--ef-bg1);
+  --card-meta:            var(--ef-grey1);
+  --sidebar-bg:           var(--ef-bg1);
+  --sidebar-menu-bg:      var(--ef-bg2);
+  --white:                var(--ef-fg);
+  --light-grey:           var(--ef-grey2);
+  --dark-grey:            var(--ef-grey0);
+  --text-highlight-color: var(--ef-fg);
+  --headline-presudo:     var(--ef-grey0);
+  --hr-border:            var(--ef-bg3);
+  --hr-before-color:      var(--ef-green);
+  --pseudo-hover:         var(--ef-green);
+  --default-bg-color:     var(--ef-green);
+  --mark-bg:              rgba(167, 192, 128, .30);
+  --zoom-bg:              var(--ef-bg0);
+  --timeline-bg:          var(--ef-bg1);
+  --card-box-shadow:       0 3px 8px 6px rgba(30, 35, 38, .45);
+  --card-hover-box-shadow: 0 3px 8px 6px rgba(30, 35, 38, .60);
+
+  /* ---- 1.3 按钮 / 引用 / 打赏 ---------------------------------------- */
+  --btn-bg:          var(--ef-bg2);
+  --btn-color:       var(--ef-fg);
+  --btn-hover-color: var(--ef-green);
+  --text-bg-hover:   var(--ef-bg2);
+  --blockquote-color: var(--ef-grey2);
+  --blockquote-bg:    var(--ef-bg1);
+  --reward-pop:       var(--ef-bg2);
+
+  /* ---- 1.4 搜索 / 预加载 / 目录 / 滚动条 ----------------------------- */
+  --search-bg:          var(--ef-bg0);
+  --search-input-color: var(--ef-fg);
+  --search-a-color:     var(--ef-green);
+  --preloader-bg:       var(--ef-bg-dim);
+  --preloader-color:    var(--ef-green);
+  --toc-link-color:     var(--ef-grey1);
+  --scrollbar-color:    var(--ef-bg3);
+
+  /* ---- 1.5 标签页 (tabs) -------------------------------------------- */
+  --tab-border-color:     var(--ef-bg3);
+  --tab-button-bg:        var(--ef-bg2);
+  --tab-button-color:     var(--ef-grey2);
+  --tab-button-hover-bg:  var(--ef-bg3);
+  --tab-button-active-bg: var(--ef-bg0);
+
+  /* ---- 1.6 代码块外框 ------------------------------------------------ */
+  --hl-color:       var(--ef-fg);
+  --hl-bg:          var(--ef-bg1);
+  --hltools-bg:     var(--ef-bg2);
+  --hltools-color:  var(--ef-grey2);
+  --hlnumber-bg:    var(--ef-bg1);
+  --hlnumber-color: var(--ef-grey0);
+  --hlscrollbar-bg: var(--ef-bg3);
+  --hlexpand-bg:    linear-gradient(180deg, rgba(46, 56, 60, .6), rgba(46, 56, 60, .9));
+
+  /* ---- 1.7 标签色（标签云 / 标签页） -------------------------------- */
+  --tags-blue-color:          var(--ef-blue);
+  --tags-blue-color-lighten:  rgba(127, 187, 179, .15);
+  --tags-pink-color:          var(--ef-purple);
+  --tags-pink-color-lighten:  rgba(214, 153, 182, .15);
+  --tags-red-color:           var(--ef-red);
+  --tags-red-color-lighten:   rgba(230, 126, 128, .15);
+  --tags-orange-color:        var(--ef-orange);
+  --tags-orange-color-lighten: rgba(230, 152, 117, .15);
+  --tags-purple-color:        var(--ef-purple);
+  --tags-purple-color-lighten: rgba(214, 153, 182, .15);
+  --tags-green-color:         var(--ef-green);
+  --tags-green-color-lighten: rgba(167, 192, 128, .15);
+
+  /* ---- 1.8 提示框 (note) -------------------------------------------- */
+  --note-default-border: var(--ef-bg3);
+  --note-default-bg:     var(--ef-bg1);
+  --note-default-text:   var(--ef-fg);
+  --note-primary-border: var(--ef-blue);
+  --note-primary-bg:     rgba(127, 187, 179, .12);
+  --note-primary-text:   var(--ef-blue);
+  --note-info-border:    var(--ef-aqua);
+  --note-info-bg:        rgba(131, 192, 146, .12);
+  --note-info-text:      var(--ef-aqua);
+  --note-success-border: var(--ef-green);
+  --note-success-bg:     rgba(167, 192, 128, .12);
+  --note-success-text:   var(--ef-green);
+  --note-warning-border: var(--ef-yellow);
+  --note-warning-bg:     rgba(219, 188, 127, .12);
+  --note-warning-text:   var(--ef-yellow);
+  --note-danger-border:  var(--ef-red);
+  --note-danger-bg:      rgba(230, 126, 128, .12);
+  --note-danger-text:    var(--ef-red);
+
+  --note-modern-default-border: var(--ef-grey1);
+  --note-modern-default-bg:     var(--ef-bg2);
+  --note-modern-default-text:   var(--ef-fg);
+  --note-modern-default-hover:  var(--ef-fg);
+  --note-modern-primary-border: var(--ef-blue);
+  --note-modern-primary-bg:     var(--ef-bg2);
+  --note-modern-primary-text:   var(--ef-blue);
+  --note-modern-primary-hover:  var(--ef-blue);
+  --note-modern-info-border:    var(--ef-aqua);
+  --note-modern-info-bg:        var(--ef-bg2);
+  --note-modern-info-text:      var(--ef-aqua);
+  --note-modern-info-hover:     var(--ef-aqua);
+  --note-modern-success-border: var(--ef-green);
+  --note-modern-success-bg:     var(--ef-bg2);
+  --note-modern-success-text:   var(--ef-green);
+  --note-modern-success-hover:  var(--ef-green);
+  --note-modern-warning-border: var(--ef-yellow);
+  --note-modern-warning-bg:     var(--ef-bg2);
+  --note-modern-warning-text:   var(--ef-yellow);
+  --note-modern-warning-hover:  var(--ef-yellow);
+  --note-modern-danger-border:  var(--ef-red);
+  --note-modern-danger-bg:      var(--ef-bg2);
+  --note-modern-danger-text:    var(--ef-red);
+  --note-modern-danger-hover:   var(--ef-red);
+}
+
+
+/* ============================================================================
+ * 二、亮色模式 —— Everforest hard light
+ * ========================================================================= */
+
+html:root:not([data-theme='dark']) {
+  /* ---- 2.1 色板 ------------------------------------------------------ */
+  --ef-bg-dim:  #f2efdf;
+  --ef-bg0:     #fffbef;   /* 一级背景：页面 */
+  --ef-bg1:     #f8f5e4;   /* 二级面板 */
+  --ef-bg2:     #f2efdf;
+  --ef-bg3:     #edeada;
+  --ef-fg:      #5c6a72;
+  --ef-grey0:   #a6b0a0;
+  --ef-grey1:   #939f91;
+  --ef-grey2:   #829181;
+  --ef-red:     #f85552;
+  --ef-orange:  #f57d26;
+  --ef-yellow:  #dfa000;
+  --ef-green:   #8da101;
+  --ef-aqua:    #35a77c;
+  --ef-blue:    #3a94c5;
+  --ef-purple:  #df69ba;
+
+  /* ---- 2.2 全局 ------------------------------------------------------ */
+  --global-bg:            var(--ef-bg0);
+  --font-color:           var(--ef-fg);
+  --card-bg:              var(--ef-bg1);
+  --card-meta:            var(--ef-grey1);
+  --sidebar-bg:           var(--ef-bg1);
+  --sidebar-menu-bg:      var(--ef-bg2);
+  --white:                var(--ef-fg);
+  --light-grey:           var(--ef-grey2);
+  --dark-grey:            var(--ef-grey0);
+  --text-highlight-color: var(--ef-fg);
+  --headline-presudo:     var(--ef-grey0);
+  --hr-border:            var(--ef-bg3);
+  --hr-before-color:      var(--ef-green);
+  --pseudo-hover:         var(--ef-green);
+  --default-bg-color:     var(--ef-green);
+  --mark-bg:              rgba(141, 161, 1, .25);
+  --zoom-bg:              var(--ef-bg0);
+  --timeline-bg:          var(--ef-bg1);
+  --card-box-shadow:       0 3px 8px 6px rgba(92, 106, 114, .08);
+  --card-hover-box-shadow: 0 3px 8px 6px rgba(92, 106, 114, .16);
+
+  /* ---- 2.3 按钮 / 引用 / 打赏 ---------------------------------------- */
+  --btn-bg:          var(--ef-bg2);
+  --btn-color:       var(--ef-fg);
+  --btn-hover-color: var(--ef-green);
+  --text-bg-hover:   var(--ef-bg2);
+  --blockquote-color: var(--ef-grey2);
+  --blockquote-bg:    var(--ef-bg1);
+  --reward-pop:       var(--ef-bg2);
+
+  /* ---- 2.4 搜索 / 预加载 / 目录 / 滚动条 ----------------------------- */
+  --search-bg:          var(--ef-bg0);
+  --search-input-color: var(--ef-fg);
+  --search-a-color:     var(--ef-green);
+  --preloader-bg:       var(--ef-bg-dim);
+  --preloader-color:    var(--ef-green);
+  --toc-link-color:     var(--ef-grey1);
+  --scrollbar-color:    var(--ef-bg3);
+
+  /* ---- 2.5 标签页 (tabs) -------------------------------------------- */
+  --tab-border-color:     var(--ef-bg3);
+  --tab-button-bg:        var(--ef-bg2);
+  --tab-button-color:     var(--ef-grey2);
+  --tab-button-hover-bg:  var(--ef-bg3);
+  --tab-button-active-bg: var(--ef-bg0);
+
+  /* ---- 2.6 代码块外框 ------------------------------------------------ */
+  --hl-color:       var(--ef-fg);
+  --hl-bg:          var(--ef-bg1);
+  --hltools-bg:     var(--ef-bg2);
+  --hltools-color:  var(--ef-grey2);
+  --hlnumber-bg:    var(--ef-bg1);
+  --hlnumber-color: var(--ef-grey0);
+  --hlscrollbar-bg: var(--ef-bg3);
+  --hlexpand-bg:    linear-gradient(180deg, rgba(248, 245, 228, .6), rgba(248, 245, 228, .9));
+
+  /* ---- 2.7 标签色 ---------------------------------------------------- */
+  --tags-blue-color:          var(--ef-blue);
+  --tags-blue-color-lighten:  rgba(58, 148, 197, .15);
+  --tags-pink-color:          var(--ef-purple);
+  --tags-pink-color-lighten:  rgba(223, 105, 186, .15);
+  --tags-red-color:           var(--ef-red);
+  --tags-red-color-lighten:   rgba(248, 85, 82, .15);
+  --tags-orange-color:        var(--ef-orange);
+  --tags-orange-color-lighten: rgba(245, 125, 38, .15);
+  --tags-purple-color:        var(--ef-purple);
+  --tags-purple-color-lighten: rgba(223, 105, 186, .15);
+  --tags-green-color:         var(--ef-green);
+  --tags-green-color-lighten: rgba(141, 161, 1, .15);
+
+  /* ---- 2.8 提示框 (note) -------------------------------------------- */
+  --note-default-border: var(--ef-bg3);
+  --note-default-bg:     var(--ef-bg1);
+  --note-default-text:   var(--ef-fg);
+  --note-primary-border: var(--ef-blue);
+  --note-primary-bg:     rgba(58, 148, 197, .10);
+  --note-primary-text:   var(--ef-blue);
+  --note-info-border:    var(--ef-aqua);
+  --note-info-bg:        rgba(53, 167, 124, .10);
+  --note-info-text:      var(--ef-aqua);
+  --note-success-border: var(--ef-green);
+  --note-success-bg:     rgba(141, 161, 1, .10);
+  --note-success-text:   var(--ef-green);
+  --note-warning-border: var(--ef-yellow);
+  --note-warning-bg:     rgba(223, 160, 0, .10);
+  --note-warning-text:   var(--ef-yellow);
+  --note-danger-border:  var(--ef-red);
+  --note-danger-bg:      rgba(248, 85, 82, .10);
+  --note-danger-text:    var(--ef-red);
+
+  --note-modern-default-border: var(--ef-grey1);
+  --note-modern-default-bg:     var(--ef-bg2);
+  --note-modern-default-text:   var(--ef-fg);
+  --note-modern-default-hover:  var(--ef-fg);
+  --note-modern-primary-border: var(--ef-blue);
+  --note-modern-primary-bg:     var(--ef-bg2);
+  --note-modern-primary-text:   var(--ef-blue);
+  --note-modern-primary-hover:  var(--ef-blue);
+  --note-modern-info-border:    var(--ef-aqua);
+  --note-modern-info-bg:        var(--ef-bg2);
+  --note-modern-info-text:      var(--ef-aqua);
+  --note-modern-info-hover:     var(--ef-aqua);
+  --note-modern-success-border: var(--ef-green);
+  --note-modern-success-bg:     var(--ef-bg2);
+  --note-modern-success-text:   var(--ef-green);
+  --note-modern-success-hover:  var(--ef-green);
+  --note-modern-warning-border: var(--ef-yellow);
+  --note-modern-warning-bg:     var(--ef-bg2);
+  --note-modern-warning-text:   var(--ef-yellow);
+  --note-modern-warning-hover:  var(--ef-yellow);
+  --note-modern-danger-border:  var(--ef-red);
+  --note-modern-danger-bg:      var(--ef-bg2);
+  --note-modern-danger-text:    var(--ef-red);
+  --note-modern-danger-hover:   var(--ef-red);
+}
+
+
+/* ============================================================================
+ * 三、语法高亮
+ * ----------------------------------------------------------------------------
+ * Butterfly 的语法色是编译期硬编码的（figure.highlight pre .xxx），
+ * 不随明暗切换，因此这里按 Everforest 语义逐组重映射：
+ *   keyword/tag→red   string→green   function→yellow   built_in→aqua
+ *   variable→blue     number→purple  comment→grey0     meta→orange
+ * ========================================================================= */
+
+/* ---- 3.1 暗色模式语法色 --------------------------------------------- */
+html[data-theme='dark'] figure.highlight pre .deletion     { color: var(--ef-red); }
+html[data-theme='dark'] figure.highlight pre .addition     { color: var(--ef-green); }
+html[data-theme='dark'] figure.highlight pre .meta         { color: var(--ef-orange); }
+html[data-theme='dark'] figure.highlight pre .comment      { color: var(--ef-grey0); }
+html[data-theme='dark'] figure.highlight pre .tag          { color: var(--ef-red); }
+html[data-theme='dark'] figure.highlight pre .built_in     { color: var(--ef-aqua); }
+
+html[data-theme='dark'] figure.highlight pre .variable,
+html[data-theme='dark'] figure.highlight pre .attribute,
+html[data-theme='dark'] figure.highlight pre .regexp,
+html[data-theme='dark'] figure.highlight pre .ruby .constant,
+html[data-theme='dark'] figure.highlight pre .xml .tag .title,
+html[data-theme='dark'] figure.highlight pre .xml .pi,
+html[data-theme='dark'] figure.highlight pre .xml .doctype,
+html[data-theme='dark'] figure.highlight pre .html .doctype,
+html[data-theme='dark'] figure.highlight pre .css .id,
+html[data-theme='dark'] figure.highlight pre .tag .name,
+html[data-theme='dark'] figure.highlight pre .css .class,
+html[data-theme='dark'] figure.highlight pre .css .pseudo    { color: var(--ef-blue); }
+
+html[data-theme='dark'] figure.highlight pre .ruby .class .title,
+html[data-theme='dark'] figure.highlight pre .css .rules .attribute,
+html[data-theme='dark'] figure.highlight pre .string,
+html[data-theme='dark'] figure.highlight pre .value,
+html[data-theme='dark'] figure.highlight pre .inheritance,
+html[data-theme='dark'] figure.highlight pre .header,
+html[data-theme='dark'] figure.highlight pre .ruby .symbol,
+html[data-theme='dark'] figure.highlight pre .xml .cdata,
+html[data-theme='dark'] figure.highlight pre .special,
+html[data-theme='dark'] figure.highlight pre .formula       { color: var(--ef-green); }
+
+/* number 组必须排在 string 组之后（Butterfly 原样式中 .number 被 .string 覆盖） */
+html[data-theme='dark'] figure.highlight pre .number,
+html[data-theme='dark'] figure.highlight pre .preprocessor,
+html[data-theme='dark'] figure.highlight pre .literal,
+html[data-theme='dark'] figure.highlight pre .params,
+html[data-theme='dark'] figure.highlight pre .constant,
+html[data-theme='dark'] figure.highlight pre .command       { color: var(--ef-purple); }
+
+html[data-theme='dark'] figure.highlight pre .keyword,
+html[data-theme='dark'] figure.highlight pre .title,
+html[data-theme='dark'] figure.highlight pre .css .hexcolor { color: var(--ef-red); }
+
+html[data-theme='dark'] figure.highlight pre .function,
+html[data-theme='dark'] figure.highlight pre .python .decorator,
+html[data-theme='dark'] figure.highlight pre .python .title,
+html[data-theme='dark'] figure.highlight pre .ruby .function .title,
+html[data-theme='dark'] figure.highlight pre .ruby .title .keyword,
+html[data-theme='dark'] figure.highlight pre .perl .sub,
+html[data-theme='dark'] figure.highlight pre .javascript .title,
+html[data-theme='dark'] figure.highlight pre .coffeescript .title { color: var(--ef-yellow); }
+
+html[data-theme='dark'] figure.highlight pre .tag .attr,
+html[data-theme='dark'] figure.highlight pre .javascript .function { color: var(--ef-yellow); }
+
+/* ---- 3.2 亮色模式语法色 --------------------------------------------- */
+html:root:not([data-theme='dark']) figure.highlight pre .deletion  { color: var(--ef-red); }
+html:root:not([data-theme='dark']) figure.highlight pre .addition  { color: var(--ef-green); }
+html:root:not([data-theme='dark']) figure.highlight pre .meta      { color: var(--ef-orange); }
+html:root:not([data-theme='dark']) figure.highlight pre .comment   { color: var(--ef-grey0); }
+html:root:not([data-theme='dark']) figure.highlight pre .tag       { color: var(--ef-red); }
+html:root:not([data-theme='dark']) figure.highlight pre .built_in  { color: var(--ef-aqua); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .variable,
+html:root:not([data-theme='dark']) figure.highlight pre .attribute,
+html:root:not([data-theme='dark']) figure.highlight pre .regexp,
+html:root:not([data-theme='dark']) figure.highlight pre .ruby .constant,
+html:root:not([data-theme='dark']) figure.highlight pre .xml .tag .title,
+html:root:not([data-theme='dark']) figure.highlight pre .xml .pi,
+html:root:not([data-theme='dark']) figure.highlight pre .xml .doctype,
+html:root:not([data-theme='dark']) figure.highlight pre .html .doctype,
+html:root:not([data-theme='dark']) figure.highlight pre .css .id,
+html:root:not([data-theme='dark']) figure.highlight pre .tag .name,
+html:root:not([data-theme='dark']) figure.highlight pre .css .class,
+html:root:not([data-theme='dark']) figure.highlight pre .css .pseudo { color: var(--ef-blue); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .ruby .class .title,
+html:root:not([data-theme='dark']) figure.highlight pre .css .rules .attribute,
+html:root:not([data-theme='dark']) figure.highlight pre .string,
+html:root:not([data-theme='dark']) figure.highlight pre .value,
+html:root:not([data-theme='dark']) figure.highlight pre .inheritance,
+html:root:not([data-theme='dark']) figure.highlight pre .header,
+html:root:not([data-theme='dark']) figure.highlight pre .ruby .symbol,
+html:root:not([data-theme='dark']) figure.highlight pre .xml .cdata,
+html:root:not([data-theme='dark']) figure.highlight pre .special,
+html:root:not([data-theme='dark']) figure.highlight pre .formula { color: var(--ef-green); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .number,
+html:root:not([data-theme='dark']) figure.highlight pre .preprocessor,
+html:root:not([data-theme='dark']) figure.highlight pre .literal,
+html:root:not([data-theme='dark']) figure.highlight pre .params,
+html:root:not([data-theme='dark']) figure.highlight pre .constant,
+html:root:not([data-theme='dark']) figure.highlight pre .command { color: var(--ef-purple); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .keyword,
+html:root:not([data-theme='dark']) figure.highlight pre .title,
+html:root:not([data-theme='dark']) figure.highlight pre .css .hexcolor { color: var(--ef-red); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .function,
+html:root:not([data-theme='dark']) figure.highlight pre .python .decorator,
+html:root:not([data-theme='dark']) figure.highlight pre .python .title,
+html:root:not([data-theme='dark']) figure.highlight pre .ruby .function .title,
+html:root:not([data-theme='dark']) figure.highlight pre .ruby .title .keyword,
+html:root:not([data-theme='dark']) figure.highlight pre .perl .sub,
+html:root:not([data-theme='dark']) figure.highlight pre .javascript .title,
+html:root:not([data-theme='dark']) figure.highlight pre .coffeescript .title { color: var(--ef-yellow); }
+
+html:root:not([data-theme='dark']) figure.highlight pre .tag .attr,
+html:root:not([data-theme='dark']) figure.highlight pre .javascript .function { color: var(--ef-yellow); }
+
+
+/* ============================================================================
+ * 四、细节微调
+ * ========================================================================= */
+
+/* ---- 4.1 行内代码：与代码块区分开（:not(pre) 保证不影响代码块） ------- */
+html[data-theme='dark'] .container :not(pre) > code {
+  background: var(--ef-bg2);
+  color: var(--ef-green);
+}
+html:root:not([data-theme='dark']) .container :not(pre) > code {
+  background: var(--ef-bg2);
+  color: var(--ef-green);
+}
+
+/* ---- 4.2 文字选中高亮 ------------------------------------------------ */
+html[data-theme='dark'] ::selection {
+  background: rgba(167, 192, 128, .30);
+  color: var(--ef-fg);
+}
+html:root:not([data-theme='dark']) ::selection {
+  background: rgba(141, 161, 1, .25);
+  color: var(--ef-fg);
+}
+
+/* ---- 4.3 顶栏：统一为 bg0，避免与内容区割裂 -------------------------- */
+html[data-theme='dark'] #page-header.nav-fixed > #nav,
+html[data-theme='dark'] #page-header.not-top-img > #nav {
+  background: rgba(39, 46, 51, .85);
+  box-shadow: 0 5px 6px -5px rgba(30, 35, 38, .6);
+}
+html:root:not([data-theme='dark']) #page-header.nav-fixed > #nav,
+html:root:not([data-theme='dark']) #page-header.not-top-img > #nav {
+  background: rgba(255, 251, 239, .85);
+  box-shadow: 0 5px 6px -5px rgba(92, 106, 114, .3);
+}
+
+/* ---- 4.4 链接下划线色 ------------------------------------------------ */
+html[data-theme='dark'] a:hover { color: var(--ef-green); }
+
+/* ---- 4.5 代码块：去掉暗色模式下的整体压暗滤镜 ---------------------- */
+/* Butterfly 默认会给暗色模式下的图片/代码加 brightness 滤镜，这里取消，
+   保证 Everforest 色值原样呈现 */
+html[data-theme='dark'] .container figure.highlight { filter: none; }
+html[data-theme='dark'] img:not(.cover) { filter: none; }
+
+/* ---- 4.6 清除 Butterfly 未走变量的零星硬编码色 ---------------------- */
+/* 以下选择器对应编译后 index.css 里残留的旧配色：
+   #99a9bf（全局链接） #ff7242（置顶/评论） #f47466（搜索高亮） #49b1f5（评论开关） */
+
+/* 全局链接色 #99a9bf → blue */
+html[data-theme='dark'] a { color: var(--ef-blue); }
+html:root:not([data-theme='dark']) a { color: var(--ef-blue); }
+
+/* 置顶图标 #ff7242 → yellow */
+html[data-theme='dark'] #recent-posts .recent-post-item > .recent-post-info > .article-title .sticky,
+html:root:not([data-theme='dark']) #recent-posts .recent-post-item > .recent-post-info > .article-title .sticky {
+  color: var(--ef-yellow);
+}
+
+/* 搜索关键词高亮 #f47466 → red */
+html[data-theme='dark'] .search-keyword { color: var(--ef-red); background: transparent; }
+html:root:not([data-theme='dark']) .search-keyword { color: var(--ef-red); background: transparent; }
+
+/* 标签页回顶按钮 / 阅读模式链接 #99a9bf → grey2 */
+html[data-theme='dark'] .container .tabs > .tab-to-top button,
+html[data-theme='dark'] .read-mode .container a,
+html:root:not([data-theme='dark']) .container .tabs > .tab-to-top button,
+html:root:not([data-theme='dark']) .read-mode .container a {
+  color: var(--ef-grey2);
+}
+
+/* 评论切换按钮 #49b1f5 / #ff7242 → green / yellow */
+html[data-theme='dark'] #post-comment .comment-head .comment-switch .first-comment,
+html:root:not([data-theme='dark']) #post-comment .comment-head .comment-switch .first-comment {
+  color: var(--ef-green);
+}
+html[data-theme='dark'] #post-comment .comment-head .comment-switch .second-comment,
+html:root:not([data-theme='dark']) #post-comment .comment-head .comment-switch .second-comment {
+  color: var(--ef-yellow);
+}
+html[data-theme='dark'] #post-comment.move #switch-btn,
+html:root:not([data-theme='dark']) #post-comment.move #switch-btn {
+  background-color: var(--ef-yellow);
+}
