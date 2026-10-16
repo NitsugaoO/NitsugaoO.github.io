@@ -307,122 +307,133 @@ html:root:not([data-theme='dark']) {
 /* ============================================================================
  * 三、语法高亮
  * ----------------------------------------------------------------------------
- * Butterfly 的语法色是编译期硬编码的（figure.highlight pre .xxx），
- * 不随明暗切换，因此这里按 Everforest 语义逐组重映射：
- *   keyword/tag→red   string→green   function→yellow   built_in→aqua
- *   variable→blue     number→purple  comment→grey0     meta→orange
+ * 色值不是"按直觉猜"的，而是逐条对齐你的 VSCode 主题
+ * 「Everforest Hard Dark」的 tokenColors（276 条规则）。
+ * 该主题有几处反直觉，靠猜一定会错：
+ *
+ *   string 字符串        -> yellow #dbbc7f   （不是 green）
+ *   function 函数        -> green  #a7c080   （不是 yellow）
+ *   type / class 类型    -> blue   #7fbbb3   （不是 aqua）
+ *   variable 变量        -> fg     #d3c6aa   （不着色，与正文同色）
+ *   comment 注释         -> grey1  #859289
+ *   storage/tag/operator -> orange #e69875
+ *   preprocessor / import-> aqua   #83c092
+ *
+ * 这里只写一套规则、不带 data-theme 前缀：因为 --ef-* 色板已在第一、二节
+ * 按明暗分别定义，同一套规则在两种模式下会自动取到各自的色值。
+ * 选择器与 Butterfly 保持一致（含 .python .title 这类复合写法），
+ * 依赖"同优先级、后加载者胜"来生效。
  * ========================================================================= */
 
-/* ---- 3.1 暗色模式语法色 --------------------------------------------- */
-html[data-theme='dark'] figure.highlight pre .deletion     { color: var(--ef-red); }
-html[data-theme='dark'] figure.highlight pre .addition     { color: var(--ef-green); }
-html[data-theme='dark'] figure.highlight pre .meta         { color: var(--ef-orange); }
-html[data-theme='dark'] figure.highlight pre .comment      { color: var(--ef-grey0); }
-html[data-theme='dark'] figure.highlight pre .tag          { color: var(--ef-red); }
-html[data-theme='dark'] figure.highlight pre .built_in     { color: var(--ef-aqua); }
+/* 注释 -> grey1 */
+figure.highlight pre .comment,
+figure.highlight pre .quote {
+  color: var(--ef-grey1);
+}
 
-html[data-theme='dark'] figure.highlight pre .variable,
-html[data-theme='dark'] figure.highlight pre .attribute,
-html[data-theme='dark'] figure.highlight pre .regexp,
-html[data-theme='dark'] figure.highlight pre .ruby .constant,
-html[data-theme='dark'] figure.highlight pre .xml .tag .title,
-html[data-theme='dark'] figure.highlight pre .xml .pi,
-html[data-theme='dark'] figure.highlight pre .xml .doctype,
-html[data-theme='dark'] figure.highlight pre .html .doctype,
-html[data-theme='dark'] figure.highlight pre .css .id,
-html[data-theme='dark'] figure.highlight pre .tag .name,
-html[data-theme='dark'] figure.highlight pre .css .class,
-html[data-theme='dark'] figure.highlight pre .css .pseudo    { color: var(--ef-blue); }
+/* 关键字 -> red */
+figure.highlight pre .keyword {
+  color: var(--ef-red);
+}
 
-html[data-theme='dark'] figure.highlight pre .ruby .class .title,
-html[data-theme='dark'] figure.highlight pre .css .rules .attribute,
-html[data-theme='dark'] figure.highlight pre .string,
-html[data-theme='dark'] figure.highlight pre .value,
-html[data-theme='dark'] figure.highlight pre .inheritance,
-html[data-theme='dark'] figure.highlight pre .header,
-html[data-theme='dark'] figure.highlight pre .ruby .symbol,
-html[data-theme='dark'] figure.highlight pre .xml .cdata,
-html[data-theme='dark'] figure.highlight pre .special,
-html[data-theme='dark'] figure.highlight pre .formula       { color: var(--ef-green); }
+/* storage / 修饰符 / 操作符 / 标签名 -> orange */
+figure.highlight pre .storage,
+figure.highlight pre .modifier,
+figure.highlight pre .operator,
+figure.highlight pre .tag,
+figure.highlight pre .selector-tag,
+figure.highlight pre .name,
+figure.highlight pre .doctag {
+  color: var(--ef-orange);
+}
 
-/* number 组必须排在 string 组之后（Butterfly 原样式中 .number 被 .string 覆盖） */
-html[data-theme='dark'] figure.highlight pre .number,
-html[data-theme='dark'] figure.highlight pre .preprocessor,
-html[data-theme='dark'] figure.highlight pre .literal,
-html[data-theme='dark'] figure.highlight pre .params,
-html[data-theme='dark'] figure.highlight pre .constant,
-html[data-theme='dark'] figure.highlight pre .command       { color: var(--ef-purple); }
+/* 字符串 / 属性 / 正则 / 选择器 -> yellow */
+figure.highlight pre .string,
+figure.highlight pre .regexp,
+figure.highlight pre .attr,
+figure.highlight pre .attribute,
+figure.highlight pre .selector-attr,
+figure.highlight pre .selector-class,
+figure.highlight pre .selector-id,
+figure.highlight pre .selector-pseudo,
+figure.highlight pre .template-tag,
+figure.highlight pre .inheritance,
+figure.highlight pre .header,
+figure.highlight pre .xml .cdata,
+figure.highlight pre .special,
+figure.highlight pre .formula,
+figure.highlight pre .value,
+figure.highlight pre .css .rules .attribute {
+  color: var(--ef-yellow);
+}
 
-html[data-theme='dark'] figure.highlight pre .keyword,
-html[data-theme='dark'] figure.highlight pre .title,
-html[data-theme='dark'] figure.highlight pre .css .hexcolor { color: var(--ef-red); }
+/* 数字 / 字面量 / 常量 -> purple */
+figure.highlight pre .number,
+figure.highlight pre .literal,
+figure.highlight pre .constant,
+figure.highlight pre .symbol,
+figure.highlight pre .bullet,
+figure.highlight pre .link,
+figure.highlight pre .code,
+figure.highlight pre .command,
+figure.highlight pre .ruby .constant,
+figure.highlight pre .xml .pi,
+figure.highlight pre .xml .doctype,
+figure.highlight pre .html .doctype,
+figure.highlight pre .css .id,
+figure.highlight pre .css .class,
+figure.highlight pre .css .hexcolor {
+  color: var(--ef-purple);
+}
 
-html[data-theme='dark'] figure.highlight pre .function,
-html[data-theme='dark'] figure.highlight pre .python .decorator,
-html[data-theme='dark'] figure.highlight pre .python .title,
-html[data-theme='dark'] figure.highlight pre .ruby .function .title,
-html[data-theme='dark'] figure.highlight pre .ruby .title .keyword,
-html[data-theme='dark'] figure.highlight pre .perl .sub,
-html[data-theme='dark'] figure.highlight pre .javascript .title,
-html[data-theme='dark'] figure.highlight pre .coffeescript .title { color: var(--ef-yellow); }
+/* 预处理指令 / import / #include -> aqua */
+figure.highlight pre .meta,
+figure.highlight pre .meta-keyword,
+figure.highlight pre .preprocessor {
+  color: var(--ef-aqua);
+}
 
-html[data-theme='dark'] figure.highlight pre .tag .attr,
-html[data-theme='dark'] figure.highlight pre .javascript .function { color: var(--ef-yellow); }
+/* 函数 / 内建 / 装饰器 -> green */
+figure.highlight pre .title,
+figure.highlight pre .function,
+figure.highlight pre .section,
+figure.highlight pre .built_in,
+figure.highlight pre .builtin-name,
+figure.highlight pre .python .decorator,
+figure.highlight pre .python .title,
+figure.highlight pre .ruby .function .title,
+figure.highlight pre .ruby .title .keyword,
+figure.highlight pre .perl .sub,
+figure.highlight pre .javascript .title,
+figure.highlight pre .javascript .function,
+figure.highlight pre .coffeescript .title {
+  color: var(--ef-green);
+}
 
-/* ---- 3.2 亮色模式语法色 --------------------------------------------- */
-html:root:not([data-theme='dark']) figure.highlight pre .deletion  { color: var(--ef-red); }
-html:root:not([data-theme='dark']) figure.highlight pre .addition  { color: var(--ef-green); }
-html:root:not([data-theme='dark']) figure.highlight pre .meta      { color: var(--ef-orange); }
-html:root:not([data-theme='dark']) figure.highlight pre .comment   { color: var(--ef-grey0); }
-html:root:not([data-theme='dark']) figure.highlight pre .tag       { color: var(--ef-red); }
-html:root:not([data-theme='dark']) figure.highlight pre .built_in  { color: var(--ef-aqua); }
+/* 类名 / 类型 -> blue（放在函数组之后，且选择器更具体） */
+figure.highlight pre .title.class_,
+figure.highlight pre .type,
+figure.highlight pre .class,
+figure.highlight pre .ruby .class .title,
+figure.highlight pre .tag .attr {
+  color: var(--ef-blue);
+}
 
-html:root:not([data-theme='dark']) figure.highlight pre .variable,
-html:root:not([data-theme='dark']) figure.highlight pre .attribute,
-html:root:not([data-theme='dark']) figure.highlight pre .regexp,
-html:root:not([data-theme='dark']) figure.highlight pre .ruby .constant,
-html:root:not([data-theme='dark']) figure.highlight pre .xml .tag .title,
-html:root:not([data-theme='dark']) figure.highlight pre .xml .pi,
-html:root:not([data-theme='dark']) figure.highlight pre .xml .doctype,
-html:root:not([data-theme='dark']) figure.highlight pre .html .doctype,
-html:root:not([data-theme='dark']) figure.highlight pre .css .id,
-html:root:not([data-theme='dark']) figure.highlight pre .tag .name,
-html:root:not([data-theme='dark']) figure.highlight pre .css .class,
-html:root:not([data-theme='dark']) figure.highlight pre .css .pseudo { color: var(--ef-blue); }
+/* 变量 / 参数 / 标点 -> 正文色（VSCode 里变量不额外着色） */
+figure.highlight pre .variable,
+figure.highlight pre .template-variable,
+figure.highlight pre .params,
+figure.highlight pre .subst,
+figure.highlight pre .punctuation,
+figure.highlight pre .ruby .symbol {
+  color: var(--ef-fg);
+}
 
-html:root:not([data-theme='dark']) figure.highlight pre .ruby .class .title,
-html:root:not([data-theme='dark']) figure.highlight pre .css .rules .attribute,
-html:root:not([data-theme='dark']) figure.highlight pre .string,
-html:root:not([data-theme='dark']) figure.highlight pre .value,
-html:root:not([data-theme='dark']) figure.highlight pre .inheritance,
-html:root:not([data-theme='dark']) figure.highlight pre .header,
-html:root:not([data-theme='dark']) figure.highlight pre .ruby .symbol,
-html:root:not([data-theme='dark']) figure.highlight pre .xml .cdata,
-html:root:not([data-theme='dark']) figure.highlight pre .special,
-html:root:not([data-theme='dark']) figure.highlight pre .formula { color: var(--ef-green); }
-
-html:root:not([data-theme='dark']) figure.highlight pre .number,
-html:root:not([data-theme='dark']) figure.highlight pre .preprocessor,
-html:root:not([data-theme='dark']) figure.highlight pre .literal,
-html:root:not([data-theme='dark']) figure.highlight pre .params,
-html:root:not([data-theme='dark']) figure.highlight pre .constant,
-html:root:not([data-theme='dark']) figure.highlight pre .command { color: var(--ef-purple); }
-
-html:root:not([data-theme='dark']) figure.highlight pre .keyword,
-html:root:not([data-theme='dark']) figure.highlight pre .title,
-html:root:not([data-theme='dark']) figure.highlight pre .css .hexcolor { color: var(--ef-red); }
-
-html:root:not([data-theme='dark']) figure.highlight pre .function,
-html:root:not([data-theme='dark']) figure.highlight pre .python .decorator,
-html:root:not([data-theme='dark']) figure.highlight pre .python .title,
-html:root:not([data-theme='dark']) figure.highlight pre .ruby .function .title,
-html:root:not([data-theme='dark']) figure.highlight pre .ruby .title .keyword,
-html:root:not([data-theme='dark']) figure.highlight pre .perl .sub,
-html:root:not([data-theme='dark']) figure.highlight pre .javascript .title,
-html:root:not([data-theme='dark']) figure.highlight pre .coffeescript .title { color: var(--ef-yellow); }
-
-html:root:not([data-theme='dark']) figure.highlight pre .tag .attr,
-html:root:not([data-theme='dark']) figure.highlight pre .javascript .function { color: var(--ef-yellow); }
+/* diff / 强调 */
+figure.highlight pre .addition  { color: var(--ef-green); }
+figure.highlight pre .deletion  { color: var(--ef-red); }
+figure.highlight pre .emphasis  { font-style: italic; }
+figure.highlight pre .strong    { font-weight: bold; }
 
 
 /* ============================================================================
@@ -529,4 +540,71 @@ html:root:not([data-theme='dark']) #footer a:hover {
 html[data-theme='dark'] .container table,
 html[data-theme='dark'] .container table td {
   color: var(--ef-fg);
+}
+
+
+/* ============================================================================
+ * 六、字体（同步 VSCode）
+ * ----------------------------------------------------------------------------
+ * VSCode settings.json 的实际配置：
+ *   "editor.fontFamily": "FiraCode Nerd Font Mono, Consolas, monospace"
+ *   "editor.fontLigatures": true
+ * 其中文并非显式配置，而是系统回退到 Windows 默认中文字体（微软雅黑）。
+ * 字体栈按“英文 Fira Code + 中文微软雅黑”复刻。
+ * ========================================================================= */
+
+:root {
+  --ef-mono: 'FiraCode Nerd Font Mono', 'Fira Code', 'Cascadia Code',
+             Consolas, 'Microsoft YaHei', '微软雅黑', monospace;
+}
+
+/* 等宽字体（代码块、行内代码、代码工具栏、行号）*/
+html .container pre,
+html .container code,
+html .container figure.highlight,
+html .container figure.highlight pre,
+html .container figure.highlight code,
+html .container .highlight-tools,
+html .container .highlight-tools .code-lang,
+html .container .gutter pre,
+html .container kbd,
+html .container tt {
+  font-family: var(--ef-mono) !important;
+  font-variant-ligatures: contextual;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* 连字（-> ≠ >= 等）在 Fira Code 下生效；字号略调以贴近 VSCode 手感 */
+html .container figure.highlight pre,
+html .container figure.highlight code {
+  font-size: .92em;
+  line-height: 1.55;
+}
+
+
+/* ============================================================================
+ * 七、代码块背景与行号的修正
+ * ----------------------------------------------------------------------------
+ * Butterfly 在暗色模式下有一处硬编码：
+ *   [data-theme='dark'] .container pre > code { background: #171717 }
+ * 它的优先级高于 .container figure.highlight 的 --hl-bg，所以代码块实际是
+ * 近黑色 #171717 —— 而 VSCode 编辑器底色是 #272e33（= bg0）。
+ * 这里把它清成 none，让父级的 --hl-bg 正常生效。
+ * ========================================================================= */
+
+html .container figure.highlight pre > code {
+  background: none;
+}
+
+/* 行号：对齐 VSCode 的 editorLineNumber.foreground (#5f6a67) */
+html[data-theme='dark'] {
+  --hlnumber-color: #5f6a67;
+}
+html:root:not([data-theme='dark']) {
+  --hlnumber-color: var(--ef-grey0);
+}
+
+/* 选中行标记：Butterfly 默认是青色 rgba(128,203,196,.25)，改为 Everforest green */
+html .container figure.highlight .line.marked {
+  background-color: rgba(167, 192, 128, .12);
 }
