@@ -289,7 +289,7 @@ aside:
     button:
       enable: true
       icon: fab fa-github
-      text: Follow Me
+      text: Github
       link: https://github.com/NitsugaoO
   card_announcement:
     enable: false

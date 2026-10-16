@@ -542,6 +542,18 @@ html[data-theme='dark'] .container table td {
   color: var(--ef-fg);
 }
 
+/* ---- 4.9 绿色 hover 按钮的文字色 -------------------------------------- */
+/* Butterfly 让按钮 hover 时背景变主题色（我们的绿），但文字仍沿用原色
+   --btn-color（米白）—— 绿底米白字对比度不足，看着发虚。
+   统一改用 tokens.yaml 的「反色」fg_on_green，与目录选中项保持一致。 */
+html #aside-content .card-info #card-info-btn:hover,
+html #aside-content .card-info #card-info-btn:hover i,
+html .layout .pagination > *:not(.space):hover,
+html .container .btn-beautify:hover,
+html .tag-cloud-list a:hover {
+  color: #2d353b;   /* fg_on_green —— 强调色底上的文字 */
+}
+
 
 /* ============================================================================
  * 六、字体（同步 VSCode）
