@@ -509,3 +509,24 @@ html[data-theme='dark'] #post-comment.move #switch-btn,
 html:root:not([data-theme='dark']) #post-comment.move #switch-btn {
   background-color: var(--ef-yellow);
 }
+
+/* ---- 4.7 页脚可读性修正 ---------------------------------------------- */
+/* Butterfly 的页脚是「主题色实底」，原设计配 #EEEEEE 浅灰文字。
+   我把 --light-grey 调成了灰绿（普通深色背景上更协调），但绿字配绿底不可读。
+   这里改用 tokens.yaml 里专为「强调色底上的文字」定义的角色：反色 fg_on_green。 */
+html[data-theme='dark'] #footer,
+html[data-theme='dark'] #footer *,
+html:root:not([data-theme='dark']) #footer,
+html:root:not([data-theme='dark']) #footer * {
+  color: #2d353b;   /* fg_on_green —— 绿底上的文字 */
+}
+html[data-theme='dark'] #footer a:hover,
+html:root:not([data-theme='dark']) #footer a:hover {
+  color: #1e2326;   /* bg_dim，hover 时加深而非消失 */
+}
+
+/* ---- 4.8 表格文字提高对比度（原先偏暗）------------------------------ */
+html[data-theme='dark'] .container table,
+html[data-theme='dark'] .container table td {
+  color: var(--ef-fg);
+}
