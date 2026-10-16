@@ -1,0 +1,124 @@
+/* ============================================================================
+ * WooYun 的博客 —— 交互与组件定制
+ * ----------------------------------------------------------------------------
+ * 分工：
+ *   everforest.css  → 只管「颜色」（覆盖主题的 --* 变量）
+ *   本文件          → 只管「行为与结构」（点击、展开、挂件……）
+ *
+ * 原则：不修改 themes/butterfly/ 源码，全部走 inject 注入，
+ *       主题随时可以 git pull 升级。
+ * 配套脚本：source/js/custom.js
+ * ========================================================================= */
+
+
+/* ============================================================================
+ * 一、侧栏作者卡片
+ * ========================================================================= */
+
+/* ---- 1.1 作者名变成通往「关于」页的链接 -------------------------------- */
+html #aside-content .card-info .author-info-link {
+  color: var(--font-color);
+  transition: color .2s;
+}
+html #aside-content .card-info .author-info-link:hover {
+  color: var(--ef-green);
+}
+
+/* ---- 1.2 座右铭：点击展开下半句 ---------------------------------------- */
+/* 第一句常显；第二句默认收起（max-height 过渡，不能用 display:none，
+   否则没有动画）。下半句用强调绿，和「火焰」的意象对得上。 */
+html #aside-content .card-info .author-info-description {
+  cursor: pointer;
+  user-select: none;
+}
+
+html #aside-content .card-info .motto-extra {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  color: var(--ef-green);
+  transition: max-height .35s ease, opacity .35s ease, margin-top .35s ease;
+}
+
+html #aside-content .card-info .author-info-description.revealed .motto-extra {
+  max-height: 3em;   /* 足够容纳一行，留出换行的余量 */
+  margin-top: .2em;
+  opacity: 1;
+}
+
+
+/* ============================================================================
+ * 二、侧栏「正在循环」歌词卡
+ * ----------------------------------------------------------------------------
+ * 内容写 source/_data/widget.yml（top 槽位）—— 改歌词不用碰 CSS/JS。
+ * ========================================================================= */
+
+html .card-lyrics .lyrics {
+  margin: 2px 0 0;
+}
+
+html .card-lyrics .lyric-line {
+  margin: 5px 0;
+  font-size: .92em;
+  line-height: 1.75;
+  color: var(--ef-grey1);
+  transition: color .25s;
+}
+
+/* 副歌/想强调的那一行：正文米白色，一眼能看到 */
+html .card-lyrics .lyric-line.em {
+  color: var(--font-color);
+}
+
+/* 鼠标挪到某一行，它自己亮起来 */
+html .card-lyrics .lyric-line:hover {
+  color: var(--ef-green);
+}
+
+/* 卡片底部：歌名 + 去网易云听 */
+html .card-lyrics .lyrics-source {
+  display: block;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ef-bg3);
+  font-size: .86em;
+  color: var(--ef-grey2);
+  transition: color .25s;
+}
+html .card-lyrics .lyrics-source:hover {
+  color: var(--ef-green);
+}
+
+
+/* ============================================================================
+ * 三、页脚左侧的二次元动图
+ * ----------------------------------------------------------------------------
+ * 元素由 source/js/custom.js 插入（图不存在时会自动移除）。
+ * 现用图是一张 340×340 的人物特写，贴在页脚左下角、上半身溢出到页脚之上，
+ * 所以 #footer 不能裁切内容。尺寸/位置不满意时，只改下面几行。
+ * ========================================================================= */
+
+html #footer .footer-mascot {
+  position: absolute;
+  left: 2.5rem;
+  bottom: 0;
+  width: 6.5rem;     /* 正方形图，宽高保持一致 */
+  height: 6.5rem;
+  border: 1px solid var(--ef-bg3);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;   /* 像从页脚底边冒出来的小相框 */
+  box-shadow: 0 -4px 14px rgba(30, 35, 38, .45);
+  pointer-events: none;           /* 不挡着版权文字被点到 */
+  opacity: .92;
+}
+
+/* 窄屏：页脚本来就不高，图缩小并贴边，避免压住版权行 */
+@media screen and (max-width: 768px) {
+  html #footer .footer-mascot {
+    left: .5rem;
+    width: 4.25rem;
+    height: 4.25rem;
+    opacity: .8;
+  }
+}

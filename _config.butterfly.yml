@@ -285,9 +285,10 @@ aside:
     category: true
   card_author:
     enable: true
-    description: 你内心一定有着某种火焰
+    # 座右铭：第一句常显，第二句点击后展开（交互见 source/js/custom.js，样式见 source/css/custom.css）
+    description: '<span class="motto-line motto-main">你内心一定有着某种火焰</span><span class="motto-line motto-extra">把你与其他人区别开来</span>'
     button:
-      enable: true
+      enable: false
       icon: fab fa-github
       text: Github
       link: https://github.com/NitsugaoO
@@ -1061,8 +1062,9 @@ css_prefix: true
 inject:
   head:
     - <link rel="stylesheet" href="/css/everforest.css">
+    - <link rel="stylesheet" href="/css/custom.css">
   bottom:
-    # - <script src="xxxx"></script>
+    - <script src="/js/custom.js"></script>
 
 # CDN Settings
 # Don't modify the following settings unless you know how they work

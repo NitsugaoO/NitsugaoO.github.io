@@ -1,0 +1,34 @@
+# ============================================================================
+# 侧栏自定义卡片
+# ----------------------------------------------------------------------------
+# Butterfly 会把这里的 top / bottom 渲染成侧栏卡片：
+#   top    → card_top_self.pug，位于作者卡下方（文章页也显示）
+#   bottom → card_bottom_self.pug，仅首页/归档等页面显示
+#
+# 支持字段：
+#   class_name  额外 class（写样式时用）
+#   id_name     元素 id
+#   name        卡片标题
+#   icon        标题左侧图标（Font Awesome）
+#   order       排序（可选，数字越大越靠后）
+#   html        卡片正文，支持纯 HTML
+# ============================================================================
+
+top:
+  # ---- 正在循环：喜欢的歌的歌词 ------------------------------------------
+  # 改歌词：改下面的 lyric-line。class="em" 的那行用正文米白显示（适合副歌），
+  # 其余行是次要灰，鼠标悬停会自动变绿。
+  - class_name: card-lyrics
+    id_name: card-lyrics
+    name: 正在循环
+    icon: fas fa-music
+    html: |
+      <div class="lyrics">
+        <p class="lyric-line">在我的怀里 在你的眼里</p>
+        <p class="lyric-line">那里春风沉醉 那里绿草如茵</p>
+        <p class="lyric-line em">月光把爱恋 洒满了湖面</p>
+        <p class="lyric-line">两个人的篝火 照亮整个夜晚</p>
+      </div>
+      <a class="lyrics-source" href="https://music.163.com/#/song?id=109998" target="_blank" rel="noopener">
+        <i class="fas fa-headphones"></i> 贝加尔湖畔 · 李健
+      </a>

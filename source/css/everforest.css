@@ -57,8 +57,8 @@ html[data-theme='dark'] {
   --dark-grey:            var(--ef-grey0);
   --text-highlight-color: var(--ef-fg);
   --headline-presudo:     var(--ef-grey0);
-  --hr-border:            var(--ef-bg3);
-  --hr-before-color:      var(--ef-green);
+  --hr-border:            var(--ef-green);   /* 分割线（2px dashed）本体 */
+  --hr-before-color:      var(--ef-green);   /* 分割线上的小图标 */
   --pseudo-hover:         var(--ef-green);
   --default-bg-color:     var(--ef-green);
   --mark-bg:              rgba(167, 192, 128, .30);
@@ -73,7 +73,7 @@ html[data-theme='dark'] {
   --btn-hover-color: var(--ef-green);
   --text-bg-hover:   var(--ef-bg2);
   --blockquote-color: var(--ef-grey2);
-  --blockquote-bg:    var(--ef-bg1);
+  --blockquote-bg:    var(--ef-bg2);   /* 文章卡片本身就是 bg1，引用块必须再深/亮一档才看得见 */
   --reward-pop:       var(--ef-bg2);
 
   /* ---- 1.4 搜索 / 预加载 / 目录 / 滚动条 ----------------------------- */
@@ -198,8 +198,8 @@ html:root:not([data-theme='dark']) {
   --dark-grey:            var(--ef-grey0);
   --text-highlight-color: var(--ef-fg);
   --headline-presudo:     var(--ef-grey0);
-  --hr-border:            var(--ef-bg3);
-  --hr-before-color:      var(--ef-green);
+  --hr-border:            var(--ef-green);   /* 分割线（2px dashed）本体 */
+  --hr-before-color:      var(--ef-green);   /* 分割线上的小图标 */
   --pseudo-hover:         var(--ef-green);
   --default-bg-color:     var(--ef-green);
   --mark-bg:              rgba(141, 161, 1, .25);
@@ -214,7 +214,7 @@ html:root:not([data-theme='dark']) {
   --btn-hover-color: var(--ef-green);
   --text-bg-hover:   var(--ef-bg2);
   --blockquote-color: var(--ef-grey2);
-  --blockquote-bg:    var(--ef-bg1);
+  --blockquote-bg:    var(--ef-bg2);   /* 文章卡片本身就是 bg1，引用块必须再深/亮一档才看得见 */
   --reward-pop:       var(--ef-bg2);
 
   /* ---- 2.4 搜索 / 预加载 / 目录 / 滚动条 ----------------------------- */
