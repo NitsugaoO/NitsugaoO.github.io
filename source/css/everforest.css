@@ -655,6 +655,15 @@ html #aside-content #card-toc .toc-content .toc-link.active .toc-text {
   color: inherit;
 }
 
+/* 右上角的阅读进度百分比：
+   原样式是 color:#a9a9a9 + font-style:italic（所以 0 看上去是歪的）。
+   改为正文同一套等宽字体（Fira Code）的正体，颜色统一为 --ef-grey1。 */
+html #aside-content #card-toc .toc-percentage {
+  color: var(--ef-grey1);
+  font-family: var(--ef-mono);
+  font-style: normal;
+}
+
 
 /* ============================================================================
  * 九、次要信息文字统一
