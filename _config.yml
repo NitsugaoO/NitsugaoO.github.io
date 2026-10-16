@@ -55,6 +55,26 @@ prismjs:
   line_number: true
   tab_replace: ''
 
+# Markdown 渲染器（hexo-renderer-markdown-it）
+# ---------------------------------------------------------
+# Hexo 默认的 hexo-renderer-marked 不支持 LaTeX 公式，且会把公式里的下划线
+# 当成斜体（x_n 会变成 x<em>n</em>），导致公式损坏。因此改用 markdown-it
+# 并挂载 KaTeX 插件，公式在构建时就被渲染成 HTML。
+markdown:
+  render:
+    html: true
+    xhtmlOut: false
+    breaks: true
+    linkify: true
+    typographer: false        # 防止双引号/破折号被转义
+  plugins:
+    - name: '@renbaoshuo/markdown-it-katex'
+      options:
+        strict: false
+        skipDelimitersCheck: true   # 容错：允许 $ 与内容间有空格
+  anchors:
+    level: 1                  # 标题锚点，Butterfly 的目录依赖它
+
 # Home page setting
 # path: Root path for your blogs index page. (default = '')
 # per_page: Posts displayed per page. (0 = disable pagination)
