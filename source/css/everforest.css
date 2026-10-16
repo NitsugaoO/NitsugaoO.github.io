@@ -554,6 +554,25 @@ html .tag-cloud-list a:hover {
   color: #2d353b;   /* fg_on_green —— 强调色底上的文字 */
 }
 
+/* ---- 4.10 侧栏标签云的标签色 ------------------------------------------ */
+/* Butterfly 在 card_tags.color: false 时，会给每个标签写上内联样式
+   color: #999（内联样式优先级最高，CSS 变量盖不住，只能用 !important）。
+   hover 色同样是硬编码的 #a7c080，一并对齐色板。 */
+html #aside-content .card-tag-cloud a {
+  color: var(--ef-grey1) !important;
+}
+html #aside-content .card-tag-cloud a:hover {
+  color: var(--ef-green) !important;
+}
+
+/* ---- 4.11 版权块去掉 hover 光效 ---------------------------------------- */
+/* Butterfly 在 hover 时加了一圈淡蓝白 box-shadow
+   (rgba(232,237,250,.6))，是浅色主题的遗留，在 Everforest 暗色基调上
+   显得脏且多余，直接去掉。 */
+html #post .post-copyright:hover {
+  box-shadow: none;
+}
+
 
 /* ============================================================================
  * 六、字体（同步 VSCode）
