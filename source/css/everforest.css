@@ -620,3 +620,37 @@ html .container figure.highlight .highlight-tools {
 html .container figure.highlight {
   border: 1px solid var(--ef-bg3);
 }
+
+
+/* ============================================================================
+ * 八、目录（TOC）
+ * ----------------------------------------------------------------------------
+ * 当前所在章节显示为 Everforest green 圆角胶囊 + 深色文字（反色 fg_on_green），
+ * 其余项保持低调整洁，hover 时给一点淡背景反馈。
+ * ========================================================================= */
+
+html #aside-content #card-toc .toc-content .toc-link {
+  display: block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  transition: background-color .2s, color .2s;
+}
+
+/* 当前所在章节：绿色胶囊 + 深色文字 */
+html #aside-content #card-toc .toc-content .toc-link.active {
+  background-color: var(--ef-green);
+  color: #2d353b;   /* fg_on_green —— 强调色底上的文字 */
+  font-weight: 600;
+}
+
+/* 悬停（未选中项）：淡背景提示，不抢主色 */
+html #aside-content #card-toc .toc-content .toc-link:not(.active):hover {
+  background-color: var(--ef-bg2);
+  color: var(--ef-fg);
+}
+
+/* 胶囊内的序号跟随文字色，避免选中后数字仍是灰色 */
+html #aside-content #card-toc .toc-content .toc-link.active .toc-number,
+html #aside-content #card-toc .toc-content .toc-link.active .toc-text {
+  color: inherit;
+}
