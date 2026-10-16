@@ -714,10 +714,20 @@ html #post > #post-info #post-meta a:hover {
   color: var(--ef-green);
 }
 
-/* 版权块 */
+/* 版权块：全部文字统一为正文米白（标签也不再用绿色），
+   但保留标签的加粗；边框改为与代码块同色 --ef-bg3 */
 html #post .post-copyright,
-html #post .post-copyright a {
-  color: var(--ef-grey1);
+html #post .post-copyright *,
+html #post .post-copyright a,
+html #post .post-copyright .post-copyright-meta {
+  color: var(--ef-fg);
+}
+html #post .post-copyright {
+  border: 1px solid var(--ef-bg3);
+}
+/* 右上角的 CC 图标：仍用主题色，但改走变量（原为硬编码 #a7c080） */
+html #post .post-copyright:before {
+  color: var(--ef-green);
 }
 html #post .post-copyright a:hover {
   color: var(--ef-green);
