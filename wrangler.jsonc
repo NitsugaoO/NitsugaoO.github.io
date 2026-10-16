@@ -13,7 +13,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
 
   // 需与 Cloudflare 控制台里的项目名一致
-  "name": "wooyun-blog",
+  "name": "blog",
 
   // 取创建当天的日期（YYYY-MM-DD）
   "compatibility_date": "2026-10-16",
