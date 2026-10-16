@@ -521,19 +521,19 @@ html:root:not([data-theme='dark']) #post-comment.move #switch-btn {
   background-color: var(--ef-yellow);
 }
 
-/* ---- 4.7 页脚可读性修正 ---------------------------------------------- */
-/* Butterfly 的页脚是「主题色实底」，原设计配 #EEEEEE 浅灰文字。
-   我把 --light-grey 调成了灰绿（普通深色背景上更协调），但绿字配绿底不可读。
-   这里改用 tokens.yaml 里专为「强调色底上的文字」定义的角色：反色 fg_on_green。 */
-html[data-theme='dark'] #footer,
-html[data-theme='dark'] #footer *,
-html:root:not([data-theme='dark']) #footer,
-html:root:not([data-theme='dark']) #footer * {
-  color: #2d353b;   /* fg_on_green —— 绿底上的文字 */
+/* ---- 4.7 页脚：暗底 + 米白字 ------------------------------------------ */
+/* Butterfly 的页脚原本是「主题色实底」（我们的主题色是绿色），改成与代码块
+   同调的暗底 + 米白字，底部整体沉下去，不再是一大块亮绿。 */
+html #footer {
+  background-color: var(--ef-bg1);
+  border-top: 1px solid var(--ef-bg3);
 }
-html[data-theme='dark'] #footer a:hover,
-html:root:not([data-theme='dark']) #footer a:hover {
-  color: #1e2326;   /* bg_dim，hover 时加深而非消失 */
+html #footer,
+html #footer * {
+  color: var(--ef-fg);
+}
+html #footer a:hover {
+  color: var(--ef-green);
 }
 
 /* ---- 4.8 表格文字提高对比度（原先偏暗）------------------------------ */
@@ -696,4 +696,31 @@ html #post #post-outdate-notice {
 }
 html #post #post-outdate-notice:before {
   color: var(--ef-red);
+}
+
+
+/* ============================================================================
+ * 十、上下篇导航
+ * ----------------------------------------------------------------------------
+ * Butterfly 给 .cover 加了内联样式 background: var(--default-bg-color)，
+ * 而该变量在我们这里等于 --ef-green，所以整块被染成绿色。
+ * 这里改成与代码块同调的暗底 + 米白字；内联样式必须用 !important 才能压过。
+ * ========================================================================= */
+
+html .pagination-related {
+  background: var(--ef-bg0);
+}
+html .pagination-related .cover {
+  background: var(--ef-bg0) !important;   /* 覆盖内联样式 */
+  opacity: 1;                             /* 去掉叠加的 40% 透明 */
+}
+
+/* “上一篇 / 下一篇” 标签用次要色，文章标题用米白正文色 */
+html .pagination-related .info .info-1 .info-item-1,
+html .pagination-related .info .info-2 .info-item-1 {
+  color: var(--ef-grey1);
+}
+html .pagination-related .info .info-1 .info-item-2,
+html .pagination-related .info .info-2 .info-item-2 {
+  color: var(--ef-fg);
 }
