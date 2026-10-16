@@ -95,7 +95,7 @@ html[data-theme='dark'] {
   /* ---- 1.6 代码块外框 ------------------------------------------------ */
   --hl-color:       var(--ef-fg);
   --hl-bg:          var(--ef-bg0);   /* 与 VSCode 一致：代码区底色 = 页面底色 */
-  --hltools-bg:     var(--ef-bg1);   /* 工具栏亮一档，作为代码块上边界 */
+  --hltools-bg:     var(--ef-bg2);   /* 顶栏再亮一档，与代码区拉开 */
   --hltools-color:  var(--ef-grey2);
   --hlnumber-bg:    var(--ef-bg0);   /* VSCode 行号区没有独立底色 */
   --hlnumber-color: var(--ef-grey0);
@@ -236,7 +236,7 @@ html:root:not([data-theme='dark']) {
   /* ---- 2.6 代码块外框 ------------------------------------------------ */
   --hl-color:       var(--ef-fg);
   --hl-bg:          var(--ef-bg0);   /* 与 VSCode 一致：代码区底色 = 页面底色 */
-  --hltools-bg:     var(--ef-bg1);   /* 工具栏亮一档，作为代码块上边界 */
+  --hltools-bg:     var(--ef-bg2);   /* 顶栏再亮一档，与代码区拉开 */
   --hltools-color:  var(--ef-grey2);
   --hlnumber-bg:    var(--ef-bg0);   /* VSCode 行号区没有独立底色 */
   --hlnumber-color: var(--ef-grey0);
@@ -607,4 +607,16 @@ html:root:not([data-theme='dark']) {
 /* 选中行标记：Butterfly 默认是青色 rgba(128,203,196,.25)，改为 Everforest green */
 html .container figure.highlight .line.marked {
   background-color: rgba(167, 192, 128, .12);
+}
+
+/* 顶栏（PLAINTEXT / PYTHON 语言标签 + 复制按钮）：
+   底色改为 bg2 后仍不够醒目，再补一条分隔线，明确它是代码块的一部分。 */
+html .container figure.highlight .highlight-tools {
+  border-bottom: 1px solid var(--ef-bg3);
+}
+
+/* 代码区底色改成与页面一致后，代码块的下边界和左右边界就消失了。
+   补一条极淡的边框，否则代码和正文会连成一片、分不清范围。 */
+html .container figure.highlight {
+  border: 1px solid var(--ef-bg3);
 }
