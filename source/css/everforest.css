@@ -654,3 +654,46 @@ html #aside-content #card-toc .toc-content .toc-link.active .toc-number,
 html #aside-content #card-toc .toc-content .toc-link.active .toc-text {
   color: inherit;
 }
+
+
+/* ============================================================================
+ * 九、次要信息文字统一
+ * ----------------------------------------------------------------------------
+ * 文章页头部元信息（发表于 / 更新于 / 分类 / 总字数 / 阅读时长）原本是一处
+ * 硬编码色 #78818a —— 偏蓝灰、不属于 Everforest 色板，所以和别处的次要文字
+ * 色调对不上。这里统一为与目录 idle 态同一个颜色 --ef-grey1。
+ * 同类“次要说明文字”（版权块、说说日期）一并统一；
+ * 过期提示的硬编码红也收进 Everforest red。
+ * ========================================================================= */
+
+html #post > #post-info #post-meta,
+html #post > #post-info #post-meta a {
+  color: var(--ef-grey1);
+}
+html #post > #post-info #post-meta a:hover {
+  color: var(--ef-green);
+}
+
+/* 版权块 */
+html #post .post-copyright,
+html #post .post-copyright a {
+  color: var(--ef-grey1);
+}
+html #post .post-copyright a:hover {
+  color: var(--ef-green);
+}
+
+/* 说说（微语）日期：原 #858585 */
+html #article-container .shuoshuo-date {
+  color: var(--ef-grey1);
+}
+
+/* 文章过期提示：原 #ffe6e6 / #ff8080 / #f66 */
+html #post #post-outdate-notice {
+  background-color: rgba(230, 126, 128, .12);
+  border-color: var(--ef-red);
+  color: var(--ef-red);
+}
+html #post #post-outdate-notice:before {
+  color: var(--ef-red);
+}
