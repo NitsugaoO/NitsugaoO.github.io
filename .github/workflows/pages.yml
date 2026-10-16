@@ -26,8 +26,9 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
+        # 版本来自 package.json 的 packageManager 字段。
+        # 此处不能再写 version，否则 action 会报
+        # "Multiple versions of pnpm specified" 而直接失败。
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
