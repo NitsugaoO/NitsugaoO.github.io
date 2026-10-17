@@ -419,12 +419,55 @@
     }
   }
 
+  /* ---- 6. 文章里的分类 / 标签链接 → 文章库筛选 ------------------------- */
+  /* 主题给文章元信息渲染了指向 /categories/ 和 /tags/ 的链接。
+     现在分类和标签都统一由「文章库」承载，把这些链接改成
+     /library/?cat=... 与 /library/?tag=...。
+
+     ⚠️ 首页卡片和文章页用的是**两套不同的 class**：
+       首页卡片：a.article-meta__categories（首页不显示标签）
+       文章页：  a.post-meta-categories + a.post-meta__tags
+     分类可能是多级的（数学分析 › 第一章），所以要按容器分组、
+     逐个累加出完整路径，否则子分类链接只带自己那一级、匹配不上。 */
+  function linkMetaToLibrary() {
+    var i;
+
+    /* --- 标签：一对一，直接改 --- */
+    var tags = document.querySelectorAll('a.article-meta__tags, a.post-meta__tags');
+    for (i = 0; i < tags.length; i++) {
+      tags[i].href = '/library/?tag=' + encodeURIComponent(tags[i].textContent.trim());
+    }
+
+    /* --- 分类：按容器分组累加层级 --- */
+    function upgradeCategories(linkSelector, groupSelector) {
+      var groups = document.querySelectorAll(groupSelector);
+      for (var g = 0; g < groups.length; g++) {
+        var links = groups[g].querySelectorAll(linkSelector);
+        var path = [];
+        for (var k = 0; k < links.length; k++) {
+          path.push(links[k].textContent.trim());
+          links[k].href = '/library/?cat=' + encodeURIComponent(path.join('/'));
+        }
+      }
+    }
+
+    upgradeCategories('a.article-meta__categories', 'span.article-meta');
+    upgradeCategories('a.post-meta-categories', 'span.post-meta-categories');
+
+    /* --- 侧栏标签云：同样指向文章库筛选 --- */
+    var cloud = document.querySelectorAll('#aside-content .card-tag-cloud a');
+    for (i = 0; i < cloud.length; i++) {
+      cloud[i].href = '/library/?tag=' + encodeURIComponent(cloud[i].textContent.trim());
+    }
+  }
+
   /* ---- 入口 ------------------------------------------------------------- */
   function init() {
     linkAuthorName();
     initMotto();
     addFooterMascot();
     initLyricsCard();
+    linkMetaToLibrary();
     whenReady('#aside-content', placeLyricsCard);
   }
 

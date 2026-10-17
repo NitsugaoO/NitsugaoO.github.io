@@ -19,9 +19,8 @@ nav:
 
 menu:
   首页: / || fas fa-home
-  归档: /archives/ || fas fa-archive
-  标签: /tags/ || fas fa-tags
-  分类: /categories/ || fas fa-folder-open
+  # 文章库：文件树 + 文章列表（/library/），分类与标签在树内交叉筛选
+  文章库: /library/ || fas fa-layer-group
   关于: /about/ || fas fa-user
 
 # --------------------------------------
@@ -183,7 +182,9 @@ index_layout: 3
 # 3: auto_excerpt (default)
 # false: do not show the article introduction
 index_post_content:
-  method: 3
+  # 1 = 只用 description；2 = description 优先，没有则截断正文；3 = 总是截断正文
+  # 用 2：给每篇文章在 front-matter 里写一句 description，首页预览就显示这句
+  method: 2
   # If you set method to 2 or 3, the length need to config
   length: 500
 
@@ -296,7 +297,7 @@ aside:
     enable: false
     content: This is my Blog
   card_recent_post:
-    enable: true
+    enable: false          # 最新文章已挪到首页左列（主从视图）
     # If set 0 will show all
     limit: 5
     # Sort: date / updated
@@ -310,7 +311,7 @@ aside:
     storage: 10
     avatar: true
   card_categories:
-    enable: true
+    enable: false          # 分类已并入「文章库」页的文件树
     # If set 0 will show all
     limit: 8
     # Choose: none / true / false
@@ -323,12 +324,14 @@ aside:
     color: false
     custom_colors:
     # Order of tags, random/name/length
-    orderby: random
+    # 用 length 而不是 random：标签颜色是按位置轮转的（everforest.css 4.10），
+    # random 会让每次构建位置重洗、颜色跳变。
+    orderby: length
     # Sort of order. 1, asc for ascending; -1, desc for descending
     order: 1
     sort_order:
   card_archives:
-    enable: true
+    enable: false          # 归档已并入「文章库」页（按时间倒序）
     # Type: monthly / yearly
     type: monthly
     # Eg: YYYY年MM月
@@ -1067,6 +1070,10 @@ inject:
     # 歌单数据必须在 custom.js 之前加载（custom.js 会读 window.WOOYUN_LYRICS）
     - <script src="/js/lyrics-data.js"></script>
     - <script src="/js/custom.js"></script>
+    # 只在文章库页面生效（找不到 #library-root 会直接返回）
+    - <script src="/js/library.js"></script>
+    # 只在首页生效（把文章卡片流换成「列表 + 预览」主从视图）
+    - <script src="/js/home.js"></script>
 
 # CDN Settings
 # Don't modify the following settings unless you know how they work

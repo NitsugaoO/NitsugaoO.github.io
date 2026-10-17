@@ -64,8 +64,8 @@ html[data-theme='dark'] {
   --mark-bg:              rgba(167, 192, 128, .30);
   --zoom-bg:              var(--ef-bg0);
   --timeline-bg:          var(--ef-bg1);
-  --card-box-shadow:       0 3px 8px 6px rgba(30, 35, 38, .45);
-  --card-hover-box-shadow: 0 3px 8px 6px rgba(30, 35, 38, .60);
+  --card-box-shadow:       none;   /* 卡片统一用边框，不用阴影（见第十二节） */
+  --card-hover-box-shadow: none;
 
   /* ---- 1.3 按钮 / 引用 / 打赏 ---------------------------------------- */
   --btn-bg:          var(--ef-bg2);
@@ -205,8 +205,8 @@ html:root:not([data-theme='dark']) {
   --mark-bg:              rgba(141, 161, 1, .25);
   --zoom-bg:              var(--ef-bg0);
   --timeline-bg:          var(--ef-bg1);
-  --card-box-shadow:       0 3px 8px 6px rgba(92, 106, 114, .08);
-  --card-hover-box-shadow: 0 3px 8px 6px rgba(92, 106, 114, .16);
+  --card-box-shadow:       none;   /* 卡片统一用边框，不用阴影（见第十二节） */
+  --card-hover-box-shadow: none;
 
   /* ---- 2.3 按钮 / 引用 / 打赏 ---------------------------------------- */
   --btn-bg:          var(--ef-bg2);
@@ -554,15 +554,34 @@ html .tag-cloud-list a:hover {
   color: #2d353b;   /* fg_on_green —— 强调色底上的文字 */
 }
 
-/* ---- 4.10 侧栏标签云的标签色 ------------------------------------------ */
-/* Butterfly 在 card_tags.color: false 时，会给每个标签写上内联样式
-   color: #999（内联样式优先级最高，CSS 变量盖不住，只能用 !important）。
-   hover 色同样是硬编码的 #a7c080，一并对齐色板。 */
-html #aside-content .card-tag-cloud a {
-  color: var(--ef-grey1) !important;
-}
+/* ---- 4.10 标签：用 Everforest 的七种强调色轮转 ------------------------- */
+/* Butterfly 在 card_tags.color: false 时会给每个标签写内联样式 color: #999
+   （内联样式优先级最高，只能用 !important）。
+   七种颜色按 7 的周期轮转；配合 card_tags.orderby 的「稳定排序」（不要用
+   random，否则每次构建颜色都会重新洗一遍），同一个标签会稳定落在同一种颜色上。
+   侧栏 hover → 强调绿（文字变色，无背景）；
+   标签页 hover → 绿底 + fg_on_green（这里必须也加 !important，
+   否则上面的彩色 !important 会盖住主题的 hover 色，绿底上出现彩色字）。 */
+html #aside-content .card-tag-cloud a:nth-child(7n+1),
+html .tag-cloud-list a:nth-child(7n+1) { color: var(--ef-red) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+2),
+html .tag-cloud-list a:nth-child(7n+2) { color: var(--ef-orange) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+3),
+html .tag-cloud-list a:nth-child(7n+3) { color: var(--ef-yellow) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+4),
+html .tag-cloud-list a:nth-child(7n+4) { color: var(--ef-green) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+5),
+html .tag-cloud-list a:nth-child(7n+5) { color: var(--ef-aqua) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+6),
+html .tag-cloud-list a:nth-child(7n+6) { color: var(--ef-blue) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+7),
+html .tag-cloud-list a:nth-child(7n+7) { color: var(--ef-purple) !important; }
+
 html #aside-content .card-tag-cloud a:hover {
   color: var(--ef-green) !important;
+}
+html .tag-cloud-list a:hover {
+  color: #2d353b !important;   /* 绿底上用 fg_on_green */
 }
 
 /* ---- 4.11 版权块去掉 hover 光效 ---------------------------------------- */
@@ -773,4 +792,120 @@ html .pagination-related .info .info-2 .info-item-1 {
 html .pagination-related .info .info-1 .info-item-2,
 html .pagination-related .info .info-2 .info-item-2 {
   color: var(--ef-fg);
+}
+
+
+/* ============================================================================
+ * 十一、分类页：文件夹卡片
+ * ----------------------------------------------------------------------------
+ * Hexo 的 list_categories() 输出的本来就是一棵树：
+ *   ul.category-list > li.category-list-item >（子级）ul.category-list-child
+ * 只是默认样式把它渲染成平铺列表。
+ *
+ * 这里把它排成网格卡片（文件夹图标 + 名称 + 文章数徽章），
+ * 子分类缩进成虚线树。等分类出现层级时，不用改任何结构。
+ * ========================================================================= */
+
+html .container .category-lists ul.category-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html .container .category-lists li.category-list-item {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 10px;
+  list-style: none;
+  transition: border-color .25s, transform .25s;
+}
+
+html .container .category-lists li.category-list-item:hover {
+  border-color: var(--ef-green);
+  transform: translateY(-2px);
+}
+
+/* 文件夹名：整块可点，右侧留出徽章位置 */
+html .container .category-lists li.category-list-item > a.category-list-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 52px 14px 16px;
+  color: var(--ef-fg);
+  font-weight: 500;
+  transition: color .25s;
+}
+
+html .container .category-lists li.category-list-item > a.category-list-link:hover {
+  color: var(--ef-green);
+}
+
+/* 文件夹图标 */
+html .container .category-lists li.category-list-item > a.category-list-link::before {
+  content: '\f07b';   /* fa-folder */
+  font-family: 'Font Awesome 7 Free', 'Font Awesome 6 Free';
+  font-weight: 400;
+  color: var(--ef-green);
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+/* 文章数徽章：贴在第一行文字的高度上（有子分类时也不会跑偏） */
+html .container .category-lists .category-list-count {
+  position: absolute;
+  top: 15px;
+  right: 12px;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-grey1);
+  font-size: .74em;
+  line-height: 1.8;
+  text-align: center;
+}
+
+/* 子分类：缩进 + 虚线，像文件夹里套文件夹 */
+html .container .category-lists ul.category-list-child {
+  display: block;
+  margin: 0 12px 12px 40px;
+  padding-left: 12px;
+  border-left: 1px dashed var(--ef-bg3);
+}
+
+html .container .category-lists ul.category-list-child li.category-list-item {
+  margin: 0 0 6px;
+}
+
+
+/* ============================================================================
+ * 十二、卡片统一用边框，不用阴影
+ * ----------------------------------------------------------------------------
+ * 主题的所有卡片阴影都走 --card-box-shadow / --card-hover-box-shadow 两个变量，
+ * 上面已经把它们设成 none 了；这里给这些卡片补上同一条 1px 边框，
+ * 让它们和文章库、首页主从视图那些手写的卡片（本来就是边框）风格一致。
+ *
+ * 选择器复制自主题（index.css 第 224 行那组），只加 html 前缀提高特异性。
+ * ========================================================================= */
+
+html .cardHover,
+html .layout > div:first-child:not(.nc),
+html #recent-posts .recent-post-item,
+html #article-container .shuoshuo-item,
+html #aside-content .card-widget,
+html .layout .pagination > *:not(.space) {
+  border: 1px solid var(--ef-bg3);
+}
+
+/* 文章卡片 / 说说卡片是可点击的，hover 时边框变绿给一点反馈
+   （阴影已经去掉了，否则这里就完全没有交互感） */
+html #recent-posts .recent-post-item:hover,
+html #article-container .shuoshuo-item:hover {
+  border-color: var(--ef-green);
 }

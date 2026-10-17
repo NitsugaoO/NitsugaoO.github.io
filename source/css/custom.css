@@ -227,3 +227,580 @@ html #footer .footer-mascot {
     height: 6.5rem;
   }
 }
+
+
+/* ============================================================================
+ * 四、文章库页面（/library/）
+ * ----------------------------------------------------------------------------
+ * 左侧分类树 + 右侧文章列表。数据来自 /library.json，渲染在 source/js/library.js。
+ * 配色全部走 --ef-* 变量，所以明暗两套模式自动适配。
+ * ========================================================================= */
+
+html .library { margin: 0; }
+
+/* 这一页里的链接一律不加下划线（标题、标签、卡片都是块级元素，
+   下划线会让 hover 显得脏）。 */
+html .library a,
+html .library a:hover {
+  text-decoration: none;
+}
+
+/* 这一页没有侧栏（front-matter aside: false），主题会给 .layout 加 hide-aside，
+   并已把主区宽度设成 100%。这里只把 1000px 的上限放宽一点，
+   否则「树 + 列表」两栏在 1000px 内会显挤。 */
+html .layout.hide-aside { max-width: 1180px; }
+
+/* ---- 4.1 工具条：搜索框 + 总数 ---- */
+html .library-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+html .library-search-wrap { position: relative; flex: 1 1 auto; }
+
+html .library-search-wrap i {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ef-grey1);
+  font-size: .85em;
+  pointer-events: none;
+}
+
+html .library-search {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  color: var(--font-color);
+  font-size: .92em;
+  transition: border-color .25s, background-color .25s;
+}
+html .library-search::placeholder { color: var(--ef-grey0); }
+html .library-search:focus {
+  outline: none;
+  border-color: var(--ef-green);
+  background: var(--ef-bg2);
+}
+
+html .library-total {
+  flex: none;
+  color: var(--ef-grey1);
+  font-size: .84em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 标签筛选 chip：从文章页点标签跳过来时显示，可一键清除 */
+html .library-filters { margin-bottom: 12px; }
+html .library-filters[hidden] { display: none; }
+
+html .lib-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-green);
+  font-size: .82em;
+}
+
+html .lib-chip-close {
+  padding: 0 3px;
+  border: 0;
+  background: none;
+  color: var(--ef-grey1);
+  font-size: .9em;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .2s;
+}
+html .lib-chip-close:hover { color: var(--ef-red); }
+
+/* ---- 4.2 两栏布局 ---- */
+html .library-body {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* ---- 4.3 分类树 ---- */
+html .library-tree {
+  position: sticky;
+  top: 84px;                 /* 避开固定导航栏 */
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  padding: 10px 8px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 10px;
+}
+
+html .lib-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 1px 0;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ef-grey2);
+  font-size: .88em;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .2s, color .2s;
+}
+html .lib-node:hover {
+  background: var(--ef-bg2);
+  color: var(--font-color);
+}
+/* 当前选中的分类：绿底 + fg_on_green 文字 */
+html .lib-node.is-active {
+  background: var(--ef-green);
+  color: #2d353b;
+  font-weight: 600;
+}
+
+html .lib-node i {
+  flex: none;
+  width: 1em;
+  text-align: center;
+  color: var(--ef-green);
+  font-size: .92em;
+}
+html .lib-node.is-active i { color: #2d353b; }
+
+html .lib-node-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html .lib-node-count {
+  flex: none;
+  min-width: 1.5em;
+  margin-left: auto;
+  padding: 0 5px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-grey0);
+  font-size: .78em;
+  line-height: 1.7;
+  text-align: center;
+}
+html .lib-node.is-active .lib-node-count {
+  background: rgba(45, 53, 59, .2);
+  color: #2d353b;
+}
+
+/* ---- 4.4 文章条目 ---- */
+html .lib-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 10px;
+  transition: border-color .25s, transform .25s;
+}
+html .lib-item:hover {
+  border-color: var(--ef-green);
+  transform: translateX(3px);
+}
+
+/* 主体（标题 + 简介）本身是链接：撑满左侧，标题/简介都不加下划线 */
+html .lib-item-main {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+}
+
+html .lib-item-title {
+  color: var(--font-color);
+  font-weight: 600;
+  font-size: 1em;
+  line-height: 1.5;
+}
+html .lib-item:hover .lib-item-title { color: var(--ef-green); }
+
+html .lib-item-desc {
+  margin: 5px 0 0;
+  color: var(--ef-grey1);
+  font-size: .86em;
+  line-height: 1.65;
+}
+
+/* 右侧：时间 + 标签 */
+html .lib-item-side { flex: none; text-align: right; }
+
+html .lib-item-date {
+  color: var(--ef-grey0);
+  font-size: .8em;
+  font-variant-numeric: tabular-nums;
+}
+
+html .lib-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+html .lib-tag {
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  font-size: .74em;
+  line-height: 1.7;
+  cursor: pointer;
+  transition: background-color .2s, color .2s;
+}
+html .lib-tag:hover {
+  background: var(--ef-bg3);
+}
+
+/* 标签色：与 library.js 的 TAG_COLORS 一一对应（按标签名哈希，颜色稳定） */
+html .lib-tag.tag-red    { color: var(--ef-red); }
+html .lib-tag.tag-orange { color: var(--ef-orange); }
+html .lib-tag.tag-yellow { color: var(--ef-yellow); }
+html .lib-tag.tag-green  { color: var(--ef-green); }
+html .lib-tag.tag-aqua   { color: var(--ef-aqua); }
+html .lib-tag.tag-blue   { color: var(--ef-blue); }
+html .lib-tag.tag-purple { color: var(--ef-purple); }
+
+/* ---- 4.5 加载 / 空态 / 出错 ---- */
+html .library-loading { color: var(--ef-grey1); }
+html .library-empty,
+html .library-error {
+  padding: 32px 0;
+  color: var(--ef-grey1);
+  text-align: center;
+}
+html .library-error { color: var(--ef-red); }
+
+/* ---- 4.6 窄屏：树放到列表上方 ---- */
+@media screen and (max-width: 900px) {
+  html .library-body { grid-template-columns: 1fr; }
+  html .library-tree {
+    position: static;
+    max-height: 42vh;
+  }
+  html .lib-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+  html .lib-item:hover { transform: none; }
+  html .lib-item-side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+  }
+  html .lib-item-tags {
+    margin-top: 0;
+    justify-content: flex-start;
+  }
+}
+
+
+/* ============================================================================
+ * 五、首页主从视图（左列表 + 中预览）
+ * ----------------------------------------------------------------------------
+ * 渲染逻辑在 source/js/home.js：它把 #recent-posts 里的卡片流换成两栏。
+ * 侧栏的「最新文章」卡片已关掉（card_recent_post.enable = false）。
+ * ========================================================================= */
+
+html #recent-posts.home-split {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  gap: 20px;          /* 左列 ↔ 中列 */
+  align-items: start;
+}
+
+/* 中列 ↔ 右栏的间距：不再用 #aside-content 的 padding-left 凑，
+   而是让主区 flex 吃掉剩余宽度、自己留 20px 右外边距。
+   这样两处间距严格相等（都是 20px），不会因为盒子模型/滚动条出现误差。 */
+@media screen and (min-width: 900px) {
+  /* 注意是 body.home-mode —— 类加在 <body> 上，写成 html.home-mode 不会匹配 */
+  html body.home-mode .layout > div:first-child {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: 20px;
+  }
+  html body.home-mode #aside-content {
+    padding-left: 0;   /* 间距已由主区的 margin-right 提供 */
+  }
+}
+
+/* 这一页里的链接不加下划线（按钮和卡片都是块级元素） */
+html .home-split a,
+html .home-split a:hover {
+  text-decoration: none;
+}
+
+/* ---- 5.1 左列：时间倒序的小卡片 ---- */
+html .home-list {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  /* 不能留 padding-right：它会把卡片右边缘往里推，
+     使左列↔中列的间距比中列↔右栏大几像素。 */
+  padding-right: 0;
+}
+
+html .home-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ef-bg3);   /* 默认就带边框，与预览窗格、作者卡一致 */
+  border-radius: 8px;
+  background: var(--ef-bg1);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .2s, border-color .2s, transform .2s;
+}
+html .home-item:hover {
+  transform: translateX(2px);
+}
+html .home-item.is-active {
+  border-color: var(--ef-green);
+  background: var(--ef-bg2);
+}
+
+html .home-item-date {
+  display: block;
+  color: var(--ef-grey0);
+  font-size: .72em;
+  font-variant-numeric: tabular-nums;
+}
+
+html .home-item-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 3px 0 4px;
+  color: var(--font-color);
+  font-size: .9em;
+  font-weight: 600;
+  line-height: 1.5;
+}
+html .home-item.is-active .home-item-title { color: var(--ef-green); }
+
+html .home-item-meta {
+  display: block;
+  overflow: hidden;
+  color: var(--ef-grey0);
+  font-size: .72em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---- 5.2 中列：预览窗格 ---- */
+html .home-preview {
+  min-height: 460px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 30px 32px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 12px;
+}
+
+/* 默认面板：自我介绍 */
+html .home-intro {
+  padding: 34px 8px;
+  text-align: center;
+}
+
+html .home-intro-avatar {
+  width: 88px;
+  height: 88px;
+  border: 2px solid var(--ef-bg3);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+html .home-intro-name {
+  margin-top: 16px;
+  color: var(--font-color);
+  font-size: 1.4em;
+  font-weight: 600;
+}
+
+html .home-intro-motto {
+  margin-top: 10px;
+  color: var(--ef-green);
+  font-size: .95em;
+}
+
+html .home-intro-text {
+  max-width: 460px;
+  margin: 16px auto 0;
+  color: var(--ef-grey1);
+  font-size: .86em;
+  line-height: 1.9;
+}
+
+html .home-intro-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+html .home-intro-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  background: var(--ef-green);
+  /* 必须 !important：everforest.css 的 html[data-theme='dark'] a { color: blue }
+     特异性比这里高，会把绿底按钮的文字染成蓝色，直接看不见。 */
+  color: #2d353b !important;   /* fg_on_green */
+  font-size: .84em;
+  font-weight: 600;
+  transition: transform .2s, opacity .2s;
+}
+html .home-intro-btn:hover {
+  color: #2d353b !important;
+  transform: translateY(-1px);
+  opacity: .92;
+}
+
+html .home-intro-btn--ghost {
+  background: var(--ef-bg2);
+  color: var(--ef-fg) !important;
+}
+html .home-intro-btn--ghost:hover { color: var(--ef-green) !important; }
+
+/* 文章预览 */
+html .home-preview-title {
+  margin: 0;
+  color: var(--font-color);
+  font-size: 1.38em;
+  line-height: 1.5;
+}
+
+html .home-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--ef-grey0);
+  font-size: .8em;
+}
+html .home-preview-date { font-variant-numeric: tabular-nums; }
+
+html .home-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+html .home-preview-tag {
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-green);
+  font-size: .76em;
+  cursor: pointer;
+  transition: background-color .2s;
+}
+html .home-preview-tag:hover { background: var(--ef-bg3); }
+
+html .home-preview-desc {
+  margin: 20px 0 0;
+  color: var(--ef-fg);
+  font-size: .95em;
+  line-height: 1.9;
+}
+
+html .home-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 26px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: var(--ef-green);
+  /* 同 .home-intro-btn：必须 !important，否则被全局链接色盖成蓝字 */
+  color: #2d353b !important;
+  font-size: .86em;
+  font-weight: 600;
+  transition: transform .2s, opacity .2s;
+}
+html .home-preview-btn:hover {
+  color: #2d353b !important;
+  transform: translateX(3px);
+  opacity: .92;
+}
+
+/* ---- 5.3 窄屏：不分栏，点卡片直接进文章 ---- */
+@media screen and (max-width: 900px) {
+  html #recent-posts.home-split { grid-template-columns: 1fr; }
+  html .home-list {
+    position: static;
+    max-height: none;
+  }
+  html .home-preview { display: none; }
+}
+
+/* ---- 5.4 左列顶部的作者卡（点击回到自我介绍） ---- */
+html .home-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  background: var(--ef-bg2);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+}
+html .home-author:hover { border-color: var(--ef-green); }
+html .home-author.is-active { border-color: var(--ef-green); }
+
+html .home-author-avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+html .home-author-name {
+  overflow: hidden;
+  color: var(--font-color);
+  font-size: .9em;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html .home-author-hint {
+  flex: none;
+  margin-left: auto;
+  color: var(--ef-grey0);
+  font-size: .72em;
+}
