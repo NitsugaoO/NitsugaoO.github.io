@@ -15,20 +15,26 @@
 # ============================================================================
 
 top:
-  # ---- 正在循环：喜欢的歌的歌词 ------------------------------------------
-  # 改歌词：改下面的 lyric-line。class="em" 的那行用正文米白显示（适合副歌），
-  # 其余行是次要灰，鼠标悬停会自动变绿。
+  # ---- 正在循环：滚动歌词卡 ----------------------------------------------
+  # 内容由 source/js/custom.js 从 source/js/lyrics-data.js 渲染（自动滚动 +
+  # 随机切歌）。下面这段 HTML 只是「浏览器禁用 JS」时的兜底显示。
+  # 换歌、改歌词请编辑 source/js/lyrics-data.js，不要改这里。
   - class_name: card-lyrics
     id_name: card-lyrics
     name: 正在循环
     icon: fas fa-music
     html: |
-      <div class="lyrics">
-        <p class="lyric-line">在我的怀里 在你的眼里</p>
-        <p class="lyric-line">那里春风沉醉 那里绿草如茵</p>
-        <p class="lyric-line em">月光把爱恋 洒满了湖面</p>
-        <p class="lyric-line">两个人的篝火 照亮整个夜晚</p>
+      <div class="lyrics" id="lyrics-root">
+        <div class="lyrics-viewport">
+          <div class="lyrics-track">
+            <p class="lyric-line is-active">在我的怀里 在你的眼里</p>
+            <p class="lyric-line">那里春风沉醉 那里绿草如茵</p>
+            <p class="lyric-line">月光把爱恋 洒满了湖面</p>
+          </div>
+        </div>
+        <div class="lyrics-foot">
+          <a class="lyrics-source" href="https://music.163.com/#/song?id=109998" target="_blank" rel="noopener">
+            <i class="fas fa-headphones"></i> 贝加尔湖畔 · 李健
+          </a>
+        </div>
       </div>
-      <a class="lyrics-source" href="https://music.163.com/#/song?id=109998" target="_blank" rel="noopener">
-        <i class="fas fa-headphones"></i> 贝加尔湖畔 · 李健
-      </a>

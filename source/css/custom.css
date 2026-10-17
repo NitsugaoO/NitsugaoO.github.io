@@ -51,74 +51,179 @@ html #aside-content .card-info .author-info-description.revealed .motto-extra {
 /* ============================================================================
  * 二、侧栏「正在循环」歌词卡
  * ----------------------------------------------------------------------------
- * 内容写 source/_data/widget.yml（top 槽位）—— 改歌词不用碰 CSS/JS。
+ * 歌词数据 → source/js/lyrics-data.js
+ * 滚动/切歌逻辑 → source/js/custom.js（initLyricsCard）
+ * 这里只管外观：3 行视窗、向上滚动、中间那行高亮。
  * ========================================================================= */
 
 html .card-lyrics .lyrics {
   margin: 2px 0 0;
 }
 
-html .card-lyrics .lyric-line {
-  margin: 5px 0;
+/* 视窗：固定 3 行高，多出来的裁掉。
+   font-size 定在这里，下面行高用 em 才能和视窗高对应上。 */
+html .card-lyrics .lyrics-viewport {
+  position: relative;
+  height: calc(3 * 1.9em);
+  overflow: hidden;
   font-size: .92em;
-  line-height: 1.75;
-  color: var(--ef-grey1);
-  transition: color .25s;
+  /* 上下边缘淡出，歌词进出视窗时不会硬切 */
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 15%, #000 85%, rgba(0,0,0,0) 100%);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 15%, #000 85%, rgba(0,0,0,0) 100%);
 }
 
-/* 副歌/想强调的那一行：正文米白色，一眼能看到 */
-html .card-lyrics .lyric-line.em {
-  color: var(--font-color);
+/* 滚动轨道：一整条歌词上下平移（位移由 JS 算） */
+html .card-lyrics .lyrics-track {
+  transition: transform .6s cubic-bezier(.25, .46, .45, .94);
+  will-change: transform;
 }
 
-/* 鼠标挪到某一行，它自己亮起来 */
-html .card-lyrics .lyric-line:hover {
+html .card-lyrics .lyric-line {
+  height: 1.9em;
+  margin: 0;
+  line-height: 1.9em;
+  color: var(--ef-grey0);
+  opacity: .8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color .4s, opacity .4s;
+}
+
+/* 正在唱的那一行：绿色 + 完全不透明 */
+html .card-lyrics .lyric-line.is-active {
   color: var(--ef-green);
+  opacity: 1;
 }
 
-/* 卡片底部：歌名 + 去网易云听 */
-html .card-lyrics .lyrics-source {
-  display: block;
+/* 卡片底部：歌名 + 去网易云听（右边是「换一首」按钮） */
+html .card-lyrics .lyrics-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px dashed var(--ef-bg3);
   font-size: .86em;
+}
+
+
+/* ----------------------------------------------------------------------------
+ * 播放控制行：▶ 按钮 + 进度条 + 当前时间/总时长
+ * 只有拿到 LRC 时间轴时才由 JS 创建（没有 LRC 就没有播放可言）。
+ * ------------------------------------------------------------------------- */
+
+html .card-lyrics .lyrics-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+html .card-lyrics .lyrics-toggle {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ef-bg2);
   color: var(--ef-grey2);
+  font-size: .86em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color .25s, color .25s;
+}
+html .card-lyrics .lyrics-toggle:hover {
+  background: var(--ef-green);
+  color: #2d353b;   /* fg_on_green —— 强调色底上的文字 */
+}
+
+html .card-lyrics .lyrics-progress {
+  flex: 1 1 auto;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ef-bg2);
+}
+
+html .card-lyrics .lyrics-progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ef-green);
+  transition: width .2s linear;   /* 跟得上 200ms 的时钟滴答 */
+}
+
+html .card-lyrics .lyrics-time {
+  flex: none;
+  color: var(--ef-grey0);
+  font-size: .78em;
+  font-variant-numeric: tabular-nums;   /* 数字等宽，跳动时不抖 */
+}
+
+/* 歌词还在加载（本地文件，一闪而过） */
+html .card-lyrics .lyrics-loading {
+  margin: 8px 0;
+  color: var(--ef-grey0);
+  font-size: .86em;
+}
+
+html .card-lyrics .lyrics-source {
+  overflow: hidden;
+  color: var(--ef-grey2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
   transition: color .25s;
 }
 html .card-lyrics .lyrics-source:hover {
   color: var(--ef-green);
 }
 
+/* 「换一首」：歌单只有一首时不会出现（由 JS 控制） */
+html .card-lyrics .lyrics-shuffle {
+  flex: none;
+  padding: 2px 5px;
+  border: 0;
+  background: none;
+  color: var(--ef-grey2);
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .25s, transform .45s;
+}
+html .card-lyrics .lyrics-shuffle:hover {
+  color: var(--ef-green);
+  transform: rotate(180deg);
+}
+
 
 /* ============================================================================
- * 三、页脚左侧的二次元动图
+ * 三、页脚里的二次元动图
  * ----------------------------------------------------------------------------
  * 元素由 source/js/custom.js 插入（图不存在时会自动移除）。
- * 现用图是一张 340×340 的人物特写，贴在页脚左下角、上半身溢出到页脚之上，
- * 所以 #footer 不能裁切内容。尺寸/位置不满意时，只改下面几行。
+ *
+ * 现用图是**透明背景**的立绘动画：图片直接坐在页脚内侧的底边（bottom: 0），
+ * 上半身溢出到页脚之上 —— 自然得像人从页脚里探出头来。
+ *
+ * 透明图不需要边框/圆角/阴影，也不建议加 opacity，揉合会发灰。
+ * 尺寸/位置不满意时只改下面几行。
  * ========================================================================= */
 
 html #footer .footer-mascot {
   position: absolute;
   left: 2.5rem;
-  bottom: 0;
-  width: 6.5rem;     /* 正方形图，宽高保持一致 */
-  height: 6.5rem;
-  border: 1px solid var(--ef-bg3);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;   /* 像从页脚底边冒出来的小相框 */
-  box-shadow: 0 -4px 14px rgba(30, 35, 38, .45);
-  pointer-events: none;           /* 不挡着版权文字被点到 */
-  opacity: .92;
+  bottom: 0;        /* 坐在页脚内部的底边上 */
+  height: 10rem;    /* 宽度按 16:9 自动，约 17.8rem */
+  width: auto;
+  pointer-events: none;   /* 不挡着版权文字被点到 */
 }
 
-/* 窄屏：页脚本来就不高，图缩小并贴边，避免压住版权行 */
+/* 窄屏：页脚本来就不高，图缩小并贴左边 */
 @media screen and (max-width: 768px) {
   html #footer .footer-mascot {
     left: .5rem;
-    width: 4.25rem;
-    height: 4.25rem;
-    opacity: .8;
+    height: 6.5rem;
   }
 }
