@@ -262,11 +262,26 @@ const server = http.createServer(async function (req, res) {
     /* 用 VSCode 打开（-g 定位到文件首行） */
     if (pathname === '/api/open-vscode' && method === 'POST') {
       const body = await readBody(req);
-      const isDraft = !!body.draft;
-      const file = content.postPath(body.file, isDraft);
+      let file;
+
+      if (body.type === 'data') {
+        /* 允许打开的 _data 文件（白名单） */
+        const allowed = {
+          shuoshuo: path.join(ROOT, 'source/_data/shuoshuo.yml'),
+          site: path.join(ROOT, 'source/_data/site.yml'),
+          link: path.join(ROOT, 'source/_data/link.yml')
+        };
+        file = allowed[body.key];
+        if (!file) throw new Error('不允许打开这个文件');
+      } else {
+        const isDraft = !!body.draft;
+        file = content.postPath(body.file, isDraft);
+      }
+
       if (!fs.existsSync(file)) throw new Error('文件不存在');
+      const target = body.line ? file + ':' + body.line : file;
       const { spawn } = require('child_process');
-      const child = spawn('code', ['-g', file], {
+      const child = spawn('code', ['-g', target], {
         shell: true,
         detached: true,
         stdio: 'ignore',

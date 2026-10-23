@@ -472,6 +472,31 @@ main {
 }
 .card .content:focus { outline: none; border-color: var(--green); }
 
+/* 说说卡片底部：VSCode / 预览 + 预览区 */
+.card-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.shuoshuo-preview {
+  display: none;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--bg3);
+  border-radius: 8px;
+  background: var(--bg0);
+}
+.shuoshuo-preview.is-open { display: block; }
+.shuoshuo-preview img { max-width: 100%; border-radius: 6px; }
+.shuoshuo-preview pre {
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--bg1);
+  overflow: auto;
+}
+.shuoshuo-preview a { color: var(--blue); }
+
 .about { min-height: 420px; }
 
 .sites {

@@ -333,10 +333,25 @@ function saveAbout(fm, body) {
 
 /* ---- 一次性读取全部内容 ------------------------------------------------ */
 
+/* 说说：在数据里附上每条在 YAML 里的行号，管理页的「VSCode」按钮
+   才能用 code -g file:line 定位到对应条目。 */
+function readShuoshuo() {
+  const items = readYaml(DATA_FILES.shuoshuo, []);
+  if (!Array.isArray(items)) return [];
+  const text = readText(DATA_FILES.shuoshuo);
+  const lines = [];
+  text.split("\n").forEach(function (line, i) {
+    if (/^- date:/.test(line)) lines.push(i + 1);
+  });
+  return items.map(function (item, i) {
+    return Object.assign({}, item, { line: lines[i] || 1 });
+  });
+}
+
 function readAll() {
   return {
     posts: listPosts(),
-    shuoshuo: readYaml(DATA_FILES.shuoshuo, []),
+    shuoshuo: readShuoshuo(),
     link: readYaml(DATA_FILES.link, []),
     site: readYaml(DATA_FILES.site, {}),
     about: readAbout()

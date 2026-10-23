@@ -558,7 +558,13 @@
     var add = el('button', 'btn small', '+ 新增');
     add.type = 'button';
     add.addEventListener('click', function () {
-      items.unshift({ date: nowString(), content: '', tags: [] });
+      items.unshift({
+        date: nowString(),
+        /* key 是评论区的唯一标识（Giscus 用 specific + term），新建时必须生成 */
+        key: 'shuoshuo-' + Date.now().toString(36),
+        content: '',
+        tags: []
+      });
       state.data.shuoshuo = items;
       paint();
       setDirty(true);
@@ -605,6 +611,45 @@
         content.value = item.content || '';
         content.addEventListener('input', function () { item.content = content.value; setDirty(true); });
         card.appendChild(content);
+
+        /* 工具行：在 VSCode 里编辑 YAML（定位到这条），以及 Markdown 预览 */
+        var tools = el('div', 'card-tools');
+
+        var vscodeBtn = el('button', 'btn small', 'VSCode');
+        vscodeBtn.type = 'button';
+        vscodeBtn.title = '在 VSCode 中打开 shuoshuo.yml 的这一条';
+        vscodeBtn.addEventListener('click', function () {
+          api('/api/open-vscode', {
+            method: 'POST',
+            body: { type: 'data', key: 'shuoshuo', line: item.line }
+          })
+            .then(function () { toast('已在 VSCode 中打开'); })
+            .catch(function (err) { toast('打开失败：' + err.message, true); });
+        });
+        tools.appendChild(vscodeBtn);
+
+        var preview = el('div', 'shuoshuo-preview');
+        var previewBtn = el('button', 'btn small', '预览');
+        previewBtn.type = 'button';
+        previewBtn.addEventListener('click', function () {
+          if (preview.classList.contains('is-open')) {
+            preview.classList.remove('is-open');
+            return;
+          }
+          api('/api/preview', {
+            method: 'POST',
+            body: { text: content.value }
+          })
+            .then(function (result) {
+              preview.innerHTML = result.html;
+              preview.classList.add('is-open');
+            })
+            .catch(function (err) { toast('预览失败：' + err.message, true); });
+        });
+        tools.appendChild(previewBtn);
+
+        card.appendChild(tools);
+        card.appendChild(preview);
 
         listBox.appendChild(card);
       });
