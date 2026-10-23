@@ -8,10 +8,6 @@ katex: true
 top: true
 cover: /images/tsctf2026/image-5.png
 ---
-```flag
-test{}
-```
-
 ## Abstract 方向
 ### emoji
 注意到第二句前三个字是 😙(亲) 🤛(拳) 🤛(石)
@@ -25,8 +21,7 @@ TSCTF-J{明月松间照，清泉石上流}
 1. 问了 DeepSeek 让其回答每一排的牌型
 2. 看到第一个是三色双龙会，然后想了想“三色双龙”开头的五言绝句都不记得，蒙了一个会当凌绝顶上去结果过了
 
-**flag:** 
-```
+```flag
 TSCTF-J{会当凌绝顶一览众山小}
 ```
 
@@ -231,7 +226,7 @@ m = int(r)
 
 #### 拼起来
 
-```
+```flag
 TSCTF-J{Happy_RSA????
 ```
 
@@ -279,8 +274,7 @@ io.interactive()
 
 ![alt text](/images/tsctf2026/image-10.png)
 
-**flag:** 
-```
+```flag
 flag{WH4T_woULD-y0u_Ilk3-fOr-DiNn3r874c87}
 ```
 
@@ -394,8 +388,7 @@ io.interactive()
 
 其实后来知道 `ELF()` 可以用 `checksec = False` 参数，就不会再输出一遍 `checksec` 信息了。
 
-**flag:** 
-```
+```flag
 TSCTF{stdi0_remembers_what_y0u_f0rg0t}
 ```
 
@@ -585,8 +578,7 @@ io.interactive()
 
 ![alt text](/images/tsctf2026/image-22.png)
 
-**flag:** 
-```
+```flag
 TSCTF{who_ar3_you_i_am_murasam3}
 ```
 
