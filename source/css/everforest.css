@@ -1032,3 +1032,30 @@ html .search-dialog .search-nav i.fa-search,
 html .search-dialog .search-nav .search-dialog-title {
   color: var(--ef-grey1);
 }
+
+
+/* ============================================================================
+ * 十六、分隔线：统改成普通 1px 实线
+ * ----------------------------------------------------------------------------
+ * 主题的 .custom-hr 是「2px 虚线 + 中间一个会滑动的图标」，用在：
+ *   文章正文的 ---、友链页、评论上方的分隔、搜索弹窗里的 hr
+ * 视觉上和 Everforest 的克制感不搭，这里统一替换成一条 1px 实线。
+ *
+ * hr_icon.enable 已在 _config.butterfly.yml 关掉（否则 :before 图标还在），
+ * 下面的规则只负责线本身。
+ * ========================================================================= */
+
+html hr,
+html .custom-hr {
+  width: 100%;
+  height: 0;
+  margin: 32px auto;
+  border: none;
+  border-top: 1px solid var(--ef-bg3);
+  background: none;
+}
+
+/* 保险：万一配置没生效，图标也不显示 */
+html .custom-hr:before {
+  display: none;
+}

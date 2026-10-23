@@ -849,7 +849,7 @@ blog_title_font:
 
 # The setting of divider icon
 hr_icon:
-  enable: true
+  enable: false   # 不要虚线 + 图标的分割线，见 everforest.css 第十六节
   # The unicode value of Font Awesome icon, such as '\3423'
   icon:
   icon_top:
