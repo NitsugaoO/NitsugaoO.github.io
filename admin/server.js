@@ -87,6 +87,60 @@ function runShell(command) {
   });
 }
 
+/* ---- 网易云：搜索 + 歌词（管理页「歌曲」用） ---------------------------- */
+
+const NETEASE_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+  Referer: 'https://music.163.com/'
+};
+
+async function neteaseJSON(url) {
+  const res = await fetch(url, {
+    headers: NETEASE_HEADERS,
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!res.ok) throw new Error('网易云返回 HTTP ' + res.status);
+  return res.json();
+}
+
+/* 输入可以是关键词，也可以是分享链接 / 纯数字 id */
+function extractNeteaseId(input) {
+  const str = String(input || '');
+  const matched = str.match(/(?:[?&]id=|song\/)(\d+)/) || str.match(/^(\d+)$/);
+  return matched ? matched[1] : null;
+}
+
+function mapNeteaseSong(song) {
+  return {
+    id: String(song.id),
+    title: song.name,
+    artist: (song.artists || []).map(function (a) { return a.name; }).join(' / '),
+    album: (song.album && song.album.name) || '',
+    duration: Math.round((song.duration || 0) / 1000)
+  };
+}
+
+async function neteaseSearch(query) {
+  const id = extractNeteaseId(query);
+  if (id) {
+    const data = await neteaseJSON('https://music.163.com/api/song/detail?ids=[' + id + ']');
+    return (data.songs || []).map(mapNeteaseSong);
+  }
+
+  const data = await neteaseJSON(
+    'https://music.163.com/api/search/get/web?csrf_token=&s=' +
+    encodeURIComponent(query) + '&type=1&offset=0&total=true&limit=8'
+  );
+  return ((data.result && data.result.songs) || []).map(mapNeteaseSong);
+}
+
+async function neteaseLyric(id) {
+  const data = await neteaseJSON(
+    'https://music.163.com/api/song/lyric?os=pc&id=' + encodeURIComponent(id) + '&lv=-1&kv=-1&tv=-1'
+  );
+  return (data.lrc && data.lrc.lyric) || '';
+}
+
 /* ---- 站点预览服务器（hexo server:4000） ---------------------------------- */
 
 const SITE_URL = 'http://localhost:4000/';
@@ -289,6 +343,20 @@ const server = http.createServer(async function (req, res) {
       });
       child.unref();
       return sendJSON(res, 200, { ok: true, path: file });
+    }
+
+    /* 网易云搜索（关键词 / 分享链接 / id） */
+    if (pathname === '/api/netease/search' && method === 'GET') {
+      const q = (url.searchParams.get('q') || '').trim();
+      if (!q) return sendJSON(res, 400, { error: '缺少关键词' });
+      return sendJSON(res, 200, { results: await neteaseSearch(q) });
+    }
+
+    /* 网易云歌词 */
+    if (pathname === '/api/netease/lyric' && method === 'GET') {
+      const id = (url.searchParams.get('id') || '').trim();
+      if (!/^\d+$/.test(id)) return sendJSON(res, 400, { error: 'id 不合法' });
+      return sendJSON(res, 200, { lyric: await neteaseLyric(id) });
     }
 
     /* 用系统默认图片查看器打开站内图片 */

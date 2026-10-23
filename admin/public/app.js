@@ -33,6 +33,7 @@
     var keep = new URLSearchParams(window.location.search);
     if (keep.get('preview') === '1') params.set('preview', '1');   /* 保留预览开关 */
     if (keep.get('fullscreen') === '1') params.set('fullscreen', '1');
+    if (keep.get('q')) params.set('q', keep.get('q'));             /* 保留歌曲搜索词 */
     var qs = params.toString();
     window.history.replaceState(null, '', '/' + (qs ? '?' + qs : ''));
   }
@@ -833,6 +834,111 @@
     });
     head.appendChild(add);
     app.appendChild(head);
+
+    /* ---- 搜索添加（网易云） ---- */
+    var searchBar = el('div', 'song-search');
+    var searchInput = el('input');
+    searchInput.type = 'search';
+    searchInput.placeholder = '搜歌名 / 歌手，或粘贴网易云链接 / 歌曲 id';
+    var searchBtn = el('button', 'btn small', '搜索');
+    searchBtn.type = 'button';
+    searchBar.appendChild(searchInput);
+    searchBar.appendChild(searchBtn);
+    app.appendChild(searchBar);
+
+    var resultsBox = el('div', 'song-results');
+    app.appendChild(resultsBox);
+
+    function formatDuration(sec) {
+      var m = Math.floor(sec / 60);
+      var s = sec % 60;
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    function paintResults(results) {
+      resultsBox.innerHTML = '';
+      if (!results.length) {
+        resultsBox.appendChild(el('p', 'empty', '没有找到，试试别的关键词。'));
+        return;
+      }
+      results.forEach(function (result) {
+        var row = el('div', 'song-result');
+        var info = el('div', 'song-result-info');
+        info.appendChild(el('strong', null, result.title));
+        info.appendChild(el('span', 'song-result-meta',
+          [result.artist, result.album, result.duration ? formatDuration(result.duration) : '']
+            .filter(Boolean).join(' · ')));
+        row.appendChild(info);
+
+        var addBtn = el('button', 'btn small primary', '添加');
+        addBtn.type = 'button';
+        addBtn.addEventListener('click', function () { addSong(result, addBtn); });
+        row.appendChild(addBtn);
+        resultsBox.appendChild(row);
+      });
+    }
+
+    function addSong(result, btn) {
+      btn.disabled = true;
+      btn.textContent = '添加中…';
+
+      api('/api/netease/lyric?id=' + encodeURIComponent(result.id))
+        .then(function (res) {
+          if (!res.lyric) throw new Error('这首歌没有歌词，可以手动粘贴');
+          return api('/api/lrc/' + encodeURIComponent(result.id + '.lrc'), {
+            method: 'PUT',
+            body: { text: res.lyric }
+          });
+        })
+        .then(function () {
+          items.unshift({
+            title: result.title,
+            artist: result.artist,
+            url: 'https://music.163.com/#/song?id=' + result.id,
+            lrc: '/lrc/' + result.id + '.lrc',
+            duration: result.duration || 240,
+            lines: []
+          });
+          state.data.lyrics = items;
+          return saveData('lyrics', items);
+        })
+        .then(function () {
+          resultsBox.innerHTML = '';
+          searchInput.value = '';
+          toast('已添加《' + result.title + '》');
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          btn.textContent = '添加';
+          toast('添加失败：' + err.message, true);
+        });
+    }
+
+    function doSearch() {
+      var q = searchInput.value.trim();
+      if (!q) return;
+      searchBtn.disabled = true;
+      searchBtn.textContent = '搜索中…';
+      api('/api/netease/search?q=' + encodeURIComponent(q))
+        .then(function (res) { paintResults(res.results || []); })
+        .catch(function (err) { toast('搜索失败：' + err.message, true); })
+        .then(function () {
+          searchBtn.disabled = false;
+          searchBtn.textContent = '搜索';
+        });
+    }
+
+    searchBtn.addEventListener('click', doSearch);
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    /* ?q=关键词 直接搜一次（调试 / 收藏用） */
+    var bootQuery = new URLSearchParams(window.location.search).get('q');
+    if (bootQuery) {
+      searchInput.value = bootQuery;
+      doSearch();
+    }
 
     var listBox = el('div', 'stack');
     app.appendChild(listBox);

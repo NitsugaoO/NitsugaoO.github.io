@@ -598,6 +598,49 @@ main {
 .card .content:focus { outline: none; border-color: var(--green); }
 
 /* 说说卡片底部：VSCode / 预览 + 预览区 */
+/* 歌曲搜索 */
+.song-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.song-search input {
+  flex: 1;
+  max-width: 520px;
+  padding: 6px 10px;
+  border: 1px solid var(--bg3);
+  border-radius: 7px;
+  background: var(--bg0);
+}
+.song-search input:focus { outline: none; border-color: var(--green); }
+
+.song-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.song-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--bg3);
+  border-radius: 8px;
+  background: var(--bg1);
+}
+.song-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.song-result-meta {
+  color: var(--grey0);
+  font-size: 11px;
+}
+
 /* 歌曲卡片 */
 .song-meta {
   display: grid;
