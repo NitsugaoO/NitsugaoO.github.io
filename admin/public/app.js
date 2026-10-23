@@ -1368,7 +1368,7 @@
               var avatarRow = el('div', 'input-row');
               avatarRow.appendChild(input);
 
-              var localBtn = el('button', 'btn small', '下载到本地');
+              var localBtn = el('button', 'btn small', '本地化');
               localBtn.type = 'button';
               localBtn.title = '外部图片下载到 source/img/，改用本地路径';
               localBtn.addEventListener('click', function () {

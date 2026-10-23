@@ -760,7 +760,7 @@ main {
 
 .site-row {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr) 140px minmax(0, 1fr) auto;
+  grid-template-columns: 130px minmax(0, 1fr) 220px minmax(0, 1fr) auto;
   align-items: start;   /* 头像列带预览，别把其他输入框拉高 */
   gap: 6px;
 }
