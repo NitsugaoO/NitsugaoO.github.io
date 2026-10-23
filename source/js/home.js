@@ -1,18 +1,14 @@
 /* ============================================================================
- * 首页 —— 「左列表 + 中预览」的主从视图
+ * 首页 —— 「左侧筛选 + 中栏时间流」
  * ----------------------------------------------------------------------------
- * 数据来自 /library.json（scripts/library-data.js 生成）。
- * 只在首页生效：找得到 #recent-posts、且不是文章库页面时才接管。
+ * 数据来自 /feed.json（scripts/library-data.js 生成）：
+ *   文章 / 笔记 / 说说 三种条目混在一起，按时间倒序。
  *
- * 行为：
- *   - 左列顶部：作者卡（点击 = 回到中间的自我介绍）
- *   - 左列：按时间倒序的文章小卡片
- *   - 中列：默认自我介绍；选中文章后显示标题 / 时间 / 分类 / 标签 / 简介
- *           + 「阅读全文」按钮
- *   - 窄屏：不再分栏，点卡片直接进文章（预览在这个尺寸下没意义）
+ * 左列：作者卡（点击进 /about/）+ 四个筛选项（全部 / 文章 / 笔记 / 说说）
+ * 中栏：时间流，每条按 kind 渲染成不同的卡片
+ * 右列：主题侧栏（作者卡在首页隐藏，避免和左列重复）
  *
- * 侧栏的「最新文章」卡片已关掉（card_recent_post.enable = false），
- * 作者卡在首页隐藏（避免和左列顶部那张重复），文章页不受影响。
+ * 只在首页生效：找不到 #recent-posts、或是文章库页面时直接返回。
  * ========================================================================= */
 
 (function () {
@@ -20,17 +16,17 @@
 
   var mount = document.getElementById('recent-posts');
   if (!mount) return;                                   /* 不是首页 */
-  if (document.getElementById('library-root')) return;  /* 文章库页面，别抢 */
+  if (document.getElementById('library-root')) return;  /* 文章库页面 */
 
-  var DATA_URL = '/library.json';
+  var DATA_URL = '/feed.json';
   var AVATAR = '/img/cloud.jpg';
   var ABOUT_URL = '/about/';
 
-  /* 给 body 打个标记：首页专用样式（如三栏间距）靠它生效 */
+  /* 给 body 打标记：首页专用样式靠它生效（注意选择器要写 body.home-mode） */
   document.body.classList.add('home-mode');
 
-  /* 窄屏阈值：低于这个宽度就不做主从视图了 */
-  var NARROW = 900;
+  /* 公告板文案（想改就改这里，留空则不显示） */
+  var ANNOUNCEMENT = '欢迎来到我的小站。这里放着 CTF 题解、基础课笔记，以及一些不成篇的碎碎念。';
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -39,201 +35,224 @@
     return node;
   }
 
-  function isNarrow() {
-    return window.matchMedia('(max-width: ' + NARROW + 'px)').matches;
+  /* 标签小徽章 */
+  function tagList(tags) {
+    if (!tags || !tags.length) return null;
+    var box = el('div', 'feed-tags');
+    tags.forEach(function (name) {
+      var a = document.createElement('a');
+      a.className = 'feed-tag';
+      a.href = '/library/?tag=' + encodeURIComponent(name);
+      a.textContent = name;
+      box.appendChild(a);
+    });
+    return box;
   }
 
-  /* ---- 默认面板：自我介绍 ------------------------------------------------- */
-  function introPanel() {
-    var box = el('div', 'home-intro');
+  /* ---- 说说卡片 ---------------------------------------------------------- */
+  function shuoshuoCard(item) {
+    var card = el('article', 'feed-item feed-shuoshuo');
 
-    var avatar = el('img', 'home-intro-avatar');
+    var head = el('header', 'feed-head');
+    var avatar = el('img', 'feed-avatar');
     avatar.src = AVATAR;
     avatar.alt = '';
     avatar.loading = 'lazy';
+    head.appendChild(avatar);
+    head.appendChild(el('span', 'feed-name', 'WooYun'));
+    head.appendChild(el('time', 'feed-date', item.date));
+    card.appendChild(head);
 
-    box.appendChild(avatar);
-    box.appendChild(el('div', 'home-intro-name', '呜云 WooYun'));
-    box.appendChild(el('p', 'home-intro-motto', '你内心一定有着某种火焰，把你与其他人区别开来。'));
-    box.appendChild(el('p', 'home-intro-text',
-      '这里放着 CTF 题解、基础课笔记，以及折腾过的工具与环境。' +
-      '按左边的时间顺序挑一篇，或者直接去文章库检索。'));
+    /* html 是服务端渲染好的 Markdown，直接用 */
+    var body = el('div', 'feed-body');
+    body.innerHTML = item.html || '';
+    card.appendChild(body);
 
-    var links = el('div', 'home-intro-links');
+    var tags = tagList(item.tags);
+    if (tags) card.appendChild(tags);
 
-    var toAbout = el('a', 'home-intro-btn', '关于我');
-    toAbout.href = '/about/';
-
-    var toLib = el('a', 'home-intro-btn home-intro-btn--ghost', '浏览文章库');
-    toLib.href = '/library/';
-
-    var toGh = el('a', 'home-intro-btn home-intro-btn--ghost', 'GitHub');
-    toGh.href = 'https://github.com/NitsugaoO';
-    toGh.target = '_blank';
-    toGh.rel = 'noopener';
-
-    links.appendChild(toAbout);
-    links.appendChild(toLib);
-    links.appendChild(toGh);
-    box.appendChild(links);
-
-    return box;
+    return card;
   }
 
-  /* ---- 文章预览面板 ------------------------------------------------------ */
-  function postPanel(post) {
-    var box = el('article', 'home-preview-body');
+  /* ---- 文章 / 笔记卡片 --------------------------------------------------- */
+  function postCard(item) {
+    var card = el('article', 'feed-item feed-post');
 
-    box.appendChild(el('h2', 'home-preview-title', post.title || '（无标题）'));
+    var head = el('header', 'feed-head');
+    head.appendChild(el('span', 'feed-kind feed-kind--' + item.kind,
+      item.kind === 'note' ? '笔记' : '文章'));
+    head.appendChild(el('time', 'feed-date', item.date));
+    card.appendChild(head);
 
-    var meta = el('div', 'home-preview-meta');
-    meta.appendChild(el('time', 'home-preview-date', post.date));
-    if (post.type === 'note') {
-      meta.appendChild(el('span', 'home-preview-type', '笔记'));
-    }
-    if (post.path.length) {
-      meta.appendChild(el('span', 'home-preview-dot', '·'));
-      meta.appendChild(el('span', 'home-preview-cat', post.path.join(' / ')));
-    }
-    box.appendChild(meta);
+    var title = el('h3', 'feed-title');
+    var link = document.createElement('a');
+    link.href = item.url;
+    link.textContent = item.title || '（无标题）';
+    title.appendChild(link);
+    card.appendChild(title);
 
-    if (post.tags.length) {
-      var tags = el('div', 'home-preview-tags');
-      post.tags.forEach(function (name) {
-        var t = el('span', 'home-preview-tag', name);
-        t.addEventListener('click', function () {
-          window.location.href = '/library/?tag=' + encodeURIComponent(name);
-        });
-        tags.appendChild(t);
-      });
-      box.appendChild(tags);
+    if (item.description) {
+      card.appendChild(el('p', 'feed-desc', item.description));
     }
 
-    if (post.description) {
-      box.appendChild(el('p', 'home-preview-desc', post.description));
+    /* 封面缩略图（只有设了 cover 的文章才有） */
+    if (item.cover) {
+      var thumb = el('a', 'feed-thumb');
+      thumb.href = item.url;
+      var img = el('img');
+      img.src = item.cover;
+      img.alt = '';
+      img.loading = 'lazy';
+      thumb.appendChild(img);
+      card.appendChild(thumb);
     }
 
-    var btn = el('a', 'home-preview-btn');
-    btn.href = post.url;
-    btn.innerHTML = '阅读全文 <i class="fas fa-arrow-right"></i>';
-    box.appendChild(btn);
+    var tags = tagList(item.tags);
+    if (tags) card.appendChild(tags);
 
-    return box;
+    return card;
   }
 
-  /* ---- 主渲染 ------------------------------------------------------------ */
-  function render(posts) {
-    if (!posts.length) return;
+  /* 图片点击放大：主题只在页面加载时遍历一次图片并包上 <a data-fancybox>，
+     而我们的卡片是 fetch 之后才插进去的，赶不上那一趟，所以每次重绘后
+     手动调一次主题的 loadLightbox。 */
+  function bindLightbox(container) {
+    if (!window.btf || typeof window.btf.loadLightbox !== 'function') return;
+    var imgs = container.querySelectorAll('img:not(.no-lightbox)');
+    if (imgs.length) window.btf.loadLightbox(imgs);
+  }
+
+  /* ---- 渲染 -------------------------------------------------------------- */
+  function render(items) {
+    if (!items.length) return;
+
+    var state = { filter: 'all' };
 
     mount.innerHTML = '';
     mount.classList.add('home-split');
 
-    /* ---- 左列 ---- */
-    var list = el('nav', 'home-list');
-    list.setAttribute('aria-label', '文章列表');
+    /* ===== 左列 ===== */
+    var side = el('nav', 'home-side');
 
-    /* 作者卡：点击把中列切回自我介绍 */
-    var authorBtn = el('button', 'home-author is-active');
-    authorBtn.type = 'button';
+    /* 把侧栏那张作者卡（大圆头像 + 名字 + 座右铭 + 文章/标签/分类统计）
+       整张搬到左列顶部：直接移动 DOM 而不是重建，这样主题的样式和
+       custom.js 已经绑好的交互（名字点击 → 关于页、座右铭点击展开）都能复用。 */
+    var asideInfo = document.querySelector('#aside-content .card-info');
+    if (asideInfo) side.appendChild(asideInfo);
 
-    var avatar = el('img', 'home-author-avatar');
-    avatar.src = AVATAR;
-    avatar.alt = '';
-    avatar.loading = 'lazy';
-
-    authorBtn.appendChild(avatar);
-    authorBtn.appendChild(el('span', 'home-author-name', '呜云 WooYun'));
-    authorBtn.appendChild(el('span', 'home-author-hint', '关于'));
-    list.appendChild(authorBtn);
-
-    /* ---- 中列 ---- */
-    var preview  = el('div', 'home-preview');
-    var panel = introPanel();
-    preview.appendChild(panel);
-
-    var items = [];
-    var selected = -1;   /* -1 = 没选，显示自我介绍 */
-
-    /* 统一的选择逻辑：-1 表示回到自我介绍 */
-    function select(index) {
-      selected = index;
-
-      authorBtn.classList.toggle('is-active', index === -1);
-      items.forEach(function (btn, i) {
-        btn.classList.toggle('is-active', i === index);
-      });
-
-      panel.remove();
-      panel = index === -1 ? introPanel() : postPanel(posts[index]);
-      preview.appendChild(panel);
-      preview.scrollTop = 0;
+    /* ---- 公告板（留空则不渲染）---- */
+    if (ANNOUNCEMENT) {
+      var board = el('div', 'home-board');
+      var boardHead = el('div', 'home-board-title');
+      boardHead.appendChild(el('i', 'fas fa-bullhorn'));
+      boardHead.appendChild(document.createTextNode(' 公告'));
+      board.appendChild(boardHead);
+      board.appendChild(el('p', 'home-board-text', ANNOUNCEMENT));
+      side.appendChild(board);
     }
 
-    authorBtn.addEventListener('click', function () {
-      /* 窄屏下预览窗格是隐藏的，切回自我介绍也没东西可看，直接去关于页 */
-      if (isNarrow()) {
-        window.location.href = ABOUT_URL;
-        return;
-      }
-      select(-1);
+    /* ---- 置顶文章：接在公告下面，沿用旧的文章小卡片样式 ---- */
+    var pinned = items.filter(function (it) { return it.top; });
+    if (pinned.length) {
+      var pinBox = el('div', 'home-pins');
+
+      var pinHead = el('div', 'home-pins-title');
+      pinHead.appendChild(el('i', 'fas fa-thumbtack'));
+      pinHead.appendChild(document.createTextNode(' 置顶'));
+      pinBox.appendChild(pinHead);
+
+      pinned.forEach(function (it) {
+        var a = document.createElement('a');
+        a.className = 'home-item';
+        a.href = it.url;
+
+        a.appendChild(el('time', 'home-item-date', it.date));
+        a.appendChild(el('span', 'home-item-title', it.title || '（无标题）'));
+
+        var metaText = it.path && it.path.length ? it.path.join(' / ') : '未分类';
+        if (it.tags && it.tags.length) metaText += '　' + it.tags.join(' · ');
+        a.appendChild(el('span', 'home-item-meta', metaText));
+
+        pinBox.appendChild(a);
+      });
+
+      side.appendChild(pinBox);
+    }
+
+    /* ---- 筛选：带条数（放在中栏顶部）---- */
+    var filters = el('div', 'home-filters');
+    var filterDefs = [
+      { key: 'all', label: '全部' },
+      { key: 'post', label: '文章' },
+      { key: 'note', label: '笔记' },
+      { key: 'shuoshuo', label: '说说' }
+    ];
+    var filterBtns = {};
+
+    filterDefs.forEach(function (def) {
+      var count = def.key === 'all'
+        ? items.length
+        : items.filter(function (it) { return it.kind === def.key; }).length;
+      if (!count) return;   /* 没内容的分类不占位 */
+
+      var btn = el('button', 'home-filter');
+      btn.type = 'button';
+      btn.appendChild(document.createTextNode(def.label));
+      btn.appendChild(el('span', 'home-filter-count', String(count)));
+      if (def.key === 'all') btn.classList.add('is-active');
+
+      btn.addEventListener('click', function () {
+        state.filter = def.key;
+        Object.keys(filterBtns).forEach(function (k) {
+          filterBtns[k].classList.toggle('is-active', k === def.key);
+        });
+        paintFeed();
+      });
+
+      filterBtns[def.key] = btn;
+      filters.appendChild(btn);
     });
 
-    /* 分两个区：「文章」在上，「笔记」在下。
-       分类依据是 front-matter 的 type 字段（不写 = 文章）。 */
-    function renderGroup(title, groupPosts) {
-      if (!groupPosts.length) return;
+    side.appendChild(filters);
 
-      var group = el('div', 'home-group');
+    /* 注：搜索框 / 分类入口 / 底部快捷链接已按用户要求移除，
+       只保留「作者卡 + 公告板 + 筛选」。 */
 
-      var head = el('div', 'home-group-title');
-      head.appendChild(el('span', 'home-group-name', title));
-      head.appendChild(el('span', 'home-group-count', String(groupPosts.length)));
-      group.appendChild(head);
+    /* ===== 中栏 ===== */
+    var feed = el('div', 'home-feed');
 
-      groupPosts.forEach(function (post) {
-        /* 全局索引：select() 用的是 posts 里的位置，不能分区重新编号 */
-        var index = posts.indexOf(post);
+    function paintFeed() {
+      feed.innerHTML = '';
 
-        var item = el('button', 'home-item');
-        item.type = 'button';
-
-        item.appendChild(el('time', 'home-item-date', post.date));
-        item.appendChild(el('span', 'home-item-title', post.title || '（无标题）'));
-
-        var metaText = post.path.length ? post.path.join(' / ') : '未分类';
-        if (post.tags.length) metaText += '　' + post.tags.join(' · ');
-        item.appendChild(el('span', 'home-item-meta', metaText));
-
-        item.addEventListener('click', function () {
-          /* 窄屏：预览没意义，直接进文章 */
-          if (isNarrow()) {
-            window.location.href = post.url;
-            return;
-          }
-          select(index);
-        });
-
-        items[index] = item;
-        group.appendChild(item);
+      var list = items.filter(function (item) {
+        return state.filter === 'all' || item.kind === state.filter;
       });
 
-      list.appendChild(group);
+      if (!list.length) {
+        feed.appendChild(el('p', 'home-empty', '这一类还没有内容。'));
+        return;
+      }
+
+      list.forEach(function (item) {
+        feed.appendChild(item.kind === 'shuoshuo' ? shuoshuoCard(item) : postCard(item));
+      });
+
+      bindLightbox(feed);
     }
 
-    renderGroup('文章', posts.filter(function (p) { return p.type !== 'note'; }));
-    renderGroup('笔记', posts.filter(function (p) { return p.type === 'note'; }));
+    mount.appendChild(side);
 
-    mount.appendChild(list);
-    mount.appendChild(preview);
+    /* 中栏：筛选条放最上面（它控制的就是下面这个流），再是时间流 */
+    var main = el('div', 'home-main');
+    main.appendChild(filters);
+    main.appendChild(feed);
+    mount.appendChild(main);
 
-    /* 首页隐藏侧栏的作者卡：同一张脸在左列顶部已经出现过一次。
-       （只动首页；文章页的侧栏作者卡和座右铭都不受影响） */
-    var asideInfo = document.querySelector('#aside-content .card-info');
-    if (asideInfo) asideInfo.style.display = 'none';
-
-    /* 首页原来的分页器用不上了（左列已经列出全部文章） */
+    /* 原来的分页器用不上了 */
     var pager = document.querySelector('#content-inner .pagination');
     if (pager) pager.style.display = 'none';
+
+    paintFeed();
   }
 
   /* ---- 载入 -------------------------------------------------------------- */
@@ -244,6 +263,6 @@
     })
     .then(render)
     .catch(function () {
-      /* 拿不到数据就别动，保留主题原有的文章卡片流 */
+      /* 拿不到数据就别动，保留主题原有的卡片流 */
     });
 })();

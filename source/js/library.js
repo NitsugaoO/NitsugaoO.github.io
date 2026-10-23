@@ -100,7 +100,9 @@
     var state = {
       path: catParam ? catParam.split('/').filter(Boolean) : [],
       keyword: params.get('q') || '',
-      tag: params.get('tag') || ''
+      tag: params.get('tag') || '',
+      /* 是否同时搜索正文（URL 用 ?full=1 记住这个开关） */
+      fulltext: params.get('full') === '1'
     };
 
     root.innerHTML = '';
@@ -117,9 +119,21 @@
     searchWrap.appendChild(el('i', 'fas fa-search'));
     searchWrap.appendChild(input);
 
+    var fullTextBtn = el('button', 'library-fulltext', '搜正文');
+    fullTextBtn.type = 'button';
+    fullTextBtn.title = '同时搜索文章正文（否则只搜标题、简介和标签）';
+    if (state.fulltext) fullTextBtn.classList.add('is-active');
+    fullTextBtn.addEventListener('click', function () {
+      state.fulltext = !state.fulltext;
+      fullTextBtn.classList.toggle('is-active', state.fulltext);
+      paintList();
+      syncUrl();
+    });
+
     var total = el('span', 'library-total');
 
     toolbar.appendChild(searchWrap);
+    toolbar.appendChild(fullTextBtn);
     toolbar.appendChild(total);
 
     /* --- 筛选 chip（只在按标签筛选时出现）--- */
@@ -143,6 +157,7 @@
       if (state.path.length && state.path[0] !== '__none__') p.set('cat', state.path.join('/'));
       if (state.tag) p.set('tag', state.tag);
       if (state.keyword.trim()) p.set('q', state.keyword.trim());
+      if (state.fulltext) p.set('full', '1');
 
       var qs = p.toString();
       window.history.replaceState(null, '', qs ? HOME + '?' + qs : HOME);
@@ -239,8 +254,11 @@
 
         /* 关键词 */
         if (!kw) return true;
-        var haystack = (post.title + ' ' + post.description + ' ' + post.tags.join(' ')).toLowerCase();
-        return haystack.indexOf(kw) !== -1;
+
+        var haystack = post.title + ' ' + post.description + ' ' + post.tags.join(' ');
+        if (state.fulltext) haystack += ' ' + (post.text || '');
+
+        return haystack.toLowerCase().indexOf(kw) !== -1;
       });
     }
 

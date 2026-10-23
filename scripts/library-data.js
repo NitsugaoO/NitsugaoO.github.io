@@ -1,54 +1,91 @@
 /* ============================================================================
- * 生成 /library.json —— 「文章库」页面的数据源
- * ----------------------------------------------------------------------------
- * 为什么不用 hexo-generator-searchdb 的 search.json：
- *   它只有 title / url / content / categories / tags，**没有 date 和
- *   description**，而文章库正好要靠这两样在右侧展示。
+ * 生成两份数据：
+ *   /library.json  —— 只有文章/笔记（文章库页面用）
+ *   /feed.json     —— 文章 + 笔记 + 说说，按时间倒序（首页中栏的时间流用）
  *
- * 放在站点根目录的 scripts/ 下，Hexo 会自动加载（不需要注册到主题里）。
- * 输出示例：
- *   [{
- *     "title": "第一章 第一节 集合、映射与函数",
- *     "url": "/2026/10/14/.../",
- *     "date": "2026-10-14",
- *     "ts": 1760445660000,
- *     "path": ["数学分析"],            // 分类层级，父 → 子
- *     "tags": ["数学分析", "笔记"],
- *     "description": "一句话简介"
- *   }]
+ * 为什么分开：文章库是"结构化浏览文章"，不能混进说说；
+ * 首页要的是"所有内容的统一时间线"，两者用途不同。
+ *
+ * 说说来自 source/_data/shuoshuo.yml（site.data.shuoshuo）。
+ * 放在站点根目录的 scripts/ 下，Hexo 自动加载。
+ * ⚠️ 改完这个文件必须重启 hexo server（scripts 只在进程启动时加载）。
  * ========================================================================= */
 
-hexo.extend.generator.register('library_data', function (locals) {
-  var posts = locals.posts
-    .filter(function (post) {
-      return post.published !== false;
-    })
+'use strict';
+
+/* HTML → 纯文本：文章库的「搜正文」要用。
+   不引 hexo-util（pnpm 下站点根拿不到），手写足够用。 */
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function postEntry(post) {
+  return {
+    kind: post.type === 'note' ? 'note' : 'post',
+    /* 置顶：front-matter 的 top: true 或 sticky > 0 */
+    top: !!(post.top || post.sticky > 0),
+    title: post.title,
+    url: '/' + post.path,
+    date: post.date.format('YYYY-MM-DD'),
+    ts: post.date.valueOf(),
+    cover: post.cover || '',
+    description: post.description || '',
+    path: post.categories.toArray().map(function (cat) { return cat.name; }),
+    tags: post.tags.toArray().map(function (tag) { return tag.name; })
+  };
+}
+
+hexo.extend.generator.register('library_and_feed', function (locals) {
+  var published = locals.posts.filter(function (post) {
+    return post.published !== false;
+  });
+
+  /* ---- library.json：只要文章 / 笔记 ---- */
+  var library = published
     .sort('-date')
     .map(function (post) {
-      /* 分类按 front-matter 的顺序返回（父 → 子），
-         文章若写了 categories: [数学分析, 第一章]，这里就是 ['数学分析', '第一章'] */
-      var categoryPath = post.categories.toArray().map(function (cat) {
-        return cat.name;
-      });
-
-      return {
-        title: post.title,
-        url: '/' + post.path,
-        date: post.date.format('YYYY-MM-DD'),
-        ts: post.date.valueOf(),
-        /* 内容性质：front-matter 写 type: note 就是笔记，不写默认 post（文章）
-           与分类（主题）、标签（关键词）是三个互不干扰的维度。 */
-        type: post.type || 'post',
-        path: categoryPath,
-        tags: post.tags.toArray().map(function (tag) {
-          return tag.name;
-        }),
-        description: post.description || ''
-      };
+      var entry = postEntry(post);
+      entry.type = post.type || 'post';   // 文章库历史上用的是 type 字段
+      entry.text = stripHtml(post.content);   // 供文章库的「搜正文」使用
+      return entry;
     });
 
-  return {
-    path: 'library.json',
-    data: JSON.stringify(posts)
-  };
+  /* ---- feed.json：再加上说说 ---- */
+  var feed = published.map(postEntry);
+
+  (locals.data.shuoshuo || []).forEach(function (item) {
+    var dateStr = String(item.date || '');
+    feed.push({
+      kind: 'shuoshuo',
+      /* YAML 里的日期会被解析成 Date，String() 后是 ISO 格式，
+         这里统一成 "YYYY-MM-DD HH:mm" 好看一些 */
+      date: dateStr.slice(0, 16).replace('T', ' '),
+      ts: Date.parse(dateStr) || 0,
+      /* 说说正文要渲染成 HTML：支持 Markdown、图片、Hexo 标签 */
+      html: hexo.render.renderSync({ text: item.content || '', engine: 'markdown' }),
+      tags: item.tags || []
+    });
+  });
+
+  /* 置顶的排最前，其余按时间倒序 */
+  feed.sort(function (a, b) {
+    if (!!a.top !== !!b.top) return a.top ? -1 : 1;
+    return b.ts - a.ts;
+  });
+
+  return [
+    { path: 'library.json', data: JSON.stringify(library) },
+    { path: 'feed.json', data: JSON.stringify(feed) }
+  ];
 });

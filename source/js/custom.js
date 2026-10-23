@@ -54,7 +54,8 @@
 
   /* ---- 1. 作者名变成链接（点击进入自我介绍页）-------------------------- */
   function linkAuthorName() {
-    whenReady('#aside-content .card-info .author-info-name', function (name) {
+    /* 首页会把这张作者卡搬到 .home-side，所以两个位置都要匹配 */
+    whenReady('#aside-content .card-info .author-info-name, .home-side .card-info .author-info-name', function (name) {
       if (name.querySelector('a')) return;   // 已处理过
 
       var a = document.createElement('a');
@@ -70,7 +71,7 @@
 
   /* ---- 2. 座右铭点击展开下半句 ----------------------------------------- */
   function initMotto() {
-    whenReady('#aside-content .card-info .author-info-description', function (motto) {
+    whenReady('#aside-content .card-info .author-info-description, .home-side .card-info .author-info-description', function (motto) {
       if (!motto.querySelector('.motto-extra')) return;   // 没配下半句就不管
 
       motto.setAttribute('role', 'button');

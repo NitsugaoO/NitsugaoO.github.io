@@ -57,7 +57,7 @@ html[data-theme='dark'] {
   --dark-grey:            var(--ef-grey0);
   --text-highlight-color: var(--ef-fg);
   --headline-presudo:     var(--ef-grey0);
-  --hr-border:            var(--ef-green);   /* 分割线（2px dashed）本体 */
+  --hr-border:            var(--ef-fg);      /* 分割线（2px dashed）= 正文米白 */
   --hr-before-color:      var(--ef-green);   /* 分割线上的小图标 */
   --pseudo-hover:         var(--ef-green);
   --default-bg-color:     var(--ef-green);
@@ -198,7 +198,7 @@ html:root:not([data-theme='dark']) {
   --dark-grey:            var(--ef-grey0);
   --text-highlight-color: var(--ef-fg);
   --headline-presudo:     var(--ef-grey0);
-  --hr-border:            var(--ef-green);   /* 分割线（2px dashed）本体 */
+  --hr-border:            var(--ef-fg);      /* 分割线（2px dashed）= 正文米白 */
   --hr-before-color:      var(--ef-green);   /* 分割线上的小图标 */
   --pseudo-hover:         var(--ef-green);
   --default-bg-color:     var(--ef-green);
@@ -908,4 +908,113 @@ html .layout .pagination > *:not(.space) {
 html #recent-posts .recent-post-item:hover,
 html #article-container .shuoshuo-item:hover {
   border-color: var(--ef-green);
+}
+
+
+/* ============================================================================
+ * 十三、折叠块 / 隐藏块（hideToggle / hideBlock / hideInline）
+ * ----------------------------------------------------------------------------
+ * 主题默认是浅灰底 + 深色字（$tag-hide-toggle-bg / #1F2D3D），
+ * 在 Everforest 暗色页面上是一块刺眼的亮灰。改成和代码块工具栏一致的
+ * bg2 底 + bg3 边框 + 米白字。
+ * ========================================================================= */
+
+html .toggle {
+  border-color: var(--ef-bg3);
+}
+
+html .toggle > .toggle-button {
+  background: var(--ef-bg2);
+  color: var(--ef-fg);
+  transition: background-color .25s, color .25s;
+}
+html .toggle > .toggle-button:hover {
+  background: var(--ef-bg3);
+  color: var(--ef-green);
+}
+
+/* 展开后的内容保持正文样式，不加底色 */
+html .toggle > .toggle-content {
+  color: var(--font-color);
+}
+
+/* hideBlock / hideInline 的按钮 */
+html .hide-inline > .hide-button,
+html .hide-block > .hide-button {
+  background: var(--ef-bg2);
+  color: var(--ef-fg);
+}
+html .hide-inline > .hide-button:hover,
+html .hide-block > .hide-button:hover {
+  background: var(--ef-green);
+  color: #2d353b;   /* fg_on_green */
+}
+
+
+/* ============================================================================
+ * 十四、文章页横幅（top_img / cover）的可读性
+ * ----------------------------------------------------------------------------
+ * 横幅是一张照片/截图作背景，主题没有加遮罩，导致标题和元信息直接压在图上，
+ * 遇到深色或杂乱的图就完全看不清。这里补一层半透明暗色遮罩（用 bg0），
+ * 并把横幅上的文字统一成米白，保证任何图上都清晰。
+ * ========================================================================= */
+
+html #page-header.post-bg:before {
+  background-color: rgba(39, 46, 51, .55);   /* bg0 + 55% 不透明 */
+}
+
+html #page-header.post-bg #post-info,
+html #page-header.post-bg #post-info .post-title,
+html #page-header.post-bg #post-info .post-meta,
+html #page-header.post-bg #post-info .post-meta a,
+html #page-header.post-bg #post-info .post-meta i,
+html #page-header.post-bg #post-info .post-meta span,
+html #page-header.post-bg #post-info time {
+  color: var(--ef-fg) !important;
+}
+
+/* 元信息里的次要文字稍微压暗一点，层次还留着 */
+html #page-header.post-bg #post-info .post-meta .post-meta-label {
+  color: var(--ef-grey1) !important;
+}
+
+
+/* ============================================================================
+ * 十五、搜索弹窗里的分隔线
+ * ----------------------------------------------------------------------------
+ * 主题给 `.search-dialog hr` 复用了文章分割线的样式（@extend .custom-hr），
+ * 所以它也是「2px 虚线 + 一个 Font Awesome 图标」，在搜索框下面很花。
+ * 这里改成一条干净的 1px 实线，并去掉图标。 */
+html .search-dialog hr {
+  position: relative;
+  width: 100%;
+  margin: 16px auto;
+  border: 0;
+  border-top: 1px solid var(--ef-bg3);
+}
+
+/* 去掉那条分割线上的小图标 */
+html .search-dialog hr:before {
+  content: none;
+  display: none;
+}
+
+
+/* ---- 十六、搜索弹窗的关闭按钮 ------------------------------------------
+ * 主题给 `.search-close-button` 写死了 #858585（中性灰）。灰色小图标压在
+ * 深色背景上时，子像素抗锯齿会带出蓝紫彩边，看着像「渐变色」。
+ * 这里换成色板里的灰绿（grey2），hover 变强调绿，与其他图标一致。 */
+html .search-dialog .search-close-button,
+html .search-dialog .search-close-button i {
+  color: var(--ef-grey2);
+}
+html .search-dialog .search-close-button:hover,
+html .search-dialog .search-close-button:hover i {
+  color: var(--ef-green);
+}
+
+/* 搜索框里的放大镜图标同样处理，避免灰得发蓝 */
+html .search-dialog .search-nav i.fa-search,
+html .search-dialog .search-nav .search-dialog-title {
+  color: var(--ef-grey1);
 }

@@ -1,11 +1,17 @@
 ---
 title: TSCTF 2026 WriteUp
 date: 2026-10-12 23:15:00
-description: 'TSCTF 2026 赛后复盘：从 emoji 猜诗词到十三重 RSA 封条，再到栈与堆上的 PWN，把每道题卡在哪里、怎么出来的都记了下来。'
+description: 'TSCTF 2026 部分题题解'
 tags: [CTF, WriteUp, TSCTF]
 categories: [CTF]
 katex: true
+top: true
+cover: /images/tsctf2026/image-5.png
 ---
+
+```flag
+test{}
+```
 
 ## Abstract 方向
 ### emoji

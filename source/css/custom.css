@@ -27,12 +27,16 @@ html #aside-content .card-info .author-info-link:hover {
 /* ---- 1.2 座右铭：点击展开下半句 ---------------------------------------- */
 /* 第一句常显；第二句默认收起（max-height 过渡，不能用 display:none，
    否则没有动画）。下半句用强调绿，和「火焰」的意象对得上。 */
-html #aside-content .card-info .author-info-description {
+/* 座右铭展开：首页把作者卡搬到了 .home-side，所以两份选择器都要覆盖，
+   否则左列点击没反应（class 切了但样式不匹配）。 */
+html #aside-content .card-info .author-info-description,
+html .home-side .card-info .author-info-description {
   cursor: pointer;
   user-select: none;
 }
 
-html #aside-content .card-info .motto-extra {
+html #aside-content .card-info .motto-extra,
+html .home-side .card-info .motto-extra {
   display: block;
   max-height: 0;
   overflow: hidden;
@@ -41,7 +45,8 @@ html #aside-content .card-info .motto-extra {
   transition: max-height .35s ease, opacity .35s ease, margin-top .35s ease;
 }
 
-html #aside-content .card-info .author-info-description.revealed .motto-extra {
+html #aside-content .card-info .author-info-description.revealed .motto-extra,
+html .home-side .card-info .author-info-description.revealed .motto-extra {
   max-height: 3em;   /* 足够容纳一行，留出换行的余量 */
   margin-top: .2em;
   opacity: 1;
@@ -864,4 +869,584 @@ html .lib-type {
   margin-right: 6px;
   color: var(--ef-orange);
   font-size: .8em;
+}
+
+
+/* ============================================================================
+ * 六、说说页 / 友链页的排版微调
+ * ========================================================================= */
+
+/* 说说里的图片：按原比例限制高度，否则一张竖图会把整条说说撑到屏幕外 */
+html #article-container .shuoshuo-item .shuoshuo-content img {
+  width: auto;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* 友链：改成两列。主题默认三列，在 900~1024px 宽度下卡片只有 240px 左右，
+   标题会被截成 "Butterfly ..." —— 两列空间更从容。 */
+@media screen and (min-width: 601px) {
+  html .container .flink .flink-list > .flink-list-item {
+    width: calc(50% - 15px) !important;
+  }
+}
+
+
+/* ---- 6.1 说说里的九宫格图床 ------------------------------------------ */
+/* Markdown 里连续写多张图片时，markdown-it 会把它们放进同一个 <p>。
+   这种 <p>（含 ≥2 张图）自动排成三列网格，一张图时仍按普通大图显示。 */
+/* fancybox 会把图片包成 <a><img></a>，所以「> img」和「> a」两种情况都要覆盖 */
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) {
+  display: grid;
+  /* 站点的 markdown 开了 breaks:true，图片之间会多个 <br>，
+     它会被当成网格项占位，所以隐藏掉 */
+
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) br,
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) br {
+  display: none;
+}
+
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) img,
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) img,
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) a {
+  width: 100%;
+  height: 108px;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+/* 窄屏两列 */
+@media screen and (max-width: 600px) {
+  /* fancybox 会把图片包成 <a><img></a>，所以「> img」和「> a」两种情况都要覆盖 */
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---- 6.2 首页中栏预览里的封面图 -------------------------------------- */
+html .home-preview-cover {
+  display: block;
+  width: 100%;
+  height: 200px;
+  margin-bottom: 20px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+
+/* ============================================================================
+ * 七、首页时间流（方案 A：左侧筛选 + 中栏混合流）
+ * ----------------------------------------------------------------------------
+ * 数据来自 /feed.json，文章 / 笔记 / 说说混排，按时间倒序。
+ * 旧的 .home-list / .home-preview 样式保留着但已不再使用。
+ * ========================================================================= */
+
+/* ---- 7.1 左列：作者卡 + 筛选 ---- */
+html .home-side {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+html .home-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+html .home-filter {
+  padding: 6px 13px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 20px;
+  background: var(--ef-bg1);
+  color: var(--ef-grey2);
+  font-size: .82em;
+  cursor: pointer;
+  transition: background-color .2s, border-color .2s, color .2s;
+}
+html .home-filter:hover {
+  border-color: var(--ef-green);
+  color: var(--ef-green);
+}
+html .home-filter.is-active {
+  background: var(--ef-green);
+  border-color: var(--ef-green);
+  color: #2d353b;
+  font-weight: 600;
+}
+
+/* ---- 7.2 中栏：时间流 ---- */
+html .home-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+html .feed-item {
+  padding: 18px 22px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 10px;
+  transition: border-color .25s;
+}
+html .feed-item:hover { border-color: var(--ef-bg3); }
+
+html .feed-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+html .feed-avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+html .feed-name {
+  color: var(--font-color);
+  font-size: .9em;
+  font-weight: 600;
+}
+
+html .feed-date {
+  margin-left: auto;
+  color: var(--ef-grey0);
+  font-size: .76em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 类型徽章 */
+html .feed-kind {
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  font-size: .74em;
+  font-weight: 600;
+}
+html .feed-kind--note { color: var(--ef-orange); }
+html .feed-kind--post { color: var(--ef-aqua); }
+
+html .feed-title {
+  margin: 0 0 6px;
+  font-size: 1.1em;
+  line-height: 1.5;
+}
+html .feed-title a { color: var(--font-color); }
+html .feed-title a:hover { color: var(--ef-green); }
+
+html .feed-desc {
+  margin: 0;
+  color: var(--ef-grey1);
+  font-size: .88em;
+  line-height: 1.8;
+}
+
+/* 说说正文 */
+html .feed-body {
+  color: var(--font-color);
+  font-size: .92em;
+  line-height: 1.9;
+}
+html .feed-body > *:first-child { margin-top: 0; }
+html .feed-body > *:last-child { margin-bottom: 0; }
+html .feed-body img {
+  width: auto;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* 连续图片 → 九宫格（站点开了 breaks:true，图片间会插 <br>） */
+html .feed-body p:has(> img ~ img),
+html .feed-body p:has(> a ~ a) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+html .feed-body p:has(> img ~ img) br,
+html .feed-body p:has(> a ~ a) br { display: none; }
+html .feed-body p:has(> img ~ img) img,
+html .feed-body p:has(> a ~ a) img,
+html .feed-body p:has(> a ~ a) a {
+  width: 100%;
+  height: 108px;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+}
+
+/* 封面缩略图 */
+html .feed-thumb {
+  display: block;
+  margin-top: 12px;
+}
+html .feed-thumb img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+}
+
+html .feed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+html .feed-tag {
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-grey2);
+  font-size: .76em;
+  transition: color .2s;
+}
+html .feed-tag:hover { color: var(--ef-green); }
+
+html .home-empty {
+  padding: 40px 0;
+  color: var(--ef-grey1);
+  text-align: center;
+}
+
+/* ---- 7.3 窄屏 ---- */
+@media screen and (max-width: 900px) {
+  html .home-side { position: static; }
+  html .home-feed .feed-body p:has(> img ~ img) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* ---- 7.4 左列的补充内容：搜索 / 分类 / 快捷链接 ---- */
+html .home-search-wrap {
+  position: relative;
+}
+
+html .home-search-wrap i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ef-grey1);
+  font-size: .8em;
+  pointer-events: none;
+}
+
+html .home-search {
+  width: 100%;
+  padding: 8px 10px 8px 32px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  background: var(--ef-bg1);
+  color: var(--font-color);
+  font-size: .85em;
+  transition: border-color .2s, background-color .2s;
+}
+html .home-search::placeholder { color: var(--ef-grey0); }
+html .home-search:focus {
+  outline: none;
+  border-color: var(--ef-green);
+  background: var(--ef-bg2);
+}
+
+/* 筛选按钮里的数字 */
+html .home-filter-count {
+  margin-left: 6px;
+  color: inherit;
+  opacity: .7;
+  font-size: .9em;
+}
+
+/* 分类快速入口 */
+html .home-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  background: var(--ef-bg1);
+}
+
+html .home-cats-title {
+  margin-bottom: 4px;
+  padding: 0 4px;
+  color: var(--ef-grey0);
+  font-size: .74em;
+  letter-spacing: .05em;
+}
+
+html .home-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px;
+  border-radius: 6px;
+  color: var(--ef-grey2);
+  font-size: .85em;
+  transition: background-color .2s, color .2s;
+}
+html .home-cat:hover {
+  background: var(--ef-bg2);
+  color: var(--ef-green);
+}
+html .home-cat i {
+  flex: none;
+  width: 1em;
+  color: var(--ef-green);
+  font-size: .9em;
+}
+html .home-cat-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+html .home-cat-count {
+  margin-left: auto;
+  color: var(--ef-grey0);
+  font-size: .85em;
+}
+
+/* 底部快捷链接 */
+html .home-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px;
+}
+html .home-link {
+  color: var(--ef-grey1);
+  font-size: .8em;
+  transition: color .2s;
+}
+html .home-link:hover { color: var(--ef-green); }
+
+
+/* ---- 7.5 左列改版：大作者卡 + 公告板 + 两列筛选 ---- */
+
+/* 作者卡加大：头像 56px，名字更醒目 */
+html .home-author {
+  gap: 14px;
+  padding: 16px 16px;
+}
+html .home-author-avatar {
+  width: 56px;
+  height: 56px;
+}
+html .home-author-name {
+  font-size: 1.05em;
+  font-weight: 600;
+}
+html .home-author-hint {
+  font-size: .78em;
+}
+
+/* 筛选条已移到中栏顶部：横向排列，不再用网格 */
+html .home-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html .home-filter {
+  padding: 7px 14px;
+  white-space: nowrap;
+}
+html .home-filter-count {
+  margin-left: 6px;
+}
+
+/* 中栏容器：筛选 + 时间流 */
+html .home-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* 公告板 */
+html .home-board {
+  padding: 14px 16px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  background: var(--ef-bg1);
+}
+html .home-board-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--ef-green);
+  font-size: .82em;
+  font-weight: 600;
+}
+html .home-board-text {
+  margin: 0;
+  color: var(--ef-grey1);
+  font-size: .84em;
+  line-height: 1.8;
+}
+
+
+/* ---- 7.6 左列的置顶文章 ---- */
+html .home-pins {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+html .home-pins-title {
+  padding: 0 2px 2px;
+  color: var(--ef-grey1);
+  font-size: .76em;
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+html .home-pins-title i {
+  color: var(--ef-orange);
+}
+
+/* 复用旧的 .home-item 卡片样式，这里只需要让 <a> 表现一致 */
+html .home-pins .home-item {
+  border-color: var(--ef-bg3);
+  text-decoration: none;
+}
+html .home-pins .home-item:hover {
+  border-color: var(--ef-green);
+}
+
+
+/* ---- 7.7 搬到左列的作者卡 ----
+   主题的卡片背景/圆角是靠 `#aside-content .card-widget` 这个选择器给的，
+   卡片被搬到 #aside-content 外面后就不匹配了，会变成「裸」内容。
+   这里把同样的外观补回来。 */
+html .home-side .card-widget {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0;
+  padding: 20px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+}
+
+/* 复刻主题给 #aside-content 里作者卡的排版 —— 这些规则带 `#aside-content` 前缀，
+   卡片搬到左列后全部失效，会导致名字缩回默认字号、座右铭间距消失。
+   这里原样照抄，保证左右两张卡看起来一模一样。 */
+html .home-side .card-info .author-info-name {
+  font-weight: 500;
+  font-size: 1.57em;
+  color: var(--font-color);
+}
+html .home-side .card-info .author-info-description {
+  margin-top: -0.42em;
+  color: var(--font-color);
+}
+html .home-side .card-info .site-data {
+  margin: 14px 0 4px;
+}
+
+/* 统计栏：标签 / 数字两行的字号与颜色（主题那两条没带前缀，本来就得生效，
+   显式写一遍是为了防止以后主题改版把它包进 #aside-content） */
+html .home-side .card-info .site-data .headline {
+  color: var(--font-color);
+  font-size: .95em;
+}
+html .home-side .card-info .site-data .length-num {
+  margin-top: -0.45em;
+  color: var(--text-highlight-color);
+  font-size: 1.2em;
+}
+
+
+/* ============================================================================
+ * 7.8 首页三栏的竖向间距统一
+ * ----------------------------------------------------------------------------
+ * 之前左栏（.home-side gap:10px）、中栏（.home-main/.home-feed gap:14px）、
+ * 右栏（主题 .card-widget margin-bottom:20px）各用各的数字，观感不一致。
+ * 这里统一成 16px —— 只在首页生效，文章页的侧栏保持主题原样。
+ * ========================================================================= */
+
+html body.home-mode .home-side,
+html body.home-mode .home-main,
+html body.home-mode .home-feed {
+  gap: 16px;
+}
+
+html body.home-mode #aside-content .card-widget {
+  margin-bottom: 16px;
+}
+
+/* 置顶那一组里的文章小卡片属于同一组，内部保持紧凑的 6px，
+   只把「标题 → 第一张卡片」的间距对齐到组间距 */
+html body.home-mode .home-pins {
+  gap: 6px;
+}
+html body.home-mode .home-pins-title {
+  padding: 0 2px 4px;
+}
+
+
+/* ---- 4.7 文章库的「搜正文」开关 ---- */
+html .library-fulltext {
+  flex: none;
+  padding: 8px 13px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 8px;
+  background: var(--ef-bg1);
+  color: var(--ef-grey1);
+  font-size: .82em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .2s, border-color .2s, color .2s;
+}
+html .library-fulltext:hover {
+  border-color: var(--ef-green);
+  color: var(--ef-green);
+}
+html .library-fulltext.is-active {
+  background: var(--ef-green);
+  border-color: var(--ef-green);
+  color: #2d353b;
+  font-weight: 600;
+}
+
+
+/* ============================================================================
+ * 八、去掉搜索框原生的清除按钮
+ * ----------------------------------------------------------------------------
+ * <input type="search"> 在 Chrome / Edge 下会自带一个清除按钮
+ * （::-webkit-search-cancel-button），它是浏览器原生 UI，颜色由系统决定，
+ * 用 color 改不了 —— 所以在深色背景上会显得又蓝又突兀。
+ * 这里直接隐藏：清除靠手动删字符即可。
+ * ========================================================================= */
+
+html input[type='search']::-webkit-search-cancel-button,
+html input[type='search']::-webkit-search-decoration,
+html input[type='search']::-webkit-search-results-button,
+html input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }

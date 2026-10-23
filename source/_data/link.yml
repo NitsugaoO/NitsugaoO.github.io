@@ -1,0 +1,30 @@
+# ============================================================================
+# 友链数据（source/link/index.md 里 type: link 的页面会读取它）
+# ----------------------------------------------------------------------------
+# 每个分组：
+#   class_name  分组名（会成为小标题）
+#   class_desc  分组说明（可省略）
+#   link_list   站点列表
+#     name    站点名
+#     link    链接
+#     avatar  头像（建议 100×100 左右，本地放 source/img/）
+#     descr   一句话描述
+# ============================================================================
+
+- class_name: 示例分组
+  class_desc: 先把这里换成你真正想放的站点
+  link_list:
+    - name: Butterfly 文档
+      link: https://butterfly.js.org/
+      avatar: /img/cloud.jpg
+      descr: 主题的官方文档，所有标签插件的用法都在这里
+
+    - name: NitsugaoO
+      link: https://github.com/NitsugaoO
+      avatar: /img/cloud.jpg
+      descr: 我的 GitHub
+
+    - name: Everforest
+      link: https://github.com/sainnhe/everforest
+      avatar: /img/cloud.jpg
+      descr: 本站配色的源头
