@@ -76,13 +76,22 @@
 
       motto.setAttribute('role', 'button');
       motto.setAttribute('tabindex', '0');
-      motto.setAttribute('title', '点击看看下半句');
+      motto.setAttribute('title', '鼠标移上来看看下半句');
 
-      function toggle() {
-        motto.classList.toggle('revealed');
-      }
+      function open() { motto.classList.add('revealed'); }
+      function close() { motto.classList.remove('revealed'); }
+      function toggle() { motto.classList.toggle('revealed'); }
 
-      motto.addEventListener('click', toggle);
+      /* 鼠标移到前半句上展开，离开自动折叠 */
+      motto.addEventListener('mouseenter', open);
+      motto.addEventListener('mouseleave', close);
+
+      /* 触屏没有 hover：退化成点击 */
+      motto.addEventListener('click', function () {
+        if (window.matchMedia && window.matchMedia('(hover: none)').matches) toggle();
+      });
+
+      /* 键盘仍可切换（无障碍） */
       motto.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -336,6 +345,14 @@
           refs.toggle = toggle;
           refs.bar = bar;
           refs.time = time;
+        }
+
+        /* 感想：默认折叠，卡片 hover 时展开（Markdown 已在构建时渲染成 HTML） */
+        if (song.noteHtml) {
+          var note = document.createElement('div');
+          note.className = 'lyrics-note';
+          note.innerHTML = song.noteHtml;
+          root2.appendChild(note);
         }
 
         /* 底部：歌名（点了去网易云）+ 换一首（歌单超过一首才出现） */

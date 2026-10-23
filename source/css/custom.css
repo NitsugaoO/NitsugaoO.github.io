@@ -125,6 +125,33 @@ html .card-lyrics .lyric-line .lyric-sub {
 }
 
 /* 卡片底部：歌名 + 去网易云听（右边是「换一首」按钮） */
+/* 歌词卡的感想：默认只露一两行，卡片 hover 时展开 */
+html .card-lyrics .lyrics-note {
+  max-height: 2.2em;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--ef-grey0);
+  font-size: .78em;
+  line-height: 1.6;
+  transition: max-height .3s ease;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+          mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+html .card-lyrics:hover .lyrics-note {
+  max-height: 60em;
+  -webkit-mask-image: none;
+          mask-image: none;
+}
+html .card-lyrics .lyrics-note p { margin: 0 0 4px; }
+html .card-lyrics .lyrics-note p:last-child { margin-bottom: 0; }
+html .card-lyrics .lyrics-note a { color: var(--ef-blue); }
+html .card-lyrics .lyrics-note code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--ef-bg2);
+}
+html .card-lyrics .lyrics-note img { max-width: 100%; border-radius: 6px; }
+
 html .card-lyrics .lyrics-foot {
   display: flex;
   align-items: center;
