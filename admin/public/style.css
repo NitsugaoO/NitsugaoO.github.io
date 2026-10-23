@@ -280,8 +280,15 @@ main {
 .editor-title {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   min-width: 0;
+}
+
+.editor-meta {
+  color: var(--grey0);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .status-badge {

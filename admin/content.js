@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const matter = require('gray-matter');
 const yaml = require('js-yaml');
 
@@ -144,16 +145,87 @@ function writeYaml(file, data) {
 /* 两个目录：_posts = 已发布，_drafts = 草稿（Hexo 默认不会生成草稿）。
    两边可能有同名文件，所以每条记录都带 status，前端用「status + file」区分。 */
 
+/* Git 里该文件的最后提交时间（管理页只读展示用）。
+   规则与站点的 scripts/updated-from-git.js 一致：手写 updated > git > date。
+   缓存 key 带上 HEAD 和文件 mtime，轮询时不会反复跑 git。 */
+const gitCache = new Map();
+
+let fullHistory = null;
+
+function hasFullHistory() {
+  if (fullHistory !== null) return fullHistory;
+  try {
+    const out = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+      cwd: ROOT, encoding: 'utf8', timeout: 3000,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    fullHistory = out !== 'true';
+  } catch (e) {
+    fullHistory = false;
+  }
+  return fullHistory;
+}
+
+function headCommit() {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: ROOT, encoding: 'utf8', timeout: 3000,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch (e) {
+    return '';
+  }
+}
+
+function gitUpdated(file, isDraft, fullPath) {
+  if (!hasFullHistory()) return null;
+
+  let stat;
+  try {
+    stat = fs.statSync(fullPath);
+  } catch (e) {
+    return null;
+  }
+
+  const key = fullPath + '|' + stat.mtimeMs + '|' + headCommit();
+  if (gitCache.has(key)) return gitCache.get(key);
+
+  const rel = path.posix.join('source', isDraft ? '_drafts' : '_posts', file);
+  let value = null;
+  try {
+    const out = execFileSync('git', ['log', '-1', '--format=%cI', '--', rel], {
+      cwd: ROOT, encoding: 'utf8', timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    if (out) value = new Date(out);
+  } catch (e) {
+    value = null;
+  }
+
+  gitCache.set(key, value);
+  return value;
+}
+
 function readPostDir(dir, status) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir)
     .filter(function (name) { return name.endsWith('.md'); })
     .map(function (name) {
-      const parsed = matter(readText(path.join(dir, name)));
+      const full = path.join(dir, name);
+      const parsed = matter(readText(full));
+      const fm = normalizeFrontMatter(parsed.data);
+
+      /* 手写 updated 优先，其次 git 提交时间，最后回退创建时间 */
+      const fromGit = gitUpdated(name, status === 'draft', full);
+      const updated = fm.updated
+        ? fm.updated
+        : (fromGit ? formatLocal(fromGit) : (fm.date || ''));
+
       return {
         file: name,
         status: status,                 /* published | draft */
-        fm: normalizeFrontMatter(parsed.data),
+        updated: updated,
+        fm: fm,
         body: parsed.content.replace(/^\n+/, '')
       };
     });

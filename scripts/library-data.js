@@ -38,6 +38,9 @@ function postEntry(post) {
     title: post.title,
     url: '/' + post.path,
     date: post.date.format('YYYY-MM-DD'),
+    /* 最后修改：scripts/updated-from-git.js 用 git 提交时间填的，
+       没提交过的文件会回退成 date */
+    updated: (post.updated || post.date).format('YYYY-MM-DD'),
     ts: post.date.valueOf(),
     cover: post.cover || '',
     description: post.description || '',

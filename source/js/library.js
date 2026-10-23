@@ -294,7 +294,9 @@
         if (post.type === 'note') {
           side.appendChild(el('span', 'lib-type', '笔记'));
         }
-        var time = el('time', 'lib-item-date', post.date);
+        var dateText = post.date || '';
+        if (post.updated && post.updated !== post.date) dateText += ' · 更新 ' + post.updated;
+        var time = el('time', 'lib-item-date', dateText);
         time.dateTime = post.date;
         side.appendChild(time);
 

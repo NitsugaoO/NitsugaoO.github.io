@@ -235,6 +235,9 @@
     titleBox.appendChild(el('h2', null, fm.title || post.file));
     titleBox.appendChild(el('span', 'status-badge ' + (isDraft ? 'draft' : 'published'),
       isDraft ? '草稿' : '已发布'));
+    /* 两个时间分开展示：创建时间可编辑（在表单里），修改时间来自 git，只读 */
+    titleBox.appendChild(el('span', 'editor-meta',
+      '创建 ' + (fm.date || '未知') + ' · 更新 ' + (post.updated || fm.date || '未知')));
     head.appendChild(titleBox);
 
     var tools = el('div', 'editor-tools');

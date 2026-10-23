@@ -91,7 +91,9 @@
     }
     head.appendChild(el('span', 'feed-kind feed-kind--' + item.kind,
       item.kind === 'note' ? '笔记' : '文章'));
-    head.appendChild(el('time', 'feed-date', item.date));
+    var dateText = item.date || '';
+    if (item.updated && item.updated !== item.date) dateText += ' · 更新 ' + item.updated;
+    head.appendChild(el('time', 'feed-date', dateText));
     card.appendChild(head);
 
     var title = el('h3', 'feed-title');
