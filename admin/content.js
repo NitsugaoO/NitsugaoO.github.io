@@ -465,6 +465,34 @@ function saveImage(data, mime, dir) {
   return { path: '/' + targetRel + '/' + name, size: buf.length };
 }
 
+/* 用新图覆盖旧图（路径不变，引用处自动生效）。
+   格式必须和原文件一致，否则线上 MIME 会对不上。 */
+function replaceImage(sitePath, data, mime) {
+  const rel = String(sitePath || '').replace(/^\/+/, '');
+  if (!/^(images|img)\//.test(rel)) throw new Error('只能替换图片');
+
+  const sourceRoot = path.join(ROOT, 'source');
+  const full = ensureInside(sourceRoot, path.join(sourceRoot, rel));
+  if (!fs.existsSync(full)) throw new Error('图片不存在');
+
+  const buf = Buffer.from(String(data || ''), 'base64');
+  if (!buf.length) throw new Error('图片为空');
+  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+
+  const type = String(mime || '').toLowerCase();
+  if (!/^image\//.test(type)) throw new Error('不是图片');
+
+  const subtype = type.split('/')[1].split(';')[0];
+  const ext = subtype === 'jpeg' ? 'jpg' : subtype.replace('svg+xml', 'svg');
+  const oldExt = path.extname(full).slice(1).toLowerCase();
+  if (ext !== oldExt) {
+    throw new Error('新图是 ' + ext + '，原文件是 ' + oldExt + '，请换同格式图片');
+  }
+
+  fs.writeFileSync(full, buf);
+  return { path: sitePath, size: buf.length };
+}
+
 function deleteImage(sitePath) {
   const rel = String(sitePath || '').replace(/^\/+/, '');
   if (!/^(images|img)\//.test(rel)) throw new Error('只能删除图片');
@@ -538,5 +566,6 @@ module.exports = {
   writeLrc,
   listImages,
   saveImage,
+  replaceImage,
   deleteImage
 };

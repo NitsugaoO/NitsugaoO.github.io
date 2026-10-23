@@ -352,6 +352,11 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, content.saveImage(body.data, body.mime, body.dir));
     }
 
+    if (pathname === '/api/replace-image' && method === 'POST') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.replaceImage(body.path, body.data, body.mime));
+    }
+
     if (pathname === '/api/delete-image' && method === 'POST') {
       const body = await readBody(req);
       return sendJSON(res, 200, content.deleteImage(body.path));

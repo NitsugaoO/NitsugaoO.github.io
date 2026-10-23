@@ -981,11 +981,26 @@
     }
   }
 
+  /* 用新图覆盖旧图（路径不变，所有引用自动生效） */
+  function replaceImageFile(image, file, reload) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var base64 = String(reader.result).split(',')[1];
+      api('/api/replace-image', {
+        method: 'POST',
+        body: { path: image.path, data: base64, mime: file.type }
+      })
+        .then(function () { toast('已替换 ' + image.path); reload(); })
+        .catch(function (err) { toast('替换失败：' + err.message, true); });
+    };
+    reader.readAsDataURL(file);
+  }
+
   function buildImageCard(image, reload) {
     var card = el('div', 'image-card');
 
     var img = el('img');
-    img.src = image.path;
+    img.src = image.path + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
     img.alt = '';
     img.loading = 'lazy';
     img.title = '点击复制路径';
@@ -1011,6 +1026,23 @@
     }
 
     var actions = el('div', 'image-actions');
+
+    var replaceBtn = el('button', 'btn small', '替换');
+    replaceBtn.type = 'button';
+    replaceBtn.title = '用新图覆盖这张图（路径不变，引用处自动生效）';
+    var replaceInput = document.createElement('input');
+    replaceInput.type = 'file';
+    replaceInput.accept = 'image/*';
+    replaceInput.style.display = 'none';
+    replaceBtn.addEventListener('click', function () { replaceInput.click(); });
+    replaceInput.addEventListener('change', function () {
+      var file = replaceInput.files[0];
+      if (file) replaceImageFile(image, file, reload);
+      replaceInput.value = '';
+    });
+    actions.appendChild(replaceBtn);
+    actions.appendChild(replaceInput);
+
     var del = el('button', 'btn danger small', '×');
     del.type = 'button';
     del.title = '移到回收站';
@@ -1030,6 +1062,11 @@
   function renderImages() {
     app.innerHTML = '';
 
+    var allImages = [];
+    var statusFilter = 'all';
+    var sourceFilter = '';
+    var keyword = '';
+
     var head = el('div', 'page-head');
     head.appendChild(el('h2', null, '图片'));
     var reloadBtn = el('button', 'btn small', '刷新列表');
@@ -1038,6 +1075,7 @@
     head.appendChild(reloadBtn);
     app.appendChild(head);
 
+    /* 上传 */
     var drop = el('div', 'image-drop', '把图片拖到这里，或点击选择 / Ctrl+V 粘贴（上传到 source/images/）');
     var fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -1062,10 +1100,48 @@
     app.appendChild(drop);
     app.appendChild(fileInput);
 
+    /* 筛选：引用状态 + 引用来源 + 搜索 */
+    var filters = el('div', 'image-filters');
+
+    var statusChips = el('div', 'status-filter');
+    [['all', '全部'], ['used', '已引用'], ['unused', '未引用']].forEach(function (pair) {
+      var chip = el('button', 'status-chip' + (pair[0] === 'all' ? ' is-active' : ''), pair[1]);
+      chip.type = 'button';
+      chip.addEventListener('click', function () {
+        statusFilter = pair[0];
+        Array.prototype.forEach.call(statusChips.children, function (node) {
+          node.classList.toggle('is-active', node === chip);
+        });
+        applyFilter();
+      });
+      statusChips.appendChild(chip);
+    });
+    filters.appendChild(statusChips);
+
+    var sourceSelect = document.createElement('select');
+    sourceSelect.className = 'image-source';
+    sourceSelect.addEventListener('change', function () {
+      sourceFilter = sourceSelect.value;
+      applyFilter();
+    });
+    filters.appendChild(sourceSelect);
+
+    var search = el('input', 'image-search');
+    search.type = 'search';
+    search.placeholder = '搜索路径…';
+    search.addEventListener('input', function () {
+      keyword = search.value;
+      applyFilter();
+    });
+    filters.appendChild(search);
+
+    var count = el('span', 'image-count');
+    filters.appendChild(count);
+    app.appendChild(filters);
+
     var grid = el('div', 'image-grid');
     app.appendChild(grid);
-
-    app.appendChild(el('p', 'image-hint', '点击缩略图复制路径；点「×」把图片移到回收站。'));
+    app.appendChild(el('p', 'image-hint', '点击缩略图复制路径；「替换」用同格式新图覆盖原文件；「×」移到回收站。'));
 
     function uploadFiles(files) {
       Array.prototype.forEach.call(files || [], function (file) {
@@ -1101,19 +1177,59 @@
     };
     document.addEventListener('paste', imagePasteHandler);
 
+    function rebuildSourceOptions() {
+      var files = {};
+      allImages.forEach(function (img) {
+        (img.refs || []).forEach(function (ref) { files[ref.file] = true; });
+      });
+      var list = Object.keys(files).sort();
+
+      sourceSelect.innerHTML = '';
+      var all = document.createElement('option');
+      all.value = '';
+      all.textContent = '全部引用来源';
+      sourceSelect.appendChild(all);
+
+      list.forEach(function (file) {
+        var opt = document.createElement('option');
+        opt.value = file;
+        opt.textContent = file;
+        sourceSelect.appendChild(opt);
+      });
+
+      if (sourceFilter && list.indexOf(sourceFilter) === -1) sourceFilter = '';
+      sourceSelect.value = sourceFilter;
+    }
+
+    function applyFilter() {
+      var kw = keyword.trim().toLowerCase();
+      var list = allImages.filter(function (img) {
+        var refs = img.refs || [];
+        if (statusFilter === 'used' && !refs.length) return false;
+        if (statusFilter === 'unused' && refs.length) return false;
+        if (sourceFilter && !refs.some(function (ref) { return ref.file === sourceFilter; })) return false;
+        if (kw && img.path.toLowerCase().indexOf(kw) === -1) return false;
+        return true;
+      });
+
+      count.textContent = '共 ' + allImages.length + ' 张 · 显示 ' + list.length + ' 张';
+      grid.innerHTML = '';
+      if (!list.length) {
+        grid.appendChild(el('p', 'empty', '没有符合条件的图片。'));
+        return;
+      }
+      list.forEach(function (image) {
+        grid.appendChild(buildImageCard(image, loadImages));
+      });
+    }
+
     function loadImages() {
       grid.innerHTML = '<p class="empty">加载中…</p>';
       api('/api/images')
         .then(function (data) {
-          var images = data.images || [];
-          grid.innerHTML = '';
-          if (!images.length) {
-            grid.appendChild(el('p', 'empty', '还没有图片。'));
-            return;
-          }
-          images.forEach(function (image) {
-            grid.appendChild(buildImageCard(image, loadImages));
-          });
+          allImages = data.images || [];
+          rebuildSourceOptions();
+          applyFilter();
         })
         .catch(function (err) {
           grid.innerHTML = '';

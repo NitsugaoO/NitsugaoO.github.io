@@ -670,6 +670,35 @@ main {
   background: var(--bg1);
 }
 
+.image-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.image-source {
+  max-width: 320px;
+  padding: 4px 8px;
+  border: 1px solid var(--bg3);
+  border-radius: 7px;
+  background: var(--bg0);
+  color: var(--fg);
+  font-size: 12px;
+}
+.image-search {
+  flex: 1;
+  min-width: 180px;
+  padding: 4px 10px;
+  border: 1px solid var(--bg3);
+  border-radius: 7px;
+  background: var(--bg0);
+}
+.image-count {
+  color: var(--grey0);
+  font-size: 12px;
+}
+
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
