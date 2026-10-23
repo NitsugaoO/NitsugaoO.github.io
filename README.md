@@ -265,6 +265,35 @@ C:\Users\Agustin\blog\
 
 ---
 
+## 评论系统
+
+用的是 **Giscus**（GitHub Discussions 驱动），文章页、关于页、说说页都有。
+
+| 项目 | 值 |
+|---|---|
+| 仓库 | `NitsugaoO/NitsugaoO.github.io` |
+| 分类 | Announcements（只有你能发 discussion，访客只管评论） |
+| 映射 | 文章/关于用 `pathname`，说说用 `specific + key` |
+
+访客需要有 GitHub 账号才能评论。评论数据就在仓库的 **Discussions** 里，
+可以直接在 GitHub 上查看、回复、删除。
+
+两个需要知道的前置条件：
+
+1. 仓库 **Settings → Features → Discussions** 已开启（已完成）
+2. 已安装 [giscus App](https://github.com/apps/giscus) 并授权本仓库
+
+新增说说时管理页会自动生成 `key`（说说评论区靠它区分），手动写 YAML 的话记得加：
+
+```yaml
+- date: 2026-10-24 10:00:00
+  key: shuoshuo-20261024-1000
+  content: |
+    ……
+```
+
+---
+
 ## 改配色
 
 配色分**两处**，改完都要重新 `pnpm exec hexo generate`（或重启 `hexo server`）：

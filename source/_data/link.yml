@@ -1,14 +1,6 @@
-- class_name: 示例分组
-  class_desc: 先把这里换成你真正想放的站点
+- class_name: 鸣谢
+  class_desc: ''
   link_list:
-    - name: Butterfly 文档
-      link: https://butterfly.js.org/
-      avatar: /img/cloud.jpg
-      descr: 主题的官方文档，所有标签插件的用法都在这里
-    - name: NitsugaoO
-      link: https://github.com/NitsugaoO
-      avatar: /img/cloud.jpg
-      descr: 我的 GitHub
     - name: Everforest
       link: https://github.com/sainnhe/everforest
       avatar: /img/cloud.jpg
