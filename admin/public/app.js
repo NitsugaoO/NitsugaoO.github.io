@@ -1475,8 +1475,8 @@
         extra.appendChild(shuffleWrap);
 
         var note = el('textarea', 'content');
-        note.rows = 2;
-        note.placeholder = '感想（会显示在 /songs/ 页面）';
+        note.rows = 3;
+        note.placeholder = '感想（支持 Markdown，会显示在 /songs/ 页面）';
         note.value = song.note || '';
         note.addEventListener('input', function () {
           song.note = note.value;

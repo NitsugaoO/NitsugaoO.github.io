@@ -72,7 +72,9 @@
     card.appendChild(head);
 
     if (song.note) {
-      card.appendChild(el('p', 'song-note', song.note));
+      var note = el('div', 'song-note');
+      note.innerHTML = song.noteHtml || '';
+      card.appendChild(note);
     }
 
     var actions = el('div', 'song-actions');

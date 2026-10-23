@@ -1567,6 +1567,23 @@ html .song-note {
   line-height: 1.7;
 }
 
+/* 感想是 Markdown 渲染出来的，兼容段落 / 列表 / 链接 / 行内代码 */
+html .song-note p { margin: 0 0 6px; }
+html .song-note p:last-child { margin-bottom: 0; }
+html .song-note a { color: var(--ef-blue); }
+html .song-note code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--ef-bg2);
+  font-size: .94em;
+}
+html .song-note ul,
+html .song-note ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+html .song-note img { max-width: 100%; border-radius: 6px; }
+
 html .song-actions {
   display: flex;
   align-items: center;

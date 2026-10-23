@@ -29,7 +29,22 @@ function dateOnly(value) {
 hexo.extend.generator.register('site_data', function (locals) {
   var site = locals.data.site || {};
   var lyrics = (locals.data.lyrics || []).map(function (song) {
-    return Object.assign({}, song, { added: dateOnly(song.added) });
+    var note = String(song.note || '');
+    var noteHtml = '';
+
+    /* 感想支持 Markdown（和说说一样，构建时渲染成 HTML） */
+    if (note) {
+      try {
+        noteHtml = hexo.render.renderSync({ text: note, engine: 'markdown' });
+      } catch (e) {
+        noteHtml = '';
+      }
+    }
+
+    return Object.assign({}, song, {
+      added: dateOnly(song.added),
+      noteHtml: noteHtml
+    });
   });
 
   return {
