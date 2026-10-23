@@ -1488,3 +1488,108 @@ html .katex {
 html .katex-display .katex {
   display: block !important;
 }
+
+/* ============================================================================
+ * 十、歌曲页面（/songs/）
+ * ========================================================================= */
+
+html #songs-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+html .song-card {
+  padding: 14px 16px;
+  background: var(--ef-bg1);
+  border: 1px solid var(--ef-bg3);
+  border-radius: 10px;
+}
+
+html .song-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html .song-card-title {
+  margin: 0;
+  font-size: 1.08em;
+  color: var(--ef-fg);
+}
+
+html .song-card-artist {
+  color: var(--ef-grey1);
+}
+
+html .song-card-meta {
+  margin-left: auto;
+  color: var(--ef-grey0);
+  font-size: .8em;
+}
+
+html .song-card-badge {
+  padding: 1px 8px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-yellow);
+  font-size: .72em;
+}
+
+html .song-note {
+  margin: 8px 0 0;
+  color: var(--ef-grey1);
+  font-size: .92em;
+  line-height: 1.7;
+}
+
+html .song-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+html .song-link,
+html .song-lyrics-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border: 1px solid var(--ef-bg3);
+  border-radius: 20px;
+  background: none;
+  color: var(--ef-grey1);
+  font-size: .8em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+
+html .song-link:hover,
+html .song-lyrics-btn:hover {
+  border-color: var(--ef-green);
+  color: var(--ef-green);
+}
+
+html .song-lyrics {
+  display: none;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ef-bg0);
+  color: var(--ef-grey1);
+  font-family: var(--ef-font-mono, monospace);
+  font-size: .84em;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+html .song-lyrics.is-open { display: block; }
+
+html .songs-empty {
+  color: var(--ef-grey0);
+  text-align: center;
+  padding: 40px 0;
+}

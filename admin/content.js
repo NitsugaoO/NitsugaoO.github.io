@@ -372,13 +372,24 @@ function readShuoshuo() {
   });
 }
 
+/* 歌单里的 added 可能被 YAML 解析成 Date，统一成 YYYY-MM-DD */
+function normalizeLyrics(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map(function (song) {
+    var out = Object.assign({}, song);
+    if (out.added instanceof Date) out.added = formatDate(out.added).slice(0, 10);
+    else if (out.added) out.added = String(out.added).slice(0, 10);
+    return out;
+  });
+}
+
 function readAll() {
   return {
     posts: listPosts(),
     shuoshuo: readShuoshuo(),
     link: readYaml(DATA_FILES.link, []),
     site: readYaml(DATA_FILES.site, {}),
-    lyrics: readYaml(DATA_FILES.lyrics, []),
+    lyrics: normalizeLyrics(readYaml(DATA_FILES.lyrics, [])),
     about: readAbout()
   };
 }

@@ -330,7 +330,12 @@
         foot.className = 'lyrics-foot';
         foot.appendChild(link);
 
-        if (songs.length > 1) {
+        /* 换一首：只在「参与随机播放」的歌里挑（shuffle: false 的旧歌排除） */
+        var shufflePool = [];
+        songs.forEach(function (item, index) {
+          if (item.shuffle !== false) shufflePool.push(index);
+        });
+        if (shufflePool.length > 1) {
           var btn = document.createElement('button');
           btn.className = 'lyrics-shuffle';
           btn.type = 'button';
@@ -338,9 +343,9 @@
           btn.setAttribute('aria-label', '换一首');
           btn.innerHTML = '<i class="fas fa-random"></i>';
           btn.addEventListener('click', function () {
-            var next = current;
-            while (next === current) next = Math.floor(Math.random() * songs.length);
-            show(next);
+            var candidates = shufflePool.filter(function (index) { return index !== current; });
+            var next = candidates[Math.floor(Math.random() * candidates.length)];
+            if (next !== undefined) show(next);
           });
           foot.appendChild(btn);
         }

@@ -23,6 +23,7 @@ menu:
   文章库: /library/ || fas fa-layer-group
   # 说说：短动态 / 碎碎念，不走文章库
   说说: /shuoshuo/ || fas fa-pen-nib
+  歌曲: /songs/ || fas fa-music
   友链: /link/ || fas fa-link
   关于: /about/ || fas fa-user
 
@@ -1099,6 +1100,8 @@ inject:
     - <script src="/js/library.js"></script>
     # 只在首页生效（把文章卡片流换成「列表 + 预览」主从视图）
     - <script src="/js/home.js"></script>
+    # 只在歌曲页面生效（找不到 #songs-root 会直接返回）
+    - <script src="/js/songs.js"></script>
 
 # CDN Settings
 # Don't modify the following settings unless you know how they work

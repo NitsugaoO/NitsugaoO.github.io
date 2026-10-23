@@ -642,6 +642,16 @@ main {
 }
 
 /* 歌曲卡片 */
+.song-extra {
+  display: grid;
+  grid-template-columns: 170px auto;
+  gap: 8px 14px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.song-extra .check { white-space: nowrap; }
+.song-extra textarea { grid-column: 1 / -1; }
+
 .song-meta {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 110px;

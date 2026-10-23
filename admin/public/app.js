@@ -826,7 +826,10 @@
         url: '',
         lrc: '/lrc/' + id + '.lrc',
         duration: 240,
-        lines: []
+        lines: [],
+        added: todayString(),
+        note: '',
+        shuffle: true
       });
       state.data.lyrics = items;
       paint();
@@ -897,7 +900,10 @@
             url: 'https://music.163.com/#/song?id=' + result.id,
             lrc: '/lrc/' + result.id + '.lrc',
             duration: result.duration || 240,
-            lines: []
+            lines: [],
+            added: todayString(),
+            note: '',
+            shuffle: true
           });
           state.data.lyrics = items;
           return saveData('lyrics', items);
@@ -998,6 +1004,41 @@
           meta.appendChild(input);
         });
         card.appendChild(meta);
+
+        /* 添加时间 / 是否参与随机 / 感想 */
+        var extra = el('div', 'song-extra');
+        var addedInput = el('input');
+        addedInput.type = 'date';
+        addedInput.value = song.added || '';
+        addedInput.title = '添加时间（显示在歌曲页面）';
+        addedInput.addEventListener('change', function () {
+          song.added = addedInput.value;
+          setDirty(true);
+        });
+        extra.appendChild(addedInput);
+
+        var shuffleWrap = el('label', 'check');
+        var shuffleCb = document.createElement('input');
+        shuffleCb.type = 'checkbox';
+        shuffleCb.checked = song.shuffle !== false;
+        shuffleCb.addEventListener('change', function () {
+          song.shuffle = shuffleCb.checked;
+          setDirty(true);
+        });
+        shuffleWrap.appendChild(shuffleCb);
+        shuffleWrap.appendChild(document.createTextNode(' 参与随机播放'));
+        extra.appendChild(shuffleWrap);
+
+        var note = el('textarea', 'content');
+        note.rows = 2;
+        note.placeholder = '感想（会显示在 /songs/ 页面）';
+        note.value = song.note || '';
+        note.addEventListener('input', function () {
+          song.note = note.value;
+          setDirty(true);
+        });
+        extra.appendChild(note);
+        card.appendChild(extra);
 
         /* 纯文本兜底歌词（LRC 加载失败时显示） */
         var lines = el('textarea', 'content');
@@ -1292,6 +1333,12 @@
 
   window.setInterval(refreshIfChanged, 3000);
   window.addEventListener('focus', refreshIfChanged);
+
+  function todayString() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
 
   function nowString() {
     var d = new Date();
