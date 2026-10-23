@@ -88,6 +88,9 @@
 
     var meta = el('div', 'home-preview-meta');
     meta.appendChild(el('time', 'home-preview-date', post.date));
+    if (post.type === 'note') {
+      meta.appendChild(el('span', 'home-preview-type', '笔记'));
+    }
     if (post.path.length) {
       meta.appendChild(el('span', 'home-preview-dot', '·'));
       meta.appendChild(el('span', 'home-preview-cat', post.path.join(' / ')));
@@ -175,29 +178,50 @@
       select(-1);
     });
 
-    posts.forEach(function (post, index) {
-      var item = el('button', 'home-item');
-      item.type = 'button';
+    /* 分两个区：「文章」在上，「笔记」在下。
+       分类依据是 front-matter 的 type 字段（不写 = 文章）。 */
+    function renderGroup(title, groupPosts) {
+      if (!groupPosts.length) return;
 
-      item.appendChild(el('time', 'home-item-date', post.date));
-      item.appendChild(el('span', 'home-item-title', post.title || '（无标题）'));
+      var group = el('div', 'home-group');
 
-      var metaText = post.path.length ? post.path.join(' / ') : '未分类';
-      if (post.tags.length) metaText += '　' + post.tags.join(' · ');
-      item.appendChild(el('span', 'home-item-meta', metaText));
+      var head = el('div', 'home-group-title');
+      head.appendChild(el('span', 'home-group-name', title));
+      head.appendChild(el('span', 'home-group-count', String(groupPosts.length)));
+      group.appendChild(head);
 
-      item.addEventListener('click', function () {
-        /* 窄屏：预览没意义，直接进文章 */
-        if (isNarrow()) {
-          window.location.href = post.url;
-          return;
-        }
-        select(index);
+      groupPosts.forEach(function (post) {
+        /* 全局索引：select() 用的是 posts 里的位置，不能分区重新编号 */
+        var index = posts.indexOf(post);
+
+        var item = el('button', 'home-item');
+        item.type = 'button';
+
+        item.appendChild(el('time', 'home-item-date', post.date));
+        item.appendChild(el('span', 'home-item-title', post.title || '（无标题）'));
+
+        var metaText = post.path.length ? post.path.join(' / ') : '未分类';
+        if (post.tags.length) metaText += '　' + post.tags.join(' · ');
+        item.appendChild(el('span', 'home-item-meta', metaText));
+
+        item.addEventListener('click', function () {
+          /* 窄屏：预览没意义，直接进文章 */
+          if (isNarrow()) {
+            window.location.href = post.url;
+            return;
+          }
+          select(index);
+        });
+
+        items[index] = item;
+        group.appendChild(item);
       });
 
-      items.push(item);
-      list.appendChild(item);
-    });
+      list.appendChild(group);
+    }
+
+    renderGroup('文章', posts.filter(function (p) { return p.type !== 'note'; }));
+    renderGroup('笔记', posts.filter(function (p) { return p.type === 'note'; }));
 
     mount.appendChild(list);
     mount.appendChild(preview);

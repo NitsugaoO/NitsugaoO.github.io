@@ -1066,6 +1066,18 @@ inject:
   head:
     - <link rel="stylesheet" href="/css/everforest.css">
     - <link rel="stylesheet" href="/css/custom.css">
+    # 防首页闪烁：首页的内容会被 home.js 换成三栏，但 HTML 里先渲染的是主题的
+    # 卡片流。在 <head> 里就先给它打标记、由 CSS 藏起来，避免“先看到旧页面再跳变”。
+    # 3 秒兜底：万 home.js 没执行（脚本挂了/被拦），也不会让页面一直空白。
+    - |
+      <script>
+      if (location.pathname === '/' || location.pathname === '/index.html') {
+        document.documentElement.classList.add('home-pending');
+        setTimeout(function () {
+          document.documentElement.classList.remove('home-pending');
+        }, 3000);
+      }
+      </script>
   bottom:
     # 歌单数据必须在 custom.js 之前加载（custom.js 会读 window.WOOYUN_LYRICS）
     - <script src="/js/lyrics-data.js"></script>

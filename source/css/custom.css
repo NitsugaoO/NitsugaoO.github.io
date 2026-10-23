@@ -577,7 +577,7 @@ html .home-item {
   transition: background-color .2s, border-color .2s, transform .2s;
 }
 html .home-item:hover {
-  transform: translateX(2px);
+  border-color: var(--ef-green);
 }
 html .home-item.is-active {
   border-color: var(--ef-green);
@@ -803,4 +803,65 @@ html .home-author-hint {
   margin-left: auto;
   color: var(--ef-grey0);
   font-size: .72em;
+}
+
+
+/* ---- 5.5 防首次闪烁 ------------------------------------------------ */
+/* 首页的 HTML 里先渲染的是主题的卡片流，home.js 拿到数据后才换成三栏。
+   不加这段的话，用户会先看到旧页面、再“跳”成新布局。
+   head 里的内联脚本会给 <html> 打上 home-pending（早于 body 渲染），
+   这里先把旧内容藏起来；home.js 加上 .home-split 后自动恢复显示。
+   用 :not(.home-split) 而不是直接隐藏，是为了渲染完成后即使类还在也不影响。 */
+html.home-pending #recent-posts:not(.home-split) > * {
+  visibility: hidden;
+}
+
+
+/* ---- 5.6 首页左列的分区标题（文章 / 笔记） ---- */
+html .home-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+html .home-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 2px;
+  color: var(--ef-grey1);
+  font-size: .76em;
+  font-weight: 600;
+  letter-spacing: .05em;
+}
+html .home-group-name::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: .95em;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: var(--ef-green);
+  vertical-align: -1px;
+}
+html .home-group-count {
+  color: var(--ef-grey0);
+  font-weight: 400;
+}
+
+/* ---- 5.7 预览窗格里的「笔记」标记 ---- */
+html .home-preview-type {
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: var(--ef-bg2);
+  color: var(--ef-orange);
+  font-size: .92em;
+}
+
+/* ---- 5.8 文章库列表里的「笔记」标记 ---- */
+html .lib-type {
+  margin-right: 6px;
+  color: var(--ef-orange);
+  font-size: .8em;
 }

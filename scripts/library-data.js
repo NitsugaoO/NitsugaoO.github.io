@@ -36,6 +36,9 @@ hexo.extend.generator.register('library_data', function (locals) {
         url: '/' + post.path,
         date: post.date.format('YYYY-MM-DD'),
         ts: post.date.valueOf(),
+        /* 内容性质：front-matter 写 type: note 就是笔记，不写默认 post（文章）
+           与分类（主题）、标签（关键词）是三个互不干扰的维度。 */
+        type: post.type || 'post',
         path: categoryPath,
         tags: post.tags.toArray().map(function (tag) {
           return tag.name;
