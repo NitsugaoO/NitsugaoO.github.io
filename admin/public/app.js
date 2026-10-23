@@ -1893,6 +1893,11 @@
       });
   });
 
+  /* 顶栏「本地」：和编辑器里的站点预览一样，没启动就拉起来再打开 */
+  document.getElementById('btn-local').addEventListener('click', function () {
+    openSitePreview();
+  });
+
   document.getElementById('btn-save').addEventListener('click', function () {
     if (!state.saveHandler) return toast('当前页面没有可保存的内容', true);
     state.saveHandler();
