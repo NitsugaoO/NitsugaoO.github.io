@@ -352,6 +352,48 @@ main {
   border-radius: 50%;
 }
 
+/* 点缩略图后的大图 */
+.img-preview { cursor: zoom-in; }
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(0, 0, 0, .72);
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 8px;
+  background: var(--bg0);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+}
+.lightbox-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 90vw;
+}
+.lightbox-path {
+  max-width: 50vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--grey1);
+  font-size: 12px;
+}
+.avatar-field .img-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
 /* 分类 / 标签的候选 chips */
 .suggest {
   display: flex;

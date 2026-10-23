@@ -118,8 +118,62 @@
       }
     }
 
+    /* 点缩略图看大图（外部 URL 也支持） */
+    img.addEventListener('click', function () {
+      var src = img.getAttribute('src');
+      if (src) openLightbox(src);
+    });
+
     sync();
     return { el: img, sync: sync };
+  }
+
+  /* ---- 图片大图预览 ------------------------------------------------------ */
+
+  function openLightbox(src) {
+    if (!src) return;
+
+    var overlay = el('div', 'lightbox');
+    var img = el('img', 'lightbox-img');
+    img.src = src;
+    img.alt = '';
+
+    var bar = el('div', 'lightbox-bar');
+    bar.appendChild(el('span', 'lightbox-path', src));
+
+    /* 站内图片才能用系统查看器打开（外部 URL 交给浏览器） */
+    if (/^\/(images|img)\//.test(src)) {
+      var openBtn = el('button', 'btn small', '用系统查看器打开');
+      openBtn.type = 'button';
+      openBtn.addEventListener('click', function () {
+        api('/api/open-image', { method: 'POST', body: { src: src } })
+          .then(function () { toast('已用系统查看器打开'); })
+          .catch(function (err) { toast('打开失败：' + err.message, true); });
+      });
+      bar.appendChild(openBtn);
+    }
+
+    var closeBtn = el('button', 'btn small', '关闭');
+    closeBtn.type = 'button';
+    bar.appendChild(closeBtn);
+
+    overlay.appendChild(img);
+    overlay.appendChild(bar);
+    document.body.appendChild(overlay);
+
+    function close() {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') close();
+    }
+
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) close();
+    });
+    document.addEventListener('keydown', onKey);
   }
 
   /* ---- 文章 -------------------------------------------------------------- */
@@ -1045,6 +1099,10 @@
   });
 
   /* ---- 启动 -------------------------------------------------------------- */
+
+  /* ?lightbox=/images/xxx.png 直接打开大图（调试/收藏用） */
+  var bootLightbox = new URLSearchParams(window.location.search).get('lightbox');
+  if (bootLightbox) openLightbox(bootLightbox);
 
   /* 地址栏带了 view 时，把对应按钮点亮 */
   Array.prototype.forEach.call(document.querySelectorAll('#views button'), function (btn) {

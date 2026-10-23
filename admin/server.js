@@ -291,6 +291,30 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, { ok: true, path: file });
     }
 
+    /* 用系统默认图片查看器打开站内图片 */
+    if (pathname === '/api/open-image' && method === 'POST') {
+      const body = await readBody(req);
+      const src = String(body.src || '');
+      const matched = src.match(/^\/(images|img)\//);
+      if (!matched) throw new Error('只支持站内图片');
+
+      const base = matched[1];
+      const root = path.join(ROOT, 'source', base);
+      const rel = src.slice(matched[0].length);
+      const file = path.normalize(path.join(root, rel));
+      if (!file.startsWith(root + path.sep)) throw new Error('非法路径');
+      if (!fs.existsSync(file)) throw new Error('图片不存在');
+
+      const { spawn } = require('child_process');
+      const child = spawn('cmd', ['/c', 'start', '', file], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      });
+      child.unref();
+      return sendJSON(res, 200, { ok: true, path: file });
+    }
+
     if (method === 'PUT' && /^\/api\/data\/(shuoshuo|link|site)$/.test(pathname)) {
       const key = pathname.split('/').pop();
       const body = await readBody(req);
