@@ -15,7 +15,8 @@
     current: null,       /* 当前编辑的文章文件名 */
     currentDraft: false, /* 当前编辑的是不是 _drafts 里的草稿 */
     dirty: false,
-    saveHandler: null    /* 当前视图的保存函数，顶栏「保存」调用它 */
+    saveHandler: null,   /* 当前视图的保存函数，顶栏「保存」调用它 */
+    git: null            /* 工作区/推送状态，用来区分「已保存未发布」 */
   };
 
   /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
@@ -78,8 +79,47 @@
 
   function setDirty(value) {
     state.dirty = !!value;
-    statusEl.textContent = state.dirty ? '有未保存的改动' : '';
-    statusEl.classList.toggle('is-dirty', state.dirty);
+    if (state.dirty && !state.git) refreshGit();
+    updateStatusUI();
+  }
+
+  /* 拉一次 git 状态：工作区有没有未提交的文件、本地有没有没推送的提交 */
+  function refreshGit() {
+    return api('/api/git-status')
+      .then(function (git) {
+        state.git = git;
+        updateStatusUI();
+        return git;
+      })
+      .catch(function () { /* 拿不到就保持旧状态 */ });
+  }
+
+  /* 顶栏状态：未保存 > 已保存未发布 > 已同步 */
+  function updateStatusUI() {
+    var git = state.git || { unpublished: false, ahead: 0, fileCount: 0 };
+    var saveBtn = document.getElementById('btn-save');
+    var pubBtn = document.getElementById('btn-publish');
+
+    var dirty = state.dirty;
+    var unpublished = git.unpublished && !dirty;
+
+    saveBtn.classList.toggle('primary', dirty);
+    pubBtn.classList.toggle('primary', unpublished);
+    pubBtn.disabled = dirty;
+
+    if (dirty) {
+      statusEl.textContent = '有未保存的改动';
+      statusEl.className = 'status is-dirty';
+    } else if (git.unpublished) {
+      var bits = [];
+      if (git.fileCount) bits.push(git.fileCount + ' 个文件');
+      if (git.ahead) bits.push(git.ahead + ' 个提交');
+      statusEl.textContent = '已保存 · 未发布' + (bits.length ? '（' + bits.join('、') + '）' : '');
+      statusEl.className = 'status is-unpublished';
+    } else {
+      statusEl.textContent = '已同步';
+      statusEl.className = 'status is-synced';
+    }
   }
 
   function confirmLeave() {
@@ -1332,12 +1372,14 @@
       lastStateJSON = JSON.stringify(data);
       setDirty(false);
       render();
+      refreshGit();
     });
   }
 
   /* 定时/窗口聚焦时检查磁盘上的文件有没有被外部修改（比如在 VSCode 里保存）。
      有未保存的编辑就跳过，不能把用户正在写的东西冲掉。 */
   function refreshIfChanged() {
+    refreshGit();
     if (state.dirty) return;
     api('/api/state').then(function (data) {
       var json = JSON.stringify(data);
@@ -1454,6 +1496,7 @@
       .then(function (result) {
         toast(result.ok ? '已推送，1~2 分钟后上线' : '发布失败', !result.ok);
         console.log(result.output);
+        refreshGit();
       })
       .catch(function (err) { toast('发布失败：' + err.message, true); })
       .then(function () {

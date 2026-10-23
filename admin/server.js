@@ -87,6 +87,26 @@ function runShell(command) {
   });
 }
 
+/* ---- Git 状态：告诉前端「已保存但未发布」有多少改动 -------------------- */
+
+function gitStatus() {
+  return new Promise(function (resolve) {
+    execFile('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }, function (err, stdout) {
+      const files = (stdout || '').trim().split(String.fromCharCode(10)).filter(Boolean);
+
+      execFile('git', ['rev-list', '--count', 'origin/master..HEAD'], { cwd: ROOT, encoding: 'utf8' }, function (err2, out2) {
+        const ahead = Number((out2 || '0').trim()) || 0;
+        resolve({
+          dirty: files.length > 0,
+          fileCount: files.length,
+          ahead: ahead,
+          unpublished: files.length > 0 || ahead > 0
+        });
+      });
+    });
+  });
+}
+
 /* ---- 网易云：搜索 + 歌词（管理页「歌曲」用） ---------------------------- */
 
 const NETEASE_HEADERS = {
@@ -267,6 +287,10 @@ const server = http.createServer(async function (req, res) {
     /* ---- API ---- */
     if (pathname === '/api/state' && method === 'GET') {
       return sendJSON(res, 200, content.readAll());
+    }
+
+    if (pathname === '/api/git-status' && method === 'GET') {
+      return sendJSON(res, 200, await gitStatus());
     }
 
     if (pathname === '/api/site-status' && method === 'GET') {

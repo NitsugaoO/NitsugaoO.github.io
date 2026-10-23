@@ -92,12 +92,15 @@ button, input, textarea, select {
 }
 
 .status {
-  color: var(--yellow);
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: var(--bg2);
   font-size: 12px;
-  opacity: 0;
-  transition: opacity .2s;
+  white-space: nowrap;
 }
-.status.is-dirty { opacity: 1; }
+.status.is-dirty { color: var(--red); }
+.status.is-unpublished { color: var(--yellow); }
+.status.is-synced { color: var(--green); }
 
 /* ---- 按钮 ---- */
 
