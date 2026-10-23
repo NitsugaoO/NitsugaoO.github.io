@@ -1029,7 +1029,9 @@ html .home-side {
 /* 左右栏吸附在同一个高度（导航下方），滚动时顶部才对得齐。
    主题默认 top: 20px，会被导航挡住，也导致和左栏错位。 */
 html body.home-mode #aside-content .sticky_layout {
-  top: 88px;
+  /* 主题在 #page-header.fixed + .layout 下把 top 写成了 70px（特异性更高），
+     这里必须 !important 才能和左栏的 88px 对齐 */
+  top: 88px !important;
 }
 
 html .home-filters {
