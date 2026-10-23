@@ -313,10 +313,12 @@
 
     var head = el('div', 'editor-head');
     var titleBox = el('div', 'editor-title');
-    titleBox.appendChild(el('h2', null, fm.title || post.file));
-    titleBox.appendChild(el('span', 'status-badge ' + (isDraft ? 'draft' : 'published'),
+    var headline = el('div', 'editor-headline');
+    headline.appendChild(el('h2', null, fm.title || post.file));
+    headline.appendChild(el('span', 'status-badge ' + (isDraft ? 'draft' : 'published'),
       isDraft ? '草稿' : '已发布'));
-    /* 两个时间分开展示：创建时间可编辑（在表单里），修改时间来自 git，只读 */
+    titleBox.appendChild(headline);
+    /* 时间单独一行，标题再长也不会把右边按钮挤到第二行 */
     titleBox.appendChild(el('span', 'editor-meta',
       '创建 ' + (fm.date || '未知') + ' · 更新 ' + (post.updated || fm.date || '未知')));
     head.appendChild(titleBox);

@@ -129,7 +129,7 @@ main {
   flex: 1;
   min-height: 0;
   padding: 16px 20px;
-  overflow: hidden;   /* 滚动交给内层的列表 / 编辑器 */
+  overflow: auto;   /* 内容放不下时整页滚动，不把正文挤成一条 */
 }
 
 .posts-wrap {
@@ -270,18 +270,33 @@ main {
 
 .editor-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
 }
 
+/* 左边：第一行标题 + 状态，第二行创建/更新时间 */
 .editor-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.editor-headline {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+}
+
+.editor-title h2 {
+  min-width: 0;
+  word-break: break-word;
 }
 
 .editor-meta {
@@ -305,7 +320,7 @@ main {
   color: var(--yellow);
 }
 
-.editor-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.editor-tools { flex: 0 0 auto; display: flex; flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 
 .form-grid {
   display: grid;
