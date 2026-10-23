@@ -20,7 +20,7 @@
   };
 
   /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
-  var VIEWS = ['posts', 'shuoshuo', 'lyrics', 'link', 'about', 'site'];
+  var VIEWS = ['posts', 'shuoshuo', 'lyrics', 'images', 'link', 'about', 'site'];
   var bootParams = new URLSearchParams(window.location.search);
   var initialView = bootParams.get('view');
   if (VIEWS.indexOf(initialView) !== -1) state.view = initialView;
@@ -954,6 +954,176 @@
     state.saveHandler = function () { saveData('shuoshuo', items); };
   }
 
+  /* ---- 图片管理 ---------------------------------------------------------- */
+
+  var imagePasteHandler = null;
+
+  function cleanupImageView() {
+    if (imagePasteHandler) {
+      document.removeEventListener('paste', imagePasteHandler);
+      imagePasteHandler = null;
+    }
+  }
+
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function () { toast('已复制 ' + text); })
+        .catch(function () { toast('复制失败', true); });
+    } else {
+      toast(text);
+    }
+  }
+
+  function buildImageCard(image, reload) {
+    var card = el('div', 'image-card');
+
+    var img = el('img');
+    img.src = image.path;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.title = '点击复制路径';
+    img.addEventListener('click', function () { copyText(image.path); });
+    card.appendChild(img);
+
+    var info = el('div', 'image-info');
+    info.appendChild(el('code', null, image.path));
+    info.appendChild(el('span', 'image-size', fmtSize(image.size)));
+
+    if (image.refs && image.refs.length) {
+      info.appendChild(el('span', 'image-refs', image.refs.length + ' 处引用'));
+      var list = el('ul', 'image-ref-list');
+      image.refs.slice(0, 4).forEach(function (ref) {
+        list.appendChild(el('li', null, ref.file + ':' + ref.line));
+      });
+      if (image.refs.length > 4) {
+        list.appendChild(el('li', null, '…还有 ' + (image.refs.length - 4) + ' 处'));
+      }
+      info.appendChild(list);
+    } else {
+      info.appendChild(el('span', 'image-unused', '未引用'));
+    }
+
+    var actions = el('div', 'image-actions');
+    var del = el('button', 'btn danger small', '×');
+    del.type = 'button';
+    del.title = '移到回收站';
+    del.addEventListener('click', function () {
+      if (!window.confirm('把 ' + image.path + ' 移到回收站？引用它的页面会变成坏图。')) return;
+      api('/api/delete-image', { method: 'POST', body: { path: image.path } })
+        .then(function () { toast('已移入回收站'); reload(); })
+        .catch(function (err) { toast('删除失败：' + err.message, true); });
+    });
+    actions.appendChild(del);
+    info.appendChild(actions);
+
+    card.appendChild(info);
+    return card;
+  }
+
+  function renderImages() {
+    app.innerHTML = '';
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '图片'));
+    var reloadBtn = el('button', 'btn small', '刷新列表');
+    reloadBtn.type = 'button';
+    reloadBtn.addEventListener('click', loadImages);
+    head.appendChild(reloadBtn);
+    app.appendChild(head);
+
+    var drop = el('div', 'image-drop', '把图片拖到这里，或点击选择 / Ctrl+V 粘贴（上传到 source/images/）');
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    fileInput.addEventListener('change', function () {
+      uploadFiles(fileInput.files);
+      fileInput.value = '';
+    });
+    drop.addEventListener('click', function () { fileInput.click(); });
+    drop.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      drop.classList.add('is-over');
+    });
+    drop.addEventListener('dragleave', function () { drop.classList.remove('is-over'); });
+    drop.addEventListener('drop', function (e) {
+      e.preventDefault();
+      drop.classList.remove('is-over');
+      uploadFiles(e.dataTransfer.files);
+    });
+    app.appendChild(drop);
+    app.appendChild(fileInput);
+
+    var grid = el('div', 'image-grid');
+    app.appendChild(grid);
+
+    app.appendChild(el('p', 'image-hint', '点击缩略图复制路径；点「×」把图片移到回收站。'));
+
+    function uploadFiles(files) {
+      Array.prototype.forEach.call(files || [], function (file) {
+        if (!/^image\//.test(file.type)) return;
+
+        var reader = new FileReader();
+        reader.onload = function () {
+          var base64 = String(reader.result).split(',')[1];
+          api('/api/upload-image', {
+            method: 'POST',
+            body: { data: base64, mime: file.type, dir: 'images' }
+          })
+            .then(function (res) {
+              toast('已上传 ' + res.path);
+              loadImages();
+            })
+            .catch(function (err) { toast('上传失败：' + err.message, true); });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    imagePasteHandler = function (e) {
+      var items = (e.clipboardData || {}).items || [];
+      var files = [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') files.push(items[i].getAsFile());
+      }
+      if (files.length) {
+        e.preventDefault();
+        uploadFiles(files);
+      }
+    };
+    document.addEventListener('paste', imagePasteHandler);
+
+    function loadImages() {
+      grid.innerHTML = '<p class="empty">加载中…</p>';
+      api('/api/images')
+        .then(function (data) {
+          var images = data.images || [];
+          grid.innerHTML = '';
+          if (!images.length) {
+            grid.appendChild(el('p', 'empty', '还没有图片。'));
+            return;
+          }
+          images.forEach(function (image) {
+            grid.appendChild(buildImageCard(image, loadImages));
+          });
+        })
+        .catch(function (err) {
+          grid.innerHTML = '';
+          grid.appendChild(el('p', 'empty', '加载失败：' + err.message));
+        });
+    }
+
+    loadImages();
+  }
+
   /* ---- 歌曲（侧栏歌词卡） ------------------------------------------------ */
 
   function renderLyrics() {
@@ -1480,9 +1650,11 @@
   /* ---- 视图切换 / 发布 ---------------------------------------------------- */
 
   function render() {
+    cleanupImageView();
     if (state.view === 'posts') return renderPosts();
     if (state.view === 'shuoshuo') return renderShuoshuo();
     if (state.view === 'lyrics') return renderLyrics();
+    if (state.view === 'images') return renderImages();
     if (state.view === 'link') return renderLinks();
     if (state.view === 'about') return renderAbout();
     if (state.view === 'site') return renderSite();

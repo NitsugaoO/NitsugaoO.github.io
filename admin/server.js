@@ -342,6 +342,21 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, content.readAll());
     }
 
+    /* 图片管理：列表 + 上传 + 删除 */
+    if (pathname === '/api/images' && method === 'GET') {
+      return sendJSON(res, 200, { images: content.listImages() });
+    }
+
+    if (pathname === '/api/upload-image' && method === 'POST') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.saveImage(body.data, body.mime, body.dir));
+    }
+
+    if (pathname === '/api/delete-image' && method === 'POST') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.deleteImage(body.path));
+    }
+
     /* 下载外部图片到 source/img/ */
     if (pathname === '/api/download-image' && method === 'POST') {
       const body = await readBody(req);

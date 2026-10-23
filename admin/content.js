@@ -355,6 +355,132 @@ function saveAbout(fm, body) {
   return readAbout();
 }
 
+/* ---- 图片管理 ---------------------------------------------------------- */
+
+const IMAGE_EXTS = /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i;
+const TEXT_EXTS = /\.(md|markdown|ya?ml|js|css|json)$/i;
+
+function walkFiles(dir, onFile) {
+  if (!fs.existsSync(dir)) return;
+  fs.readdirSync(dir, { withFileTypes: true }).forEach(function (entry) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkFiles(full, onFile);
+    else if (entry.isFile()) onFile(full);
+  });
+}
+
+function toSitePath(full) {
+  return '/' + path.relative(path.join(ROOT, 'source'), full).split(path.sep).join('/');
+}
+
+/* 扫描所有文本文件，记录 /img/ 与 /images/ 路径出现在哪些文件的第几行 */
+function collectImageRefs() {
+  const refs = {};
+  const scanFiles = [];
+
+  walkFiles(path.join(ROOT, 'source'), function (file) {
+    const rel = path.relative(ROOT, file).split(path.sep).join('/');
+    if (rel.indexOf('source/img/') === 0 || rel.indexOf('source/images/') === 0) return;
+    if (TEXT_EXTS.test(file)) scanFiles.push(file);
+  });
+  ['_config.yml', '_config.butterfly.yml'].forEach(function (name) {
+    const file = path.join(ROOT, name);
+    if (fs.existsSync(file)) scanFiles.push(file);
+  });
+
+  scanFiles.forEach(function (file) {
+    const lines = readText(file).split('\n');
+    lines.forEach(function (line, index) {
+      const regex = /\/(?:img|images)\/[^\s"'()\[\]<>]+/g;
+      let matched;
+      while ((matched = regex.exec(line))) {
+        const sitePath = matched[0].replace(/[),.;]+$/, '').split('?')[0];
+        if (!refs[sitePath]) refs[sitePath] = [];
+        refs[sitePath].push({
+          file: path.relative(ROOT, file).split(path.sep).join('/'),
+          line: index + 1
+        });
+      }
+    });
+  });
+
+  return refs;
+}
+
+function listImages() {
+  const refs = collectImageRefs();
+  const images = [];
+
+  ['source/img', 'source/images'].forEach(function (relRoot) {
+    walkFiles(path.join(ROOT, relRoot), function (file) {
+      if (!IMAGE_EXTS.test(file)) return;
+      const sitePath = toSitePath(file);
+      const stat = fs.statSync(file);
+      images.push({
+        path: sitePath,
+        size: stat.size,
+        mtime: stat.mtime.toISOString(),
+        refs: refs[sitePath] || []
+      });
+    });
+  });
+
+  images.sort(function (a, b) { return b.mtime.localeCompare(a.mtime); });
+  return images;
+}
+
+function ensureInside(baseDir, full) {
+  const normalized = path.normalize(full);
+  if (normalized !== baseDir && normalized.indexOf(baseDir + path.sep) !== 0) {
+    throw new Error('非法路径');
+  }
+  return normalized;
+}
+
+function saveImage(data, mime, dir) {
+  const buf = Buffer.from(String(data || ''), 'base64');
+  if (!buf.length) throw new Error('图片为空');
+  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+
+  const type = String(mime || '').toLowerCase();
+  if (!/^image\//.test(type)) throw new Error('不是图片');
+
+  const subtype = type.split('/')[1].split(';')[0];
+  const ext = subtype === 'jpeg' ? 'jpg' : subtype.replace('svg+xml', 'svg');
+
+  const targetRel = String(dir || 'images').replace(/^\/+/, '').replace(/\/+$/, '');
+  if (!/^(images|img)(\/|$)/.test(targetRel)) {
+    throw new Error('只能上传到 source/images 或 source/img');
+  }
+
+  const sourceRoot = path.join(ROOT, 'source');
+  const targetDir = ensureInside(sourceRoot, path.join(sourceRoot, targetRel));
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const hash = require('crypto').createHash('md5').update(buf).digest('hex').slice(0, 10);
+  const name = hash + '.' + ext;
+  const full = path.join(targetDir, name);
+  if (!fs.existsSync(full)) fs.writeFileSync(full, buf);
+
+  return { path: '/' + targetRel + '/' + name, size: buf.length };
+}
+
+function deleteImage(sitePath) {
+  const rel = String(sitePath || '').replace(/^\/+/, '');
+  if (!/^(images|img)\//.test(rel)) throw new Error('只能删除图片');
+
+  const sourceRoot = path.join(ROOT, 'source');
+  const full = ensureInside(sourceRoot, path.join(sourceRoot, rel));
+  if (!fs.existsSync(full)) throw new Error('图片不存在');
+
+  const { spawnSync } = require('child_process');
+  const result = spawnSync('trash', [full], { shell: true, encoding: 'utf8' });
+  if (result.status !== 0) {
+    throw new Error('移入回收站失败：' + (result.stderr || result.error || '未知错误'));
+  }
+  return { path: sitePath };
+}
+
 /* ---- 一次性读取全部内容 ------------------------------------------------ */
 
 /* 说说：在数据里附上每条在 YAML 里的行号，管理页的「VSCode」按钮
@@ -409,5 +535,8 @@ module.exports = {
   readYaml,
   writeYaml,
   readLrc,
-  writeLrc
+  writeLrc,
+  listImages,
+  saveImage,
+  deleteImage
 };
