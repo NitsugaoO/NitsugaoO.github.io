@@ -115,23 +115,107 @@ TSCTF-J{xxxxx}
 
 ---
 
+## 本地管理页
+
+不想手改 md/yml 时，可以用管理页：
+
+```bash
+dir C:\Users\Agustin\blog
+pnpm admin
+```
+
+浏览器打开 <http://127.0.0.1:5173>，可以管理：
+
+| 页面 | 对应文件 |
+|---|---|
+| 文章 / 笔记 | `source/_posts/*.md` |
+| 说说 | `source/_data/shuoshuo.yml` |
+| 友链 | `source/_data/link.yml` |
+| 关于 | `source/about/index.md` |
+| 公告 | `source/_data/site.yml` |
+
+三个按钮：
+
+- **保存**：直接写回仓库文件（先说 `hexo server` 开着，刷新 4000 就能看效果）
+- **重新生成**：跑一次 `pnpm exec hexo generate`
+- **发布**：`git add -A` + `commit` + `push`，和 `sync.sh` 一样，会触发两个平台部署
+
+`Ctrl + S` 等于当前页面的保存。
+
+> 管理页只监听 `127.0.0.1`，外面访问不到；它也没有登录密码，
+> **不要**把它改成 `0.0.0.0` 或反向代理到公网。
+
+---
+
 ## 目录结构
 
 ```
 C:\Users\Agustin\blog\
 ├── source\
 │   ├── _posts\          ← 你的文章全在这里（.md 文件）
+│   ├── _data\           ← 结构化内容（说说、友链、站点文案）
 │   ├── images\          ← 文章配图
 │   ├── css\
 │   │   └── everforest.css   ← 【配色在这里改】
 │   ├── about\           关于页
 │   ├── tags\            标签页
 │   └── categories\      分类页
+├── admin\               本地管理页（不在网站上发布）
 ├── themes\butterfly\    主题（已纳入 Git 管理）
 ├── _config.yml          整站配置（博客名、作者、网址）
 ├── _config.butterfly.yml  主题配置（外观、导航、评论、主题色）
 └── public\              编译产物（自动生成，不用管）
 ```
+
+---
+
+## 内容数据文件
+
+除了文章，其余内容都是 `source/_data/` 下的 YAML。**这些文件只放纯数据，不要写注释**
+（管理页保存时会整份重写，注释会丢；字段说明就写在这一节）。
+
+### `site.yml` — 站点文案
+
+| 字段 | 说明 |
+|---|---|
+| `announcement` | 首页左栏的公告板文案，留空则不显示 |
+
+### `shuoshuo.yml` — 说说
+
+| 字段 | 说明 |
+|---|---|
+| `date` | 时间，格式 `YYYY-MM-DD HH:mm:ss`，页面按它倒序 |
+| `content` | 正文，支持完整 Markdown、Hexo 标签（`{% hideToggle %}` 等）、KaTeX |
+| `tags` | 标签数组（可选） |
+
+图片放在 `source/images/` 或 `source/img/`，正文里写绝对路径 `/images/xxx.png`。
+
+### `link.yml` — 友链
+
+| 字段 | 说明 |
+|---|---|
+| `class_name` | 分组名（页面上会变成小标题） |
+| `class_desc` | 分组说明（可省略） |
+| `link_list` | 站点列表 |
+| `link_list[].name` | 站点名 |
+| `link_list[].link` | 链接 |
+| `link_list[].avatar` | 头像（建议 100×100，本地放 `source/img/`） |
+| `link_list[].descr` | 一句话描述 |
+
+### `widget.yml` — 侧栏卡片
+
+| 字段 | 说明 |
+|---|---|
+| `top` / `bottom` | 插槽：`top` 在所有页面显示，`bottom` 只在首页/归档等非文章页显示 |
+| `class_name` | 额外 class（写样式时用） |
+| `id_name` | 元素 id |
+| `name` | 卡片标题 |
+| `icon` | 标题左侧的 Font Awesome 图标 |
+| `order` | 排序（可选） |
+| `html` | 卡片正文，纯 HTML |
+
+歌词卡的内容由 `source/js/custom.js` 从 `source/js/lyrics-data.js` 渲染，
+**换歌、改歌词请编辑 `lyrics-data.js`**，不要改 `widget.yml` 里的那份 HTML（它只是禁用 JS 时的兜底）。
 
 ---
 

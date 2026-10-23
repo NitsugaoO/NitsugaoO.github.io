@@ -19,14 +19,16 @@
   if (document.getElementById('library-root')) return;  /* 文章库页面 */
 
   var DATA_URL = '/feed.json';
+  var SITE_URL = '/site.json';
   var AVATAR = '/img/cloud.jpg';
   var ABOUT_URL = '/about/';
 
   /* 给 body 打标记：首页专用样式靠它生效（注意选择器要写 body.home-mode） */
   document.body.classList.add('home-mode');
 
-  /* 公告板文案（想改就改这里，留空则不显示） */
-  var ANNOUNCEMENT = '欢迎来到我的小站。这里放着 CTF 题解、基础课笔记，以及一些不成篇的碎碎念。';
+  /* 公告板文案从 /site.json 读（source/_data/site.yml），管理页可以直接改，
+     不再硬编码在这里。 */
+  var ANNOUNCEMENT = '';
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -264,12 +266,22 @@
   }
 
   /* ---- 载入 -------------------------------------------------------------- */
-  window.fetch(DATA_URL)
-    .then(function (res) {
+  function fetchJSON(url) {
+    return window.fetch(url).then(function (res) {
       if (!res.ok) throw new Error(res.status);
       return res.json();
+    });
+  }
+
+  /* 两个数据源并行拉：feed 必填，site 失败时退化成没有公告 */
+  Promise.all([
+    fetchJSON(DATA_URL),
+    fetchJSON(SITE_URL).catch(function () { return {}; })
+  ])
+    .then(function (result) {
+      ANNOUNCEMENT = result[1].announcement || '';
+      render(result[0]);
     })
-    .then(render)
     .catch(function () {
       /* 拿不到数据就别动，保留主题原有的卡片流 */
     });
