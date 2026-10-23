@@ -1034,6 +1034,12 @@ html body.home-mode #aside-content .sticky_layout {
   top: 88px !important;
 }
 
+/* 右栏内容比「视口 - 导航 - 页脚」还高的话，滚到底部时会被父容器挤上去。
+   首页隐藏信息量最小的「网站信息」卡，右栏就装得下，可以全程保持吸附。 */
+html body.home-mode #aside-content .card-webinfo {
+  display: none;
+}
+
 html .home-filters {
   display: flex;
   flex-wrap: wrap;
