@@ -91,20 +91,73 @@ function runShell(command) {
 
 function gitStatus() {
   return new Promise(function (resolve) {
-    execFile('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }, function (err, stdout) {
-      const files = (stdout || '').trim().split(String.fromCharCode(10)).filter(Boolean);
+    execFile('git', ['-c', 'core.quotepath=false', 'status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' }, function (err, stdout) {
+      /* 只去掉末尾空白：整体 trim() 会把第一行开头的状态位（空格）也吃掉，
+         导致第一个文件名少一个字母。 */
+      const lines = (stdout || '').replace(/\s+$/, '').split(String.fromCharCode(10)).filter(Boolean);
+      const files = lines.map(function (line) {
+        let name = line.slice(3).trim();
+        if (name.charAt(0) === '"' && name.charAt(name.length - 1) === '"') {
+          name = name.slice(1, -1);
+        }
+        return name;
+      });
 
       execFile('git', ['rev-list', '--count', 'origin/master..HEAD'], { cwd: ROOT, encoding: 'utf8' }, function (err2, out2) {
         const ahead = Number((out2 || '0').trim()) || 0;
         resolve({
           dirty: files.length > 0,
           fileCount: files.length,
+          files: files.slice(0, 80),
           ahead: ahead,
           unpublished: files.length > 0 || ahead > 0
         });
       });
     });
   });
+}
+
+/* ---- 图片：把外部 URL 下载到 source/img/ -------------------------------- */
+
+const IMG_DIR = path.join(ROOT, 'source/img');
+
+function isPrivateHost(hostname) {
+  return /^(localhost|127\.|0\.0\.0\.0|\[::1\]|::1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(hostname || '') ||
+    /\.local$/i.test(hostname || '');
+}
+
+async function downloadImage(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch (e) {
+    throw new Error('不是合法的 URL');
+  }
+  if (!/^https?:$/.test(parsed.protocol)) throw new Error('只支持 http / https');
+  if (isPrivateHost(parsed.hostname)) throw new Error('不支持下内网地址');
+
+  const res = await fetch(parsed, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!res.ok) throw new Error('下载失败 HTTP ' + res.status);
+
+  const type = String(res.headers.get('content-type') || '');
+  if (!/^image\//.test(type)) throw new Error('不是图片（' + (type || '未知类型') + '）');
+
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+
+  const subtype = type.split('/')[1].split(';')[0].trim().toLowerCase();
+  const ext = subtype === 'jpeg' ? 'jpg' : (subtype === 'svg+xml' ? 'svg' : subtype);
+  const hash = require('crypto').createHash('md5').update(buf).digest('hex').slice(0, 10);
+  const name = hash + '.' + ext;
+
+  fs.mkdirSync(IMG_DIR, { recursive: true });
+  const file = path.join(IMG_DIR, name);
+  if (!fs.existsSync(file)) fs.writeFileSync(file, buf);
+
+  return { path: '/img/' + name, size: buf.length };
 }
 
 /* ---- 网易云：搜索 + 歌词（管理页「歌曲」用） ---------------------------- */
@@ -287,6 +340,14 @@ const server = http.createServer(async function (req, res) {
     /* ---- API ---- */
     if (pathname === '/api/state' && method === 'GET') {
       return sendJSON(res, 200, content.readAll());
+    }
+
+    /* 下载外部图片到 source/img/ */
+    if (pathname === '/api/download-image' && method === 'POST') {
+      const body = await readBody(req);
+      const url = String(body.url || '').trim();
+      if (!url) return sendJSON(res, 400, { error: '缺少 url' });
+      return sendJSON(res, 200, await downloadImage(url));
     }
 
     if (pathname === '/api/git-status' && method === 'GET') {

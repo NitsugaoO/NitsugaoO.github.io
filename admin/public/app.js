@@ -122,6 +122,83 @@
     }
   }
 
+  /* ---- 点击顶栏状态：列出未发布的文件 ---------------------------------- */
+
+  var statusPopover = null;
+
+  function closeStatusPopover() {
+    if (!statusPopover) return;
+    statusPopover.remove();
+    statusPopover = null;
+    document.removeEventListener('click', onStatusOutsideClick, true);
+    document.removeEventListener('keydown', onStatusKey);
+  }
+
+  function onStatusOutsideClick(e) {
+    if (!statusPopover) return;
+    if (statusPopover.contains(e.target) || statusEl.contains(e.target)) return;
+    closeStatusPopover();
+  }
+
+  function onStatusKey(e) {
+    if (e.key === 'Escape') closeStatusPopover();
+  }
+
+  function renderStatusFiles() {
+    if (!statusPopover) return;
+    statusPopover.innerHTML = '';
+
+    var git = state.git || {};
+    var files = git.files || [];
+
+    statusPopover.appendChild(el('div', 'status-popover-head',
+      '已保存但未发布' + (files.length ? '（' + files.length + ' 个文件）' : '')));
+
+    if (files.length) {
+      var list = el('ul', 'status-file-list');
+      files.forEach(function (file) {
+        list.appendChild(el('li', null, file));
+      });
+      statusPopover.appendChild(list);
+    } else {
+      statusPopover.appendChild(el('p', 'status-popover-empty', '工作区是干净的'));
+    }
+
+    if (git.ahead) {
+      statusPopover.appendChild(el('p', 'status-popover-note',
+        git.ahead + ' 个本地提交还没推送'));
+    }
+  }
+
+  function toggleStatusPopover() {
+    if (statusPopover) {
+      closeStatusPopover();
+      return;
+    }
+    if (!state.git || !state.git.unpublished) return;
+
+    statusPopover = el('div', 'status-popover');
+    document.body.appendChild(statusPopover);
+    renderStatusFiles();
+
+    var rect = statusEl.getBoundingClientRect();
+    statusPopover.style.top = (rect.bottom + 8) + 'px';
+    statusPopover.style.right = Math.max(12, window.innerWidth - rect.right) + 'px';
+
+    document.addEventListener('click', onStatusOutsideClick, true);
+    document.addEventListener('keydown', onStatusKey);
+  }
+
+  statusEl.addEventListener('click', toggleStatusPopover);
+
+  /* 状态刷新时，如果弹层开着就同步内容 */
+  var originalUpdateStatusUI = updateStatusUI;
+  updateStatusUI = function () {
+    originalUpdateStatusUI();
+    renderStatusFiles();
+    statusEl.style.cursor = (state.git && state.git.unpublished) ? 'pointer' : 'default';
+  };
+
   function confirmLeave() {
     return !state.dirty || window.confirm('当前修改还没保存，确定离开吗？');
   }
@@ -168,6 +245,28 @@
 
     sync();
     return { el: img, sync: sync };
+  }
+
+  /* 把输入框里的外部图片下载到 source/img/，并把值换成 /img/... */
+  function localizeImage(input, preview, btn) {
+    var url = input.value.trim();
+    if (!/^https?:\/\//i.test(url)) return toast('先填一个 http(s) 图片地址', true);
+
+    btn.disabled = true;
+    btn.textContent = '下载中…';
+    api('/api/download-image', { method: 'POST', body: { url: url } })
+      .then(function (res) {
+        input.value = res.path;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        if (preview) preview.sync();
+        setDirty(true);
+        toast('已下载到 ' + res.path);
+      })
+      .catch(function (err) { toast('下载失败：' + err.message, true); })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = '下载到本地';
+      });
   }
 
   /* ---- 图片大图预览 ------------------------------------------------------ */
@@ -507,8 +606,21 @@
       coverPreview.sync();
       setDirty(true);
     });
-    var coverField = field('封面', coverInput, '可选，首页卡片缩略图');
+    var coverRow = el('div', 'input-row');
+    coverRow.appendChild(coverInput);
+    var coverLocalBtn = el('button', 'btn small', '下载到本地');
+    coverLocalBtn.type = 'button';
+    coverLocalBtn.title = '外部图片下载到 source/img/，改用本地路径';
+    coverLocalBtn.addEventListener('click', function () {
+      localizeImage(coverInput, coverPreview, coverLocalBtn);
+    });
+    coverRow.appendChild(coverLocalBtn);
+
+    var coverField = el('div', 'field');
+    coverField.appendChild(el('span', 'field-label', '封面'));
+    coverField.appendChild(coverRow);
     coverField.appendChild(coverPreview.el);
+    coverField.appendChild(el('span', 'field-hint', '可选，首页卡片缩略图；外部地址可以点「下载到本地」'));
     grid.appendChild(coverField);
 
     /* 笔记专用字段：普通文章留空即可，保存时会被去掉 */
@@ -1248,11 +1360,23 @@
             input.addEventListener('input', function () { site[pair[0]] = input.value; setDirty(true); });
 
             if (pair[0] === 'avatar') {
-              /* 头像：输入框下面直接显示缩略图 */
+              /* 头像：输入框 + 本地化按钮同一行，下面显示缩略图 */
               var wrap = el('div', 'avatar-field');
               var preview = makeImagePreview(function () { return input.value; });
               input.addEventListener('input', preview.sync);
-              wrap.appendChild(input);
+
+              var avatarRow = el('div', 'input-row');
+              avatarRow.appendChild(input);
+
+              var localBtn = el('button', 'btn small', '下载到本地');
+              localBtn.type = 'button';
+              localBtn.title = '外部图片下载到 source/img/，改用本地路径';
+              localBtn.addEventListener('click', function () {
+                localizeImage(input, preview, localBtn);
+              });
+              avatarRow.appendChild(localBtn);
+
+              wrap.appendChild(avatarRow);
               wrap.appendChild(preview.el);
               row.appendChild(wrap);
             } else {
