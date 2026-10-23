@@ -13,6 +13,7 @@
     data: null,          /* 全部内容（/api/state） */
     view: 'posts',
     current: null,       /* 当前编辑的文章文件名 */
+    currentDraft: false, /* 当前编辑的是不是 _drafts 里的草稿 */
     dirty: false
   };
 
@@ -22,11 +23,13 @@
   var initialView = bootParams.get('view');
   if (VIEWS.indexOf(initialView) !== -1) state.view = initialView;
   if (bootParams.get('file')) state.current = bootParams.get('file');
+  state.currentDraft = bootParams.get('draft') === '1';
 
   function syncViewUrl() {
     var params = new URLSearchParams();
     if (state.view !== 'posts') params.set('view', state.view);
     if (state.view === 'posts' && state.current) params.set('file', state.current);
+    if (state.view === 'posts' && state.currentDraft) params.set('draft', '1');
     if (new URLSearchParams(window.location.search).get('preview') === '1') {
       params.set('preview', '1');   /* 保留预览开关，别把地址栏改回去 */
     }
@@ -100,11 +103,19 @@
 
   function renderPosts() {
     var posts = (state.data.posts || []).slice().sort(postSort);
-    /* URL 里的 file 可能是旧的/手改的，不存在就回退第一篇 */
-    if (state.current && !posts.some(function (p) { return p.file === state.current; })) {
+
+    /* 当前文章用 file + currentDraft 两个字段定位（_posts / _drafts 可能同名） */
+    var exists = posts.some(function (p) {
+      return p.file === state.current && (p.status === 'draft') === !!state.currentDraft;
+    });
+    if (!exists) {
       state.current = null;
+      state.currentDraft = false;
     }
-    if (!state.current && posts.length) state.current = posts[0].file;
+    if (!state.current && posts.length) {
+      state.current = posts[0].file;
+      state.currentDraft = posts[0].status === 'draft';
+    }
 
     app.innerHTML = '';
     var wrap = el('div', 'posts-wrap');
@@ -113,16 +124,41 @@
     var aside = el('aside', 'post-list');
     var head = el('div', 'list-head');
     head.appendChild(el('h2', null, '文章 / 笔记'));
-    var addBtn = el('button', 'btn small', '+ 新建');
-    addBtn.type = 'button';
-    addBtn.addEventListener('click', createPost);
-    head.appendChild(addBtn);
+
+    var addPost = el('button', 'btn small', '+ 文章');
+    addPost.type = 'button';
+    addPost.addEventListener('click', function () { createPost(false); });
+    head.appendChild(addPost);
+
+    var addDraft = el('button', 'btn small', '+ 草稿');
+    addDraft.type = 'button';
+    addDraft.addEventListener('click', function () { createPost(true); });
+    head.appendChild(addDraft);
+
     aside.appendChild(head);
 
     var search = el('input', 'search');
     search.type = 'search';
     search.placeholder = '搜索标题、分类、标签…';
     aside.appendChild(search);
+
+    /* 状态筛选：全部 / 已发布 / 草稿 */
+    var filterBar = el('div', 'status-filter');
+    var filter = 'all';
+    [['all', '全部'], ['published', '已发布'], ['draft', '草稿']].forEach(function (pair) {
+      var chip = el('button', 'status-chip' + (pair[0] === 'all' ? ' is-active' : ''), pair[1]);
+      chip.type = 'button';
+      chip.dataset.filter = pair[0];
+      chip.addEventListener('click', function () {
+        filter = pair[0];
+        Array.prototype.forEach.call(filterBar.children, function (node) {
+          node.classList.toggle('is-active', node === chip);
+        });
+        paintList(search.value);
+      });
+      filterBar.appendChild(chip);
+    });
+    aside.appendChild(filterBar);
 
     var listBox = el('div', 'list-items');
     aside.appendChild(listBox);
@@ -131,16 +167,22 @@
       var kw = String(keyword || '').toLowerCase();
       listBox.innerHTML = '';
       posts.filter(function (post) {
+        if (filter !== 'all' && post.status !== filter) return false;
         if (!kw) return true;
         var fm = post.fm;
         var hay = [fm.title, joinList(fm.categories), joinList(fm.tags), fm.description].join(' ');
         return hay.toLowerCase().indexOf(kw) !== -1;
       }).forEach(function (post) {
+        var isDraft = post.status === 'draft';
         var btn = el('button', 'list-item');
         btn.type = 'button';
-        if (post.file === state.current) btn.classList.add('is-active');
+        if (post.file === state.current && isDraft === !!state.currentDraft) {
+          btn.classList.add('is-active');
+        }
 
         var line = el('span', 'list-title');
+        line.appendChild(el('i', isDraft ? 'post-status draft' : 'post-status published',
+          isDraft ? '草稿' : '已发布'));
         if (post.fm.top) line.appendChild(el('i', 'pin', '置顶'));
         if (post.fm.type === 'note') line.appendChild(el('i', 'note', '笔记'));
         line.appendChild(document.createTextNode(post.fm.title || post.file));
@@ -151,6 +193,7 @@
         btn.addEventListener('click', function () {
           if (!confirmLeave()) return;
           state.current = post.file;
+          state.currentDraft = isDraft;
           paintList(search.value);
           renderEditor();
           syncViewUrl();
@@ -168,9 +211,11 @@
     app.appendChild(wrap);
 
     function renderEditor() {
-      var post = posts.filter(function (p) { return p.file === state.current; })[0];
+      var post = posts.filter(function (p) {
+        return p.file === state.current && (p.status === 'draft') === !!state.currentDraft;
+      })[0];
       if (!post) {
-        editor.innerHTML = '<p class="empty">左边还没有文章，点「+ 新建」开始。</p>';
+        editor.innerHTML = '<p class="empty">左边还没有文章，点「+ 文章」或「+ 草稿」开始。</p>';
         return;
       }
       buildEditor(editor, post);
@@ -181,22 +226,42 @@
 
   function buildEditor(container, post) {
     var fm = Object.assign({}, post.fm);
+    var isDraft = post.status === 'draft';
 
     container.innerHTML = '';
 
     var head = el('div', 'editor-head');
-    head.appendChild(el('h2', null, fm.title || post.file));
+    var titleBox = el('div', 'editor-title');
+    titleBox.appendChild(el('h2', null, fm.title || post.file));
+    titleBox.appendChild(el('span', 'status-badge ' + (isDraft ? 'draft' : 'published'),
+      isDraft ? '草稿' : '已发布'));
+    head.appendChild(titleBox);
+
     var tools = el('div', 'editor-tools');
+
+    var codeBtn = el('button', 'btn', 'VSCode');
+    codeBtn.type = 'button';
+    codeBtn.title = '在 VSCode 中打开这个文件';
+    codeBtn.addEventListener('click', function () { openInVSCode(post); });
+    tools.appendChild(codeBtn);
+
+    var previewBtn = el('button', 'btn', '预览');
+    previewBtn.type = 'button';
+    previewBtn.addEventListener('click', function () { togglePreview(container); });
+    tools.appendChild(previewBtn);
 
     var saveBtn = el('button', 'btn primary', '保存');
     saveBtn.type = 'button';
     saveBtn.addEventListener('click', function () { saveCurrentPost(container, post); });
     tools.appendChild(saveBtn);
 
-    var previewBtn = el('button', 'btn', '预览');
-    previewBtn.type = 'button';
-    previewBtn.addEventListener('click', function () { togglePreview(container); });
-    tools.appendChild(previewBtn);
+    if (isDraft) {
+      var publishBtn = el('button', 'btn primary', '转为已发布');
+      publishBtn.type = 'button';
+      publishBtn.title = '把文件从 _drafts 移到 _posts';
+      publishBtn.addEventListener('click', function () { publishDraft(post); });
+      tools.appendChild(publishBtn);
+    }
 
     var delBtn = el('button', 'btn danger', '删除');
     delBtn.type = 'button';
@@ -413,10 +478,15 @@
     }
   }
 
+  function postApiPath(post) {
+    return '/api/posts/' + encodeURIComponent(post.file) +
+      (post.status === 'draft' ? '?draft=1' : '');
+  }
+
   function saveCurrentPost(container, post) {
     if (!container._collect) return;
     var payload = container._collect();
-    api('/api/posts/' + encodeURIComponent(post.file), { method: 'PUT', body: payload })
+    api(postApiPath(post), { method: 'PUT', body: payload })
       .then(function () {
         return reload();
       })
@@ -426,22 +496,45 @@
       .catch(function (err) { toast('保存失败：' + err.message, true); });
   }
 
-  function createPost() {
-    var title = window.prompt('新文章标题');
+  function createPost(draft) {
+    var title = window.prompt(draft ? '新草稿标题（存到 _drafts）' : '新文章标题（存到 _posts）');
     if (!title) return;
     if (!confirmLeave()) return;
-    api('/api/posts', { method: 'POST', body: { title: title } })
+    api('/api/posts', { method: 'POST', body: { title: title, draft: draft } })
       .then(function (created) {
         state.current = created.file;
+        state.currentDraft = created.status === 'draft';
         return reload();
       })
-      .then(function () { toast('已新建'); })
+      .then(function () { toast(draft ? '已新建草稿' : '已新建文章'); })
       .catch(function (err) { toast('新建失败：' + err.message, true); });
+  }
+
+  function openInVSCode(post) {
+    api('/api/open-vscode', {
+      method: 'POST',
+      body: { file: post.file, draft: post.status === 'draft' }
+    })
+      .then(function () { toast('已在 VSCode 中打开'); })
+      .catch(function (err) { toast('打开失败：' + err.message, true); });
+  }
+
+  function publishDraft(post) {
+    if (!window.confirm('把《' + (post.fm.title || post.file) + '》转为已发布？\n文件会从 _drafts 移到 _posts。')) return;
+    api('/api/posts/' + encodeURIComponent(post.file) + '/publish', { method: 'POST' })
+      .then(function (result) {
+        state.current = result.file;
+        state.currentDraft = false;
+        setDirty(false);
+        return reload();
+      })
+      .then(function () { toast('已转为已发布'); })
+      .catch(function (err) { toast('发布失败：' + err.message, true); });
   }
 
   function removePost(post) {
     if (!window.confirm('把《' + (post.fm.title || post.file) + '》移入回收站？')) return;
-    api('/api/posts/' + encodeURIComponent(post.file), { method: 'DELETE' })
+    api(postApiPath(post), { method: 'DELETE' })
       .then(function () {
         state.current = null;
         setDirty(false);
@@ -710,13 +803,32 @@
     if (state.view === 'site') return renderSite();
   }
 
+  var lastStateJSON = '';
+
   function reload() {
     return api('/api/state').then(function (data) {
       state.data = data;
+      lastStateJSON = JSON.stringify(data);
       setDirty(false);
       render();
     });
   }
+
+  /* 定时/窗口聚焦时检查磁盘上的文件有没有被外部修改（比如在 VSCode 里保存）。
+     有未保存的编辑就跳过，不能把用户正在写的东西冲掉。 */
+  function refreshIfChanged() {
+    if (state.dirty) return;
+    api('/api/state').then(function (data) {
+      var json = JSON.stringify(data);
+      if (json === lastStateJSON) return;
+      state.data = data;
+      lastStateJSON = json;
+      render();
+    }).catch(function () { /* 服务停了就安静等待 */ });
+  }
+
+  window.setInterval(refreshIfChanged, 3000);
+  window.addEventListener('focus', refreshIfChanged);
 
   function nowString() {
     var d = new Date();
@@ -740,6 +852,14 @@
     return 'http://localhost:4000/' + m[1] + '/' + m[2] + '/' + m[3] + '/' +
       encodeURIComponent(name) + '/';
   }
+
+  document.getElementById('btn-refresh').addEventListener('click', function () {
+    if (state.dirty && !window.confirm('有未保存的改动，刷新会丢弃，继续？')) return;
+    setDirty(false);
+    reload()
+      .then(function () { toast('已刷新'); })
+      .catch(function (err) { toast('刷新失败：' + err.message, true); });
+  });
 
   document.getElementById('btn-site').addEventListener('click', function () {
     var btn = this;

@@ -107,8 +107,9 @@ function siteRunning() {
 
 function startSite() {
   const { spawn } = require('child_process');
-  /* detached + stdio:ignore：管理页关掉后它也继续跑，且不弹终端窗口 */
-  const child = spawn('pnpm', ['exec', 'hexo', 'server'], {
+  /* --draft：本地预览也把 _drafts 渲染出来，草稿才能点开看效果。
+     CI 构建不带动参数，线上不会出现草稿。 */
+  const child = spawn('pnpm', ['exec', 'hexo', 'server', '--draft'], {
     cwd: ROOT,
     shell: true,
     detached: true,
@@ -236,18 +237,43 @@ const server = http.createServer(async function (req, res) {
 
     if (pathname === '/api/posts' && method === 'POST') {
       const body = await readBody(req);
-      return sendJSON(res, 200, content.createPost(body.title));
+      return sendJSON(res, 200, content.createPost(body.title, !!body.draft));
+    }
+
+    /* 草稿 → 已发布（移动到 _posts） */
+    if (/^\/api\/posts\/[^/]+\/publish$/.test(pathname) && method === 'POST') {
+      const file = pathname.slice('/api/posts/'.length, -'/publish'.length);
+      return sendJSON(res, 200, content.publishPost(file));
     }
 
     if (pathname.startsWith('/api/posts/') && method === 'PUT') {
       const file = pathname.slice('/api/posts/'.length);
       const body = await readBody(req);
-      return sendJSON(res, 200, content.savePost(file, body.fm, body.body));
+      const isDraft = url.searchParams.get('draft') === '1';
+      return sendJSON(res, 200, content.savePost(file, body.fm, body.body, isDraft));
     }
 
     if (pathname.startsWith('/api/posts/') && method === 'DELETE') {
       const file = pathname.slice('/api/posts/'.length);
-      return sendJSON(res, 200, content.deletePost(file));
+      const isDraft = url.searchParams.get('draft') === '1';
+      return sendJSON(res, 200, content.deletePost(file, isDraft));
+    }
+
+    /* 用 VSCode 打开（-g 定位到文件首行） */
+    if (pathname === '/api/open-vscode' && method === 'POST') {
+      const body = await readBody(req);
+      const isDraft = !!body.draft;
+      const file = content.postPath(body.file, isDraft);
+      if (!fs.existsSync(file)) throw new Error('文件不存在');
+      const { spawn } = require('child_process');
+      const child = spawn('code', ['-g', file], {
+        shell: true,
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true
+      });
+      child.unref();
+      return sendJSON(res, 200, { ok: true, path: file });
     }
 
     if (method === 'PUT' && /^\/api\/data\/(shuoshuo|link|site)$/.test(pathname)) {

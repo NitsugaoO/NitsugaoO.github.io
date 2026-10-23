@@ -28,6 +28,7 @@ const yaml = require('js-yaml');
 
 const ROOT = path.resolve(__dirname, '..');
 const POSTS_DIR = path.join(ROOT, 'source/_posts');
+const DRAFTS_DIR = path.join(ROOT, 'source/_drafts');
 const DATA_DIR = path.join(ROOT, 'source/_data');
 const ABOUT_FILE = path.join(ROOT, 'source/about/index.md');
 
@@ -75,6 +76,18 @@ function formatDate(value) {
     pad(value.getUTCMinutes()) + ':' +
     pad(value.getUTCSeconds())
   );
+}
+
+/* Date → 本地字面量。
+   用于「新建文章」这种场景：date 是本地当前时间，直接取本地分量。
+   （从 YAML 读回来的 Date 要用 formatDate 的 UTC 分量，两者别搞混） */
+function formatLocal(value) {
+  return value.getFullYear() + '-' +
+    pad(value.getMonth() + 1) + '-' +
+    pad(value.getDate()) + ' ' +
+    pad(value.getHours()) + ':' +
+    pad(value.getMinutes()) + ':' +
+    pad(value.getSeconds());
 }
 
 /* 把 front-matter 对象规范成「普通 JSON 值」，方便前端直接编辑 */
@@ -128,35 +141,46 @@ function writeYaml(file, data) {
 
 /* ---- 文章 -------------------------------------------------------------- */
 
-function listPosts() {
-  if (!fs.existsSync(POSTS_DIR)) return [];
-  return fs.readdirSync(POSTS_DIR)
+/* 两个目录：_posts = 已发布，_drafts = 草稿（Hexo 默认不会生成草稿）。
+   两边可能有同名文件，所以每条记录都带 status，前端用「status + file」区分。 */
+
+function readPostDir(dir, status) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
     .filter(function (name) { return name.endsWith('.md'); })
-    .sort(function (a, b) { return a.localeCompare(b, 'zh'); })
     .map(function (name) {
-      const file = path.join(POSTS_DIR, name);
-      const parsed = matter(readText(file));
+      const parsed = matter(readText(path.join(dir, name)));
       return {
         file: name,
+        status: status,                 /* published | draft */
         fm: normalizeFrontMatter(parsed.data),
         body: parsed.content.replace(/^\n+/, '')
       };
     });
 }
 
-function postPath(file) {
-  /* 只允许 _posts 下的 .md，防目录穿越 */
+function listPosts() {
+  return readPostDir(POSTS_DIR, 'published').concat(readPostDir(DRAFTS_DIR, 'draft'));
+}
+
+function postDir(isDraft) {
+  return isDraft ? DRAFTS_DIR : POSTS_DIR;
+}
+
+function postPath(file, isDraft) {
+  /* 只允许 posts/drafts 下的 .md，防目录穿越 */
   const name = path.basename(String(file || ''));
   if (!/\.md$/i.test(name)) throw new Error('只允许 .md 文件');
-  const full = path.join(POSTS_DIR, name);
-  if (!full.startsWith(POSTS_DIR + path.sep)) throw new Error('非法路径');
+  const dir = postDir(isDraft);
+  const full = path.join(dir, name);
+  if (!full.startsWith(dir + path.sep)) throw new Error('非法路径');
   return full;
 }
 
-function savePost(file, fm, body) {
-  const full = postPath(file);
+function savePost(file, fm, body, isDraft) {
+  const full = postPath(file, isDraft);
   writeText(full, stringifyPost(fm || {}, body));
-  return { file: path.basename(full) };
+  return { file: path.basename(full), status: isDraft ? 'draft' : 'published' };
 }
 
 function slugify(title) {
@@ -167,29 +191,51 @@ function slugify(title) {
     .slice(0, 80) || '未命名';
 }
 
-function createPost(title) {
-  let name = slugify(title);
-  let full = path.join(POSTS_DIR, name + '.md');
+function uniquePath(dir, base) {
+  let full = path.join(dir, base + '.md');
   let i = 2;
   while (fs.existsSync(full)) {
-    full = path.join(POSTS_DIR, name + '-' + i + '.md');
+    full = path.join(dir, base + '-' + i + '.md');
     i++;
   }
+  return full;
+}
+
+function createPost(title, isDraft) {
+  const dir = postDir(isDraft);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const full = uniquePath(dir, slugify(title));
   const now = new Date();
   const fm = {
     title: String(title || '未命名'),
-    date: formatDate(now),
+    date: formatLocal(now),
     description: '',
     categories: [],
     tags: [],
     katex: false
   };
   writeText(full, stringifyPost(fm, ''));
-  return { file: path.basename(full), fm: fm, body: '' };
+  return {
+    file: path.basename(full),
+    status: isDraft ? 'draft' : 'published',
+    fm: fm,
+    body: ''
+  };
 }
 
-function deletePost(file) {
-  const full = postPath(file);
+/* 草稿 → 已发布：移动到 _posts（等价于 hexo publish，但不用起 Hexo） */
+function publishPost(file) {
+  const src = postPath(file, true);
+  if (!fs.existsSync(src)) throw new Error('草稿不存在');
+  fs.mkdirSync(POSTS_DIR, { recursive: true });
+  const dst = uniquePath(POSTS_DIR, path.basename(file, '.md'));
+  fs.renameSync(src, dst);
+  return { file: path.basename(dst), status: 'published' };
+}
+
+function deletePost(file, isDraft) {
+  const full = postPath(file, isDraft);
   if (!fs.existsSync(full)) throw new Error('文件不存在');
   /* 不直接 rm：交给系统回收站，误删可恢复 */
   const { spawnSync } = require('child_process');
@@ -197,7 +243,7 @@ function deletePost(file) {
   if (result.status !== 0) {
     throw new Error('移入回收站失败：' + (result.stderr || result.error || '未知错误'));
   }
-  return { file: path.basename(full) };
+  return { file: path.basename(full), status: isDraft ? 'draft' : 'published' };
 }
 
 /* ---- 关于页 ------------------------------------------------------------ */
@@ -231,7 +277,9 @@ module.exports = {
   readAll,
   listPosts,
   savePost,
+  postPath,
   createPost,
+  publishPost,
   deletePost,
   readAbout,
   saveAbout,
