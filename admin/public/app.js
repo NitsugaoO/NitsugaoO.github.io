@@ -14,7 +14,8 @@
     view: 'posts',
     current: null,       /* 当前编辑的文章文件名 */
     currentDraft: false, /* 当前编辑的是不是 _drafts 里的草稿 */
-    dirty: false
+    dirty: false,
+    saveHandler: null    /* 当前视图的保存函数，顶栏「保存」调用它 */
   };
 
   /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
@@ -344,10 +345,8 @@
     siteBtn.addEventListener('click', function () { openSitePreview(); });
     tools.appendChild(siteBtn);
 
-    var saveBtn = el('button', 'btn primary', '保存');
-    saveBtn.type = 'button';
-    saveBtn.addEventListener('click', function () { saveCurrentPost(container, post); });
-    tools.appendChild(saveBtn);
+    /* 保存统一走顶栏：这里只登记当前视图的保存动作 */
+    state.saveHandler = function () { saveCurrentPost(container, post); };
 
     if (isDraft) {
       var publishBtn = el('button', 'btn primary', '转为已发布');
@@ -800,12 +799,7 @@
 
     paint();
 
-    var foot = el('div', 'page-foot');
-    var save = el('button', 'btn primary', '保存全部说说');
-    save.type = 'button';
-    save.addEventListener('click', function () { saveData('shuoshuo', items); });
-    foot.appendChild(save);
-    app.appendChild(foot);
+    state.saveHandler = function () { saveData('shuoshuo', items); };
   }
 
   /* ---- 歌曲（侧栏歌词卡） ------------------------------------------------ */
@@ -1144,12 +1138,7 @@
 
     paint();
 
-    var foot = el('div', 'page-foot');
-    var save = el('button', 'btn primary', '保存歌单');
-    save.type = 'button';
-    save.addEventListener('click', function () { saveData('lyrics', items); });
-    foot.appendChild(save);
-    app.appendChild(foot);
+    state.saveHandler = function () { saveData('lyrics', items); };
   }
 
   /* ---- 友链 -------------------------------------------------------------- */
@@ -1260,12 +1249,7 @@
 
     paint();
 
-    var foot = el('div', 'page-foot');
-    var save = el('button', 'btn primary', '保存友链');
-    save.type = 'button';
-    save.addEventListener('click', function () { saveData('link', groups); });
-    foot.appendChild(save);
-    app.appendChild(foot);
+    state.saveHandler = function () { saveData('link', groups); };
   }
 
   /* ---- 关于 / 公告 -------------------------------------------------------- */
@@ -1286,10 +1270,7 @@
     card.appendChild(area);
     app.appendChild(card);
 
-    var foot = el('div', 'page-foot');
-    var save = el('button', 'btn primary', '保存关于页');
-    save.type = 'button';
-    save.addEventListener('click', function () {
+    state.saveHandler = function () {
       api('/api/about', {
         method: 'PUT',
         body: { fm: about.fm, body: area.value }
@@ -1298,9 +1279,7 @@
         return reload();
       }).then(function () { toast('已保存'); })
         .catch(function (err) { toast('保存失败：' + err.message, true); });
-    });
-    foot.appendChild(save);
-    app.appendChild(foot);
+    };
   }
 
   function renderSite() {
@@ -1319,14 +1298,9 @@
     card.appendChild(area);
     app.appendChild(card);
 
-    var foot = el('div', 'page-foot');
-    var save = el('button', 'btn primary', '保存公告');
-    save.type = 'button';
-    save.addEventListener('click', function () {
+    state.saveHandler = function () {
       saveData('site', { announcement: area.value.trim() });
-    });
-    foot.appendChild(save);
-    app.appendChild(foot);
+    };
   }
 
   function saveData(key, data) {
@@ -1440,6 +1414,7 @@
     if (!confirmLeave()) return;
     state.view = next;
     state.current = null;
+    state.saveHandler = null;
     Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
       b.classList.toggle('is-active', b === btn);
     });
@@ -1464,6 +1439,11 @@
       });
   });
 
+  document.getElementById('btn-save').addEventListener('click', function () {
+    if (!state.saveHandler) return toast('当前页面没有可保存的内容', true);
+    state.saveHandler();
+  });
+
   document.getElementById('btn-publish').addEventListener('click', function () {
     var message = window.prompt('提交说明（留空用默认）', '更新博客内容');
     if (message === null) return;
@@ -1485,7 +1465,7 @@
   document.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      var saveBtn = document.querySelector('.editor-tools .btn.primary, .page-foot .btn.primary');
+      var saveBtn = document.getElementById('btn-save');
       if (saveBtn) saveBtn.click();
       return;
     }
