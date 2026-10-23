@@ -76,7 +76,6 @@
 
       motto.setAttribute('role', 'button');
       motto.setAttribute('tabindex', '0');
-      motto.setAttribute('title', '鼠标移上来看看下半句');
 
       function open() { motto.classList.add('revealed'); }
       function close() { motto.classList.remove('revealed'); }
@@ -392,6 +391,12 @@
 
         root.innerHTML = '';
         root.appendChild(root2);
+
+        /* 感想超过默认折叠高度时才加底部渐变；只有一行就完整显示 */
+        var noteEl = root2.querySelector('.lyrics-note');
+        if (noteEl && noteEl.scrollHeight > noteEl.clientHeight + 2) {
+          noteEl.classList.add('is-collapsible');
+        }
 
         if (timeline) {
           /* 时长：优先用数据里的 duration，否则拿最后一句 + 8 秒收尾 */

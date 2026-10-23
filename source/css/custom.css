@@ -134,8 +134,11 @@ html .card-lyrics .lyrics-note {
   font-size: .78em;
   line-height: 1.6;
   transition: max-height .3s ease;
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-          mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+/* 只有内容真的被折叠时才加渐变，单行感想不会被遮 */
+html .card-lyrics .lyrics-note.is-collapsible {
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+          mask-image: linear-gradient(to bottom, #000 70%, transparent);
 }
 html .card-lyrics:hover .lyrics-note {
   max-height: 60em;
@@ -1021,6 +1024,12 @@ html .home-side {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* 左右栏吸附在同一个高度（导航下方），滚动时顶部才对得齐。
+   主题默认 top: 20px，会被导航挡住，也导致和左栏错位。 */
+html body.home-mode #aside-content .sticky_layout {
+  top: 88px;
 }
 
 html .home-filters {
