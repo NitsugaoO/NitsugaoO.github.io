@@ -30,9 +30,9 @@
     if (state.view !== 'posts') params.set('view', state.view);
     if (state.view === 'posts' && state.current) params.set('file', state.current);
     if (state.view === 'posts' && state.currentDraft) params.set('draft', '1');
-    if (new URLSearchParams(window.location.search).get('preview') === '1') {
-      params.set('preview', '1');   /* 保留预览开关，别把地址栏改回去 */
-    }
+    var keep = new URLSearchParams(window.location.search);
+    if (keep.get('preview') === '1') params.set('preview', '1');   /* 保留预览开关 */
+    if (keep.get('fullscreen') === '1') params.set('fullscreen', '1');
     var qs = params.toString();
     window.history.replaceState(null, '', '/' + (qs ? '?' + qs : ''));
   }
@@ -512,6 +512,23 @@
     bodyWrap.appendChild(preview);
     container.appendChild(bodyWrap);
 
+    /* 全屏：正文 + 预览铺满窗口（Esc 或右上角按钮退出） */
+    var fullBtn = el('button', 'btn', '全屏');
+    fullBtn.type = 'button';
+    fullBtn.dataset.fullscreenBtn = '1';
+    fullBtn.addEventListener('click', toggleFullscreen);
+    tools.appendChild(fullBtn);
+
+    var exitBtn = el('button', 'btn small fullscreen-exit', '退出全屏 (Esc)');
+    exitBtn.type = 'button';
+    exitBtn.addEventListener('click', toggleFullscreen);
+    bodyWrap.appendChild(exitBtn);
+
+    function toggleFullscreen() {
+      var on = bodyWrap.classList.toggle('is-fullscreen');
+      fullBtn.textContent = on ? '退出全屏' : '全屏';
+    }
+
     var previewTimer = null;
     function togglePreview() {
       if (preview.classList.contains('is-open')) {
@@ -562,10 +579,10 @@
       return { fm: next, body: bodyArea.value };
     };
 
-    /* 地址栏带 ?preview=1 时默认展开预览 */
-    if (new URLSearchParams(window.location.search).get('preview') === '1') {
-      togglePreview();
-    }
+    /* 地址栏带 ?preview=1 时默认展开预览；?fullscreen=1 直接全屏 */
+    var bootParams2 = new URLSearchParams(window.location.search);
+    if (bootParams2.get('preview') === '1') togglePreview();
+    if (bootParams2.get('fullscreen') === '1') toggleFullscreen();
   }
 
   function postApiPath(post) {
@@ -1089,6 +1106,16 @@
       e.preventDefault();
       var saveBtn = document.querySelector('.editor-tools .btn.primary, .page-foot .btn.primary');
       if (saveBtn) saveBtn.click();
+      return;
+    }
+
+    /* Esc 退出全屏 */
+    if (e.key === 'Escape') {
+      var wrap = document.querySelector('.body-wrap.is-fullscreen');
+      if (!wrap) return;
+      wrap.classList.remove('is-fullscreen');
+      var btn = document.querySelector('[data-fullscreen-btn]');
+      if (btn) btn.textContent = '全屏';
     }
   });
 

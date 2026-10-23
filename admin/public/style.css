@@ -136,8 +136,8 @@ main {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 16px;
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: 100%;
 }
 
 /* ---- 文章列表 ---- */
@@ -260,7 +260,6 @@ main {
   background: var(--bg1);
   border: 1px solid var(--bg3);
   border-radius: 10px;
-  overflow: hidden;
 }
 
 /* 表单不参与拉伸，剩下来的高度全给正文 / 预览 */
@@ -354,6 +353,23 @@ main {
 
 /* 点缩略图后的大图 */
 .img-preview { cursor: zoom-in; }
+
+.body-wrap.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  padding: 52px 16px 16px;
+  background: var(--bg0);
+}
+
+.fullscreen-exit {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 2;
+}
+.body-wrap.is-fullscreen .fullscreen-exit { display: block; }
 
 .lightbox {
   position: fixed;
@@ -456,7 +472,7 @@ main {
   display: flex;
   flex: 1 1 auto;
   gap: 12px;
-  min-height: 0;
+  min-height: 260px;   /* 窗口矮的时候也保证正文有可用高度 */
 }
 
 .body {
@@ -614,9 +630,7 @@ main {
   .card-head { grid-template-columns: 1fr; }
   .site-row { grid-template-columns: 1fr 1fr; }
 
-  /* 窄屏表单变一列，编辑器内部允许整体滚动，
-     正文 / 预览保留一个可用高度 */
-  .editor { overflow: auto; }
+  /* 窄屏表单变一列，正文 / 预览保留一个可用高度，整页滚动 */
   .body-wrap { flex: none; min-height: 420px; }
   .body, .preview { min-height: 420px; }
 }
