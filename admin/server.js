@@ -87,6 +87,46 @@ function runShell(command) {
   });
 }
 
+/* ---- 站点预览服务器（hexo server:4000） ---------------------------------- */
+
+const SITE_URL = 'http://localhost:4000/';
+
+function siteRunning() {
+  return new Promise(function (resolve) {
+    const req = http.get(SITE_URL, function (res) {
+      res.resume();
+      resolve(true);
+    });
+    req.on('error', function () { resolve(false); });
+    req.setTimeout(1200, function () {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+function startSite() {
+  const { spawn } = require('child_process');
+  /* detached + stdio:ignore：管理页关掉后它也继续跑，且不弹终端窗口 */
+  const child = spawn('pnpm', ['exec', 'hexo', 'server'], {
+    cwd: ROOT,
+    shell: true,
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true
+  });
+  child.unref();
+}
+
+async function waitSite(timeoutMs) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (await siteRunning()) return true;
+    await new Promise(function (resolve) { setTimeout(resolve, 600); });
+  }
+  return false;
+}
+
 /* ---- Markdown 预览 ------------------------------------------------------ */
 
 let md = null;
@@ -152,9 +192,41 @@ const server = http.createServer(async function (req, res) {
       return serveFile(res, path.join(CSS_DIR, 'katex-fonts', name));
     }
 
+    /* 预览里的图片：Markdown 写的是 /images/...、/img/...，
+       管理页在 5173 上，必须自己映射到 source 目录，否则预览一片空白。 */
+    if (method === 'GET' && (pathname.startsWith('/images/') || pathname.startsWith('/img/'))) {
+      const base = pathname.startsWith('/images/') ? 'source/images' : 'source/img';
+      const rel = pathname.replace(/^\/(images|img)\//, '');
+      const target = path.normalize(path.join(ROOT, base, rel));
+      /* 防目录穿越：必须还在 source/images 或 source/img 里 */
+      const root = path.join(ROOT, base);
+      if (!target.startsWith(root + path.sep)) {
+        return sendText(res, 403, 'Forbidden');
+      }
+      return serveFile(res, target);
+    }
+
     /* ---- API ---- */
     if (pathname === '/api/state' && method === 'GET') {
       return sendJSON(res, 200, content.readAll());
+    }
+
+    if (pathname === '/api/site-status' && method === 'GET') {
+      return sendJSON(res, 200, { running: await siteRunning(), url: SITE_URL });
+    }
+
+    if (pathname === '/api/site-start' && method === 'POST') {
+      if (await siteRunning()) {
+        return sendJSON(res, 200, { ok: true, url: SITE_URL, started: false });
+      }
+      startSite();
+      const ok = await waitSite(30000);
+      return sendJSON(res, ok ? 200 : 500, {
+        ok: ok,
+        url: SITE_URL,
+        started: true,
+        error: ok ? '' : 'hexo server 启动超时，看终端输出'
+      });
     }
 
     if (pathname === '/api/preview' && method === 'POST') {

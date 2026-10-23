@@ -1,14 +1,13 @@
 ---
 title: TSCTF 2026 WriteUp
-date: 2026-10-12 23:15:00
-description: 'TSCTF 2026 部分题题解'
-tags: [CTF, WriteUp, TSCTF]
+date: '2026-10-12 23:15:00'
+description: TSCTF 2026 部分题题解
 categories: [CTF]
+tags: [CTF, WriteUp, TSCTF]
 katex: true
 top: true
 cover: /images/tsctf2026/image-5.png
 ---
-
 ```flag
 test{}
 ```
