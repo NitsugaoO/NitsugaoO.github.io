@@ -331,6 +331,27 @@ main {
   font-size: 11px;
 }
 
+/* 图片字段预览（封面 / 友链头像） */
+.img-preview {
+  display: none;
+  width: 120px;
+  height: 72px;
+  margin-top: 6px;
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  background: var(--bg0);
+  object-fit: cover;
+}
+.img-preview.is-open { display: block; }
+.img-preview.is-broken { opacity: .3; }
+
+.avatar-field { display: flex; flex-direction: column; }
+.avatar-field .img-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
 /* 分类 / 标签的候选 chips */
 .suggest {
   display: flex;
@@ -509,6 +530,7 @@ main {
 .site-row {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) 140px minmax(0, 1fr) auto;
+  align-items: start;   /* 头像列带预览，别把其他输入框拉高 */
   gap: 6px;
 }
 

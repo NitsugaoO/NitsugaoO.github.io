@@ -95,6 +95,33 @@
     return Array.isArray(value) ? value.join(', ') : (value || '');
   }
 
+  /* 图片字段的实时预览：输入框里改路径，旁边立刻显示图；
+     图片不存在时用 .is-broken 半透明提示，不弹错。 */
+  function makeImagePreview(getSrc) {
+    var img = el('img', 'img-preview');
+    img.alt = '';
+    img.loading = 'lazy';
+    img.addEventListener('error', function () { img.classList.add('is-broken'); });
+    img.addEventListener('load', function () { img.classList.remove('is-broken'); });
+
+    function sync() {
+      var src = String(getSrc() || '').trim();
+      if (src) {
+        if (img.getAttribute('src') !== src) {
+          img.classList.remove('is-broken');
+          img.src = src;
+        }
+        img.classList.add('is-open');
+      } else {
+        img.removeAttribute('src');
+        img.classList.remove('is-open', 'is-broken');
+      }
+    }
+
+    sync();
+    return { el: img, sync: sync };
+  }
+
   /* ---- 文章 -------------------------------------------------------------- */
 
   function postSort(a, b) {
@@ -372,8 +399,14 @@
     coverInput.type = 'text';
     coverInput.value = fm.cover || '';
     coverInput.placeholder = '/images/xxx.png';
-    coverInput.addEventListener('input', function () { setDirty(true); });
-    grid.appendChild(field('封面', coverInput, '可选，首页卡片缩略图'));
+    var coverPreview = makeImagePreview(function () { return coverInput.value; });
+    coverInput.addEventListener('input', function () {
+      coverPreview.sync();
+      setDirty(true);
+    });
+    var coverField = field('封面', coverInput, '可选，首页卡片缩略图');
+    coverField.appendChild(coverPreview.el);
+    grid.appendChild(coverField);
 
     /* 笔记专用字段：普通文章留空即可，保存时会被去掉 */
     var courseInput = el('input');
@@ -730,7 +763,18 @@
             input.value = site[pair[0]] || '';
             input.placeholder = pair[1];
             input.addEventListener('input', function () { site[pair[0]] = input.value; setDirty(true); });
-            row.appendChild(input);
+
+            if (pair[0] === 'avatar') {
+              /* 头像：输入框下面直接显示缩略图 */
+              var wrap = el('div', 'avatar-field');
+              var preview = makeImagePreview(function () { return input.value; });
+              input.addEventListener('input', preview.sync);
+              wrap.appendChild(input);
+              wrap.appendChild(preview.el);
+              row.appendChild(wrap);
+            } else {
+              row.appendChild(input);
+            }
           });
 
           var delSite = el('button', 'btn danger small', '×');
