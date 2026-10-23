@@ -146,6 +146,7 @@ pnpm admin
 |---|---|
 | 文章 / 笔记 | `source/_posts/*.md` |
 | 说说 | `source/_data/shuoshuo.yml` |
+| 歌曲 | `source/_data/lyrics.yml` + `source/lrc/*.lrc` |
 | 友链 | `source/_data/link.yml` |
 | 关于 | `source/about/index.md` |
 | 公告 | `source/_data/site.yml` |
@@ -240,6 +241,20 @@ C:\Users\Agustin\blog\
 | `tags` | 标签数组（可选） |
 
 图片放在 `source/images/` 或 `source/img/`，正文里写绝对路径 `/images/xxx.png`。
+
+### `lyrics.yml` — 歌曲（侧栏歌词卡）
+
+| 字段 | 说明 |
+|---|---|
+| `title` | 歌名 |
+| `artist` | 歌手 |
+| `url` | 「去听」跳转地址（网易云歌曲页） |
+| `lrc` | LRC 文件路径，如 `/lrc/109998.lrc` |
+| `duration` | 时长（秒），进度条用它；不填按最后一句 + 8 秒估 |
+| `lines` | 纯文本歌词，只在 LRC 读取失败时兜底 |
+
+歌词文件放 `source/lrc/<网易云 id>.lrc`，可以在管理页的「歌曲」视图里直接编辑保存；
+歌单超过一首时歌词卡会自动出现「换一首」。
 
 ### `link.yml` — 友链
 

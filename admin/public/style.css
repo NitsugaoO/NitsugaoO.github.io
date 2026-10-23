@@ -552,6 +552,25 @@ main {
 .card .content:focus { outline: none; border-color: var(--green); }
 
 /* 说说卡片底部：VSCode / 预览 + 预览区 */
+/* 歌曲卡片 */
+.song-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 110px;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.lrc-editor {
+  display: none;
+  margin-top: 8px;
+}
+.lrc-editor.is-open { display: block; }
+.lrc-editor .lrc-content {
+  min-height: 240px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
 .card-tools {
   display: flex;
   gap: 6px;

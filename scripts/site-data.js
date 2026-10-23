@@ -21,7 +21,9 @@ hexo.extend.generator.register('site_data', function (locals) {
   return {
     path: 'site.json',
     data: JSON.stringify({
-      announcement: site.announcement || ''
+      announcement: site.announcement || '',
+      /* 歌单（侧栏歌词卡）：来自 source/_data/lyrics.yml */
+      lyrics: locals.data.lyrics || []
     })
   };
 });

@@ -113,7 +113,7 @@
   /* ==========================================================================
    * 4. 侧栏歌词卡
    * --------------------------------------------------------------------------
-   * 数据来自 source/js/lyrics-data.js（window.WOOYUN_LYRICS）。
+   * 数据来自 source/_data/lyrics.yml（由 /site.json 下发）。
    *
    * 「按原曲速度」是怎么做到的：
    *   没有音频，所以时间由自己走 —— 点开就用 performance.now() 起一个时钟，
@@ -156,10 +156,7 @@
     return out;
   }
 
-  function initLyricsCard() {
-    var songs = window.WOOYUN_LYRICS;
-    if (!songs || !songs.length) return;   // 没歌单就不动，保留 widget.yml 里的兜底内容
-
+  function startLyricsCard(songs) {
     whenReady('#lyrics-root', function (root) {
       var current = -1;
       var stopPlayer = null;   // 当前播放器的清理函数，切歌前必须先停
@@ -418,6 +415,23 @@
     } else if (sticky && sticky.firstChild !== card) {
       sticky.insertBefore(card, sticky.firstChild);
     }
+  }
+
+  /* 歌单数据：优先 window.WOOYUN_LYRICS（旧版兼容），否则从 /site.json 读。
+     数据源是 source/_data/lyrics.yml，由 scripts/site-data.js 输出。 */
+  function initLyricsCard() {
+    var songs = window.WOOYUN_LYRICS;
+    if (songs && songs.length) {
+      startLyricsCard(songs);
+      return;
+    }
+
+    window.fetch('/site.json')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && data.lyrics && data.lyrics.length) startLyricsCard(data.lyrics);
+      })
+      .catch(function () { /* 没歌单就不动，保留 widget.yml 里的兜底内容 */ });
   }
 
   /* ---- 6. 文章里的分类 / 标签链接 → 文章库筛选 ------------------------- */

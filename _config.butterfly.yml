@@ -1092,8 +1092,8 @@ inject:
       }
       </script>
   bottom:
-    # 歌单数据必须在 custom.js 之前加载（custom.js 会读 window.WOOYUN_LYRICS）
-    - <script src="/js/lyrics-data.js"></script>
+    # 歌单数据现在由 /site.json 下发（source/_data/lyrics.yml），
+    # custom.js 会自己 fetch，不再需要 lyrics-data.js
     - <script src="/js/custom.js"></script>
     # 只在文章库页面生效（找不到 #library-root 会直接返回）
     - <script src="/js/library.js"></script>

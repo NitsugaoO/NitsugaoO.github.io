@@ -18,7 +18,7 @@
   };
 
   /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
-  var VIEWS = ['posts', 'shuoshuo', 'link', 'about', 'site'];
+  var VIEWS = ['posts', 'shuoshuo', 'lyrics', 'link', 'about', 'site'];
   var bootParams = new URLSearchParams(window.location.search);
   var initialView = bootParams.get('view');
   if (VIEWS.indexOf(initialView) !== -1) state.view = initialView;
@@ -769,6 +769,161 @@
     app.appendChild(foot);
   }
 
+  /* ---- 歌曲（侧栏歌词卡） ------------------------------------------------ */
+
+  function renderLyrics() {
+    app.innerHTML = '';
+    var items = (state.data.lyrics || []).slice();
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '歌曲'));
+    var add = el('button', 'btn small', '+ 歌曲');
+    add.type = 'button';
+    add.addEventListener('click', function () {
+      var id = String(Date.now());
+      items.unshift({
+        title: '新歌',
+        artist: '',
+        url: '',
+        lrc: '/lrc/' + id + '.lrc',
+        duration: 240,
+        lines: []
+      });
+      state.data.lyrics = items;
+      paint();
+      setDirty(true);
+    });
+    head.appendChild(add);
+    app.appendChild(head);
+
+    var listBox = el('div', 'stack');
+    app.appendChild(listBox);
+
+    function lrcName(song) {
+      return String(song.lrc || '').split('/').pop();
+    }
+
+    function paint() {
+      listBox.innerHTML = '';
+      items.forEach(function (song, index) {
+        var card = el('article', 'card');
+
+        /* 标题 / 歌手 / 删除 */
+        var top = el('div', 'card-head');
+        var title = el('input');
+        title.type = 'text';
+        title.value = song.title || '';
+        title.placeholder = '歌名';
+        title.addEventListener('input', function () { song.title = title.value; setDirty(true); });
+        top.appendChild(title);
+
+        var artist = el('input');
+        artist.type = 'text';
+        artist.value = song.artist || '';
+        artist.placeholder = '歌手';
+        artist.addEventListener('input', function () { song.artist = artist.value; setDirty(true); });
+        top.appendChild(artist);
+
+        var del = el('button', 'btn danger small', '删除');
+        del.type = 'button';
+        del.addEventListener('click', function () {
+          if (!window.confirm('从歌单移除《' + (song.title || '未命名') + '》？（LRC 文件会保留）')) return;
+          items.splice(index, 1);
+          state.data.lyrics = items;
+          paint();
+          setDirty(true);
+        });
+        top.appendChild(del);
+        card.appendChild(top);
+
+        /* URL / LRC / 时长 */
+        var meta = el('div', 'song-meta');
+        [['url', '网易云链接'], ['lrc', 'LRC 路径'], ['duration', '时长（秒）']].forEach(function (pair) {
+          var input = el('input');
+          input.type = 'text';
+          input.value = song[pair[0]] === undefined ? '' : song[pair[0]];
+          input.placeholder = pair[1];
+          input.addEventListener('input', function () {
+            if (pair[0] === 'duration') {
+              song.duration = parseInt(input.value, 10) || 0;
+            } else {
+              song[pair[0]] = input.value;
+            }
+            setDirty(true);
+          });
+          meta.appendChild(input);
+        });
+        card.appendChild(meta);
+
+        /* 纯文本兜底歌词（LRC 加载失败时显示） */
+        var lines = el('textarea', 'content');
+        lines.rows = 2;
+        lines.placeholder = '纯文本歌词（LRC 加载失败时兜底，每行一句）';
+        lines.value = (song.lines || []).join(String.fromCharCode(10));
+        lines.addEventListener('input', function () {
+          song.lines = lines.value.split(String.fromCharCode(10)).map(function (x) { return x.trim(); }).filter(Boolean);
+          setDirty(true);
+        });
+        card.appendChild(lines);
+
+        /* 歌词编辑 */
+        var tools = el('div', 'card-tools');
+        var lrcBtn = el('button', 'btn small', '编辑歌词');
+        lrcBtn.type = 'button';
+        tools.appendChild(lrcBtn);
+
+        var lrcBox = el('div', 'lrc-editor');
+        var lrcArea = el('textarea', 'content lrc-content');
+        lrcArea.rows = 12;
+        lrcArea.spellcheck = false;
+        lrcArea.placeholder = '[00:48.20]在我的怀里 在你的眼里……';
+        var saveLrc = el('button', 'btn small primary', '保存歌词');
+        saveLrc.type = 'button';
+        saveLrc.addEventListener('click', function () {
+          var file = lrcName(song);
+          if (!file) return toast('先填 LRC 路径', true);
+          api('/api/lrc/' + encodeURIComponent(file), {
+            method: 'PUT',
+            body: { text: lrcArea.value }
+          })
+            .then(function () { toast('歌词已保存'); })
+            .catch(function (err) { toast('保存失败：' + err.message, true); });
+        });
+
+        lrcBtn.addEventListener('click', function () {
+          if (lrcBox.classList.contains('is-open')) {
+            lrcBox.classList.remove('is-open');
+            return;
+          }
+          var file = lrcName(song);
+          if (!file) return toast('先填 LRC 路径', true);
+          api('/api/lrc/' + encodeURIComponent(file))
+            .then(function (result) {
+              lrcArea.value = result.text || '';
+              lrcBox.classList.add('is-open');
+            })
+            .catch(function (err) { toast('读取失败：' + err.message, true); });
+        });
+
+        lrcBox.appendChild(lrcArea);
+        lrcBox.appendChild(saveLrc);
+        card.appendChild(tools);
+        card.appendChild(lrcBox);
+
+        listBox.appendChild(card);
+      });
+    }
+
+    paint();
+
+    var foot = el('div', 'page-foot');
+    var save = el('button', 'btn primary', '保存歌单');
+    save.type = 'button';
+    save.addEventListener('click', function () { saveData('lyrics', items); });
+    foot.appendChild(save);
+    app.appendChild(foot);
+  }
+
   /* ---- 友链 -------------------------------------------------------------- */
 
   function renderLinks() {
@@ -961,6 +1116,7 @@
   function render() {
     if (state.view === 'posts') return renderPosts();
     if (state.view === 'shuoshuo') return renderShuoshuo();
+    if (state.view === 'lyrics') return renderLyrics();
     if (state.view === 'link') return renderLinks();
     if (state.view === 'about') return renderAbout();
     if (state.view === 'site') return renderSite();

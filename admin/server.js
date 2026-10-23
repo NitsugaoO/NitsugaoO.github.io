@@ -315,11 +315,22 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, { ok: true, path: file });
     }
 
-    if (method === 'PUT' && /^\/api\/data\/(shuoshuo|link|site)$/.test(pathname)) {
+    if (method === 'PUT' && /^\/api\/data\/(shuoshuo|link|site|lyrics)$/.test(pathname)) {
       const key = pathname.split('/').pop();
       const body = await readBody(req);
       content.writeYaml(content.DATA_FILES[key], body.data);
       return sendJSON(res, 200, { ok: true });
+    }
+
+    /* 歌词文件（source/lrc/*.lrc） */
+    if (pathname.startsWith('/api/lrc/') && method === 'GET') {
+      const file = pathname.slice('/api/lrc/'.length);
+      return sendJSON(res, 200, { text: content.readLrc(file) });
+    }
+
+    if (pathname.startsWith('/api/lrc/') && method === 'PUT') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.writeLrc(pathname.slice('/api/lrc/'.length), body.text));
     }
 
     if (pathname === '/api/about' && method === 'PUT') {

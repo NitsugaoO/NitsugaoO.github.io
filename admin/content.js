@@ -44,8 +44,11 @@ const DATA_FILES = {
   shuoshuo: path.join(DATA_DIR, 'shuoshuo.yml'),
   link: path.join(DATA_DIR, 'link.yml'),
   site: path.join(DATA_DIR, 'site.yml'),
-  widget: path.join(DATA_DIR, 'widget.yml')
+  widget: path.join(DATA_DIR, 'widget.yml'),
+  lyrics: path.join(DATA_DIR, 'lyrics.yml')
 };
+
+const LRC_DIR = path.join(ROOT, 'source/lrc');
 
 /* ---- 基础工具 ---------------------------------------------------------- */
 
@@ -318,6 +321,27 @@ function deletePost(file, isDraft) {
   return { file: path.basename(full), status: isDraft ? 'draft' : 'published' };
 }
 
+/* ---- 歌词（source/lrc/*.lrc） ----------------------------------------- */
+
+function lrcPath(name) {
+  const base = path.basename(String(name || ''));
+  if (!/\.lrc$/i.test(base)) throw new Error('只允许 .lrc 文件');
+  const full = path.join(LRC_DIR, base);
+  if (!full.startsWith(LRC_DIR + path.sep)) throw new Error('非法路径');
+  return full;
+}
+
+function readLrc(name) {
+  const full = lrcPath(name);
+  return fs.existsSync(full) ? readText(full) : '';
+}
+
+function writeLrc(name, text) {
+  fs.mkdirSync(LRC_DIR, { recursive: true });
+  writeText(lrcPath(name), String(text || ''));
+  return { file: path.basename(String(name)) };
+}
+
 /* ---- 关于页 ------------------------------------------------------------ */
 
 function readAbout() {
@@ -354,6 +378,7 @@ function readAll() {
     shuoshuo: readShuoshuo(),
     link: readYaml(DATA_FILES.link, []),
     site: readYaml(DATA_FILES.site, {}),
+    lyrics: readYaml(DATA_FILES.lyrics, []),
     about: readAbout()
   };
 }
@@ -371,5 +396,7 @@ module.exports = {
   readAbout,
   saveAbout,
   readYaml,
-  writeYaml
+  writeYaml,
+  readLrc,
+  writeLrc
 };
