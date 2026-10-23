@@ -871,6 +871,15 @@ html .lib-type {
   font-size: .8em;
 }
 
+/* 文章库里的置顶标记：与「笔记」同行放在日期左侧。
+   数据来自 library.json 的 top 字段（front-matter 的 top: true 或 sticky > 0）。 */
+html .lib-pin {
+  margin-right: 6px;
+  color: var(--ef-green);
+  font-size: .8em;
+  font-weight: 600;
+}
+
 
 /* ============================================================================
  * 六、说说页 / 友链页的排版微调
@@ -886,9 +895,11 @@ html #article-container .shuoshuo-item .shuoshuo-content img {
 }
 
 /* 友链：改成两列。主题默认三列，在 900~1024px 宽度下卡片只有 240px 左右，
-   标题会被截成 "Butterfly ..." —— 两列空间更从容。 */
+   标题会被截成 "Butterfly ..." —— 两列空间更从容。
+   前缀用 #page：友链页 DOM 是 main#content-inner > #page > .flink，
+   没有 .container（只有文章页的 article#article-container 带这个类）。 */
 @media screen and (min-width: 601px) {
-  html .container .flink .flink-list > .flink-list-item {
+  html #page .flink .flink-list > .flink-list-item {
     width: calc(50% - 15px) !important;
   }
 }
@@ -1043,6 +1054,8 @@ html .feed-kind {
 }
 html .feed-kind--note { color: var(--ef-orange); }
 html .feed-kind--post { color: var(--ef-aqua); }
+/* 置顶徽章：与卡片顶部的类型徽章同形，用主强调绿区分 */
+html .feed-kind--pin { color: var(--ef-green); }
 
 html .feed-title {
   margin: 0 0 6px;
@@ -1449,4 +1462,29 @@ html input[type='search']::-webkit-search-results-decoration {
   -webkit-appearance: none;
   appearance: none;
   display: none;
+}
+
+
+/* ============================================================================
+ * 九、KaTeX 公式：说说页 / 首页时间流里也要显示
+ * ----------------------------------------------------------------------------
+ * 主题为了避免「先看到没排版的公式再跳一下」，把 .katex 默认设成 display:none，
+ * 等 JS 加载完公式样式后再给元素补 .katex-show 类（见主题
+ * includes/third-party/math/katex.pug）。但说说页和首页的时间流内容是
+ * fetch / JSON 之后动态插进 DOM 的：
+ *   1. 那一刻已经错过了主题扫 #article-container .katex 的时机；
+ *   2. 这两个页面也没有 page.katex 开关，主题根本不会加载公式样式。
+ * 结果就是公式整块空白。
+ *
+ * 这里直接让公式显示（样式由 inject.head 里的本地 katex.min.css 提供），
+ * 不再依赖那次「加载完再加类」的时序。
+ * ========================================================================= */
+
+html .katex {
+  display: inline !important;
+}
+
+/* 块级公式（$$...$$）还是按块显示，才能居中、换行 */
+html .katex-display .katex {
+  display: block !important;
 }

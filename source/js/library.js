@@ -283,8 +283,14 @@
           main.appendChild(el('p', 'lib-item-desc', post.description));
         }
 
-        /* 右侧：类型标记 + 时间 + 标签 */
+        /* 右侧：置顶标记 + 类型标记 + 时间 + 标签 */
         var side = el('div', 'lib-item-side');
+        if (post.top) {
+          var pin = el('span', 'lib-pin');
+          pin.appendChild(el('i', 'fas fa-thumbtack'));
+          pin.appendChild(document.createTextNode(' 置顶'));
+          side.appendChild(pin);
+        }
         if (post.type === 'note') {
           side.appendChild(el('span', 'lib-type', '笔记'));
         }

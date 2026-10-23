@@ -555,33 +555,42 @@ html .tag-cloud-list a:hover {
 }
 
 /* ---- 4.10 标签：用 Everforest 的七种强调色轮转 ------------------------- */
-/* Butterfly 在 card_tags.color: false 时会给每个标签写内联样式 color: #999
-   （内联样式优先级最高，只能用 !important）。
-   七种颜色按 7 的周期轮转；配合 card_tags.orderby 的「稳定排序」（不要用
-   random，否则每次构建颜色都会重新洗一遍），同一个标签会稳定落在同一种颜色上。
-   侧栏 hover → 强调绿（文字变色，无背景）；
-   标签页 hover → 绿底 + fg_on_green（这里必须也加 !important，
-   否则上面的彩色 !important 会盖住主题的 hover 色，绿底上出现彩色字）。 */
-html #aside-content .card-tag-cloud a:nth-child(7n+1),
-html .tag-cloud-list a:nth-child(7n+1) { color: var(--ef-red) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+2),
-html .tag-cloud-list a:nth-child(7n+2) { color: var(--ef-orange) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+3),
-html .tag-cloud-list a:nth-child(7n+3) { color: var(--ef-yellow) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+4),
-html .tag-cloud-list a:nth-child(7n+4) { color: var(--ef-green) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+5),
-html .tag-cloud-list a:nth-child(7n+5) { color: var(--ef-aqua) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+6),
-html .tag-cloud-list a:nth-child(7n+6) { color: var(--ef-blue) !important; }
-html #aside-content .card-tag-cloud a:nth-child(7n+7),
-html .tag-cloud-list a:nth-child(7n+7) { color: var(--ef-purple) !important; }
+/* 同样的七色，两个位置用法不同：
+     侧栏标签云（card-tag-cloud）—— 只给文字上色，无背景；
+     标签页（tag-cloud-list）—— 背景上色 + fg_on_green 文字。
+
+   ⚠️ 标签页的内联背景色是主题 cloudTags helper 用 getRandomColor()
+   每次构建随机生成的（style="background-color: rgb(...)"）：
+   不覆盖的话，每次刷新颜色都换一批，还会和这里的文字色撞成同色
+   （绿底绿字 / 蓝底蓝字 → 文字看不见）。所以这里用 !important
+   覆盖内联背景，让背景、文字都稳定下来。 */
+html #aside-content .card-tag-cloud a:nth-child(7n+1) { color: var(--ef-red) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+2) { color: var(--ef-orange) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+3) { color: var(--ef-yellow) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+4) { color: var(--ef-green) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+5) { color: var(--ef-aqua) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+6) { color: var(--ef-blue) !important; }
+html #aside-content .card-tag-cloud a:nth-child(7n+7) { color: var(--ef-purple) !important; }
+
+/* 标签页：背景 = 同一套七色，文字统一用 fg_on_green（深色底上对比才够） */
+html .tag-cloud-list a {
+  color: #2d353b !important;
+  transition: filter .2s, transform .2s;
+}
+html .tag-cloud-list a:nth-child(7n+1) { background-color: var(--ef-red) !important; }
+html .tag-cloud-list a:nth-child(7n+2) { background-color: var(--ef-orange) !important; }
+html .tag-cloud-list a:nth-child(7n+3) { background-color: var(--ef-yellow) !important; }
+html .tag-cloud-list a:nth-child(7n+4) { background-color: var(--ef-green) !important; }
+html .tag-cloud-list a:nth-child(7n+5) { background-color: var(--ef-aqua) !important; }
+html .tag-cloud-list a:nth-child(7n+6) { background-color: var(--ef-blue) !important; }
+html .tag-cloud-list a:nth-child(7n+7) { background-color: var(--ef-purple) !important; }
 
 html #aside-content .card-tag-cloud a:hover {
   color: var(--ef-green) !important;
 }
+/* 标签页 hover：提亮一点，而不是换成绿底（已经有底色了） */
 html .tag-cloud-list a:hover {
-  color: #2d353b !important;   /* 绿底上用 fg_on_green */
+  filter: brightness(1.12);
 }
 
 /* ---- 4.11 版权块去掉 hover 光效 ---------------------------------------- */
@@ -804,9 +813,14 @@ html .pagination-related .info .info-2 .info-item-2 {
  *
  * 这里把它排成网格卡片（文件夹图标 + 名称 + 文章数徽章），
  * 子分类缩进成虚线树。等分类出现层级时，不用改任何结构。
+ *
+ * ⚠️ 前缀必须是 #page，不能用 .container：分类页的 DOM 是
+ *   main#content-inner > #page > .category-lists
+ * 只有文章页的 article#article-container 才带 .container 类。
+ * 写成 html .container 会一条都不匹配，整节样式静默失效。
  * ========================================================================= */
 
-html .container .category-lists ul.category-list {
+html #page .category-lists ul.category-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
@@ -815,7 +829,7 @@ html .container .category-lists ul.category-list {
   list-style: none;
 }
 
-html .container .category-lists li.category-list-item {
+html #page .category-lists li.category-list-item {
   position: relative;
   margin: 0;
   padding: 0;
@@ -826,13 +840,13 @@ html .container .category-lists li.category-list-item {
   transition: border-color .25s, transform .25s;
 }
 
-html .container .category-lists li.category-list-item:hover {
+html #page .category-lists li.category-list-item:hover {
   border-color: var(--ef-green);
   transform: translateY(-2px);
 }
 
 /* 文件夹名：整块可点，右侧留出徽章位置 */
-html .container .category-lists li.category-list-item > a.category-list-link {
+html #page .category-lists li.category-list-item > a.category-list-link {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -842,12 +856,12 @@ html .container .category-lists li.category-list-item > a.category-list-link {
   transition: color .25s;
 }
 
-html .container .category-lists li.category-list-item > a.category-list-link:hover {
+html #page .category-lists li.category-list-item > a.category-list-link:hover {
   color: var(--ef-green);
 }
 
 /* 文件夹图标 */
-html .container .category-lists li.category-list-item > a.category-list-link::before {
+html #page .category-lists li.category-list-item > a.category-list-link::before {
   content: '\f07b';   /* fa-folder */
   font-family: 'Font Awesome 7 Free', 'Font Awesome 6 Free';
   font-weight: 400;
@@ -857,7 +871,7 @@ html .container .category-lists li.category-list-item > a.category-list-link::be
 }
 
 /* 文章数徽章：贴在第一行文字的高度上（有子分类时也不会跑偏） */
-html .container .category-lists .category-list-count {
+html #page .category-lists .category-list-count {
   position: absolute;
   top: 15px;
   right: 12px;
@@ -872,14 +886,14 @@ html .container .category-lists .category-list-count {
 }
 
 /* 子分类：缩进 + 虚线，像文件夹里套文件夹 */
-html .container .category-lists ul.category-list-child {
+html #page .category-lists ul.category-list-child {
   display: block;
   margin: 0 12px 12px 40px;
   padding-left: 12px;
   border-left: 1px dashed var(--ef-bg3);
 }
 
-html .container .category-lists ul.category-list-child li.category-list-item {
+html #page .category-lists ul.category-list-child li.category-list-item {
   margin: 0 0 6px;
 }
 

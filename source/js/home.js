@@ -79,6 +79,14 @@
     var card = el('article', 'feed-item feed-post');
 
     var head = el('header', 'feed-head');
+    /* 置顶标记：feed.json 里已按 top 排到最前，这里补一个可见的徽章，
+       否则流里看不出哪篇是置顶的（左栏的置顶卡片只在侧边栏）。 */
+    if (item.top) {
+      var pin = el('span', 'feed-kind feed-kind--pin');
+      pin.appendChild(el('i', 'fas fa-thumbtack'));
+      pin.appendChild(document.createTextNode(' 置顶'));
+      head.appendChild(pin);
+    }
     head.appendChild(el('span', 'feed-kind feed-kind--' + item.kind,
       item.kind === 'note' ? '笔记' : '文章'));
     head.appendChild(el('time', 'feed-date', item.date));

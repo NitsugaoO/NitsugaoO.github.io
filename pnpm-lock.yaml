@@ -53,6 +53,10 @@ importers:
       katex:
         specifier: ^0.19.0
         version: 0.19.0
+    devDependencies:
+      '@fortawesome/fontawesome-free':
+        specifier: 7.3.1
+        version: 7.3.1
 
 packages:
 
@@ -75,6 +79,10 @@ packages:
   '@babel/types@7.29.8':
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
+
+  '@fortawesome/fontawesome-free@7.3.1':
+    resolution: {integrity: sha512-wmglKKPDIkgV3aWlZzWECCPoGIkYCulzBwxG9+w7rc5BGapZ6cPMpoPOT8k36J0Ni7PPX6c/rsoMWfS4d1MUMg==}
+    engines: {node: '>=6'}
 
   '@renbaoshuo/markdown-it-katex@2.0.2':
     resolution: {integrity: sha512-peKX5VcHY2DXQ2AQaTduWkGwaQ2QSlscoOqRmOt6Fm9W+WmYacWnkzGsQeLlDw/lg9ZPSkE/SPSZnJC/kDEwnA==}
@@ -964,6 +972,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@fortawesome/fontawesome-free@7.3.1': {}
 
   '@renbaoshuo/markdown-it-katex@2.0.2(katex@0.19.0)(markdown-it@13.0.2)':
     dependencies:

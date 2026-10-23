@@ -1065,10 +1065,12 @@ inject:
   head:
     - <link rel="stylesheet" href="/css/everforest.css">
     - <link rel="stylesheet" href="/css/custom.css">
-    # 首页时间流里的说说可能是含公式的（feed.json 里已渲染成 KaTeX 节点），
-    # 而首页不是 page，没有 katex: true 这个开关，所以全局引一次 CSS，
-    # 否则公式会显示成空白。版本与主题加载的一致。
-    - <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css">
+    # 首页时间流 / 说说页的公式可能是含 KaTeX 的（feed.json 里已渲染成
+    # KaTeX 节点），而这两处都没有 page.katex 开关，主题不会加载公式样式。
+    # 所以全局引一份，并且用本地文件（source/css/katex.min.css，字体在
+    # source/css/katex-fonts/）—— 原来引 jsdelivr 的 CDN，网络一抖就
+    # 公式整块空白，和主题自带的 Font Awesome 一起失联时满屏方框。
+    - <link rel="stylesheet" href="/css/katex.min.css">
     # 防首页闪烁：首页的内容会被 home.js 换成三栏，但 HTML 里先渲染的是主题的
     # 卡片流。在 <head> 里就先给它打标记、由 CSS 藏起来，避免“先看到旧页面再跳变”。
     # 3 秒兜底：万 home.js 没执行（脚本挂了/被拦），也不会让页面一直空白。
@@ -1130,7 +1132,10 @@ CDN:
     # fancybox:
     # fancybox_css:
     # fireworks:
-    # fontawesome:
+    # Font Awesome 改成仓库内的本地文件（source/css/fontawesome/，
+    # 字体在 webfonts/）。CDN 一抽风导航图标就全变成「☒」，
+    # 这里直接给 asset.fontawesome 赋一个本地 URL，不走 third_party_provider。
+    fontawesome: /css/fontawesome/all.min.css
     # gitalk:
     # gitalk_css:
     # giscus:
