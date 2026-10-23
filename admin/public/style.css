@@ -641,16 +641,17 @@ main {
   font-size: 11px;
 }
 
-/* 歌曲卡片 */
+/* 歌曲卡片：日期 + 随机开关同一行，感想单独占一行 */
 .song-extra {
-  display: grid;
-  grid-template-columns: 170px auto;
-  gap: 8px 14px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 8px 14px;
   margin-bottom: 8px;
 }
 .song-extra .check { white-space: nowrap; }
-.song-extra textarea { grid-column: 1 / -1; }
+.song-extra input[type='date'] { width: 170px; flex: none; }
+.song-extra textarea { flex: 1 1 100%; }
 
 .song-meta {
   display: grid;

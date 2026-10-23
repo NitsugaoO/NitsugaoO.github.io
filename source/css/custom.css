@@ -101,6 +101,29 @@ html .card-lyrics .lyric-line.is-active {
   opacity: 1;
 }
 
+/* 双语歌词：有翻译时所有行统一加高，播放器的行高实测才不会错位 */
+html .card-lyrics .lyrics-track.has-sub .lyric-line {
+  height: 3.4em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+html .card-lyrics .lyric-line .lyric-main,
+html .card-lyrics .lyric-line .lyric-sub {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html .card-lyrics .lyric-line .lyric-sub {
+  color: var(--ef-grey0);
+  font-size: .72em;
+  line-height: 1.4;
+}
+
 /* 卡片底部：歌名 + 去网易云听（右边是「换一首」按钮） */
 html .card-lyrics .lyrics-foot {
   display: flex;

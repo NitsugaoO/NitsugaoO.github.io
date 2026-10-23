@@ -263,19 +263,40 @@
       }
 
       /* ---- 把某一首歌渲染进卡片 ---------------------------------------- */
-      function build(song, timeline) {
+      function build(song, timeline, translations) {
         if (stopPlayer) { stopPlayer(); stopPlayer = null; }
 
-        var texts = timeline
-          ? timeline.map(function (l) { return l.text; })
-          : (song.lines || []).slice(0, LYRIC_ROWS);
+        /* 每行：主文 + 可选翻译（按时间戳对齐，四舍五入到 0.1s） */
+        var rows = timeline
+          ? timeline.map(function (row) {
+              return {
+                main: row.text,
+                sub: (translations && translations[Math.round(row.time * 10)]) || ''
+              };
+            })
+          : (song.lines || []).slice(0, LYRIC_ROWS).map(function (text) {
+              return { main: text, sub: '' };
+            });
 
+        var hasSub = rows.some(function (row) { return !!row.sub; });
         var track = document.createElement('div');
-        track.className = 'lyrics-track';
-        texts.forEach(function (text) {
+        track.className = 'lyrics-track' + (hasSub ? ' has-sub' : '');
+        rows.forEach(function (row) {
           var p = document.createElement('p');
           p.className = 'lyric-line';
-          p.textContent = text;
+
+          var main = document.createElement('span');
+          main.className = 'lyric-main';
+          main.textContent = row.main;
+          p.appendChild(main);
+
+          if (row.sub) {
+            var sub = document.createElement('span');
+            sub.className = 'lyric-sub';
+            sub.textContent = row.sub;
+            p.appendChild(sub);
+          }
+
           track.appendChild(p);
         });
 
@@ -387,7 +408,24 @@
           .then(function (text) {
             if (token !== current) return;
             var timeline = parseLrc(text);
-            build(song, timeline.length ? timeline : null);
+            if (!timeline.length) { build(song, null); return; }
+
+            /* 有翻译就一起拉，按时间戳合并成双语行 */
+            if (!song.tlrc) { build(song, timeline); return; }
+
+            window.fetch(song.tlrc)
+              .then(function (res) { return res.ok ? res.text() : ''; })
+              .then(function (transText) {
+                if (token !== current) return;
+                var map = {};
+                parseLrc(transText).forEach(function (row) {
+                  map[Math.round(row.time * 10)] = row.text;
+                });
+                build(song, timeline, map);
+              })
+              .catch(function () {
+                if (token === current) build(song, timeline);
+              });
           })
           .catch(function () {
             if (token !== current) return;

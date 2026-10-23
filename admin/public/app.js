@@ -884,14 +884,26 @@
     function addSong(result, btn) {
       btn.disabled = true;
       btn.textContent = '添加中…';
+      var tlrc = '';
 
       api('/api/netease/lyric?id=' + encodeURIComponent(result.id))
         .then(function (res) {
           if (!res.lyric) throw new Error('这首歌没有歌词，可以手动粘贴');
-          return api('/api/lrc/' + encodeURIComponent(result.id + '.lrc'), {
-            method: 'PUT',
-            body: { text: res.lyric }
-          });
+
+          var tasks = [
+            api('/api/lrc/' + encodeURIComponent(result.id + '.lrc'), {
+              method: 'PUT',
+              body: { text: res.lyric }
+            })
+          ];
+          if (res.tlyric) {
+            tlrc = '/lrc/' + result.id + '.tlyric.lrc';
+            tasks.push(api('/api/lrc/' + encodeURIComponent(result.id + '.tlyric.lrc'), {
+              method: 'PUT',
+              body: { text: res.tlyric }
+            }));
+          }
+          return Promise.all(tasks);
         })
         .then(function () {
           items.unshift({
@@ -899,6 +911,7 @@
             artist: result.artist,
             url: 'https://music.163.com/#/song?id=' + result.id,
             lrc: '/lrc/' + result.id + '.lrc',
+            tlrc: tlrc || undefined,
             duration: result.duration || 240,
             lines: [],
             added: todayString(),
@@ -1056,6 +1069,36 @@
         var lrcBtn = el('button', 'btn small', '编辑歌词');
         lrcBtn.type = 'button';
         tools.appendChild(lrcBtn);
+
+        var tlrcBtn = el('button', 'btn small', '拉取翻译');
+        tlrcBtn.type = 'button';
+        tlrcBtn.title = '从网易云拉取翻译歌词，保存为 <id>.tlyric.lrc';
+        tlrcBtn.addEventListener('click', function () {
+          var file = lrcName(song);
+          var id = String(file).replace(/\.lrc$/i, '');
+          if (!id) return toast('先填 LRC 路径', true);
+
+          tlrcBtn.disabled = true;
+          tlrcBtn.textContent = '拉取中…';
+          api('/api/netease/lyric?id=' + encodeURIComponent(id))
+            .then(function (res) {
+              if (!res.tlyric) throw new Error('这首歌没有翻译');
+              return api('/api/lrc/' + encodeURIComponent(id + '.tlyric.lrc'), {
+                method: 'PUT',
+                body: { text: res.tlyric }
+              }).then(function () {
+                song.tlrc = '/lrc/' + id + '.tlyric.lrc';
+              });
+            })
+            .then(function () { return saveData('lyrics', items); })
+            .then(function () { toast('已拉取翻译'); })
+            .catch(function (err) {
+              tlrcBtn.disabled = false;
+              tlrcBtn.textContent = '拉取翻译';
+              toast('拉取失败：' + err.message, true);
+            });
+        });
+        tools.appendChild(tlrcBtn);
 
         var lrcBox = el('div', 'lrc-editor');
         var lrcArea = el('textarea', 'content lrc-content');

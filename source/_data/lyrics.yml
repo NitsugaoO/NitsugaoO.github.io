@@ -4,6 +4,10 @@
   lrc: /lrc/2698851599.lrc
   duration: 243
   lines: []
+  added: '2026-10-23'
+  note: ''
+  shuffle: true
+  tlrc: /lrc/2698851599.tlyric.lrc
 - title: 贝加尔湖畔
   artist: 李健
   url: https://music.163.com/#/song?id=109998
@@ -13,6 +17,6 @@
     - 在我的怀里 在你的眼里
     - 那里春风沉醉 那里绿草如茵
     - 月光把爱恋 洒满了湖面
-  added: 2026-10-23
+  added: '2026-10-23'
   note: 安静，适合夜里写代码的时候循环。
   shuffle: true

@@ -30,22 +30,30 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  /* LRC → 纯歌词行（去掉时间戳和 [ti:] 这类元信息） */
-  function lrcToLines(text) {
+  /* LRC → [{time, text}]（time 为秒，无时间戳的行 time=null） */
+  function lrcToPairs(text) {
     var out = [];
     String(text || '').split(/\r?\n/).forEach(function (raw) {
       var line = raw.trim();
       if (!line) return;
       if (/^\[[a-zA-Z]+:/.test(line)) return;
 
-      var matched = line.match(/^\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]\s*(.*)$/);
-      if (matched) {
-        if (matched[1]) out.push(matched[1]);
+      var matched = line.match(/^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/);
+      if (!matched) {
+        out.push({ time: null, text: line });
         return;
       }
-      out.push(line);
+      if (!matched[4]) return;
+      out.push({
+        time: Number(matched[1]) * 60 + Number(matched[2]) + Number('0.' + (matched[3] || '0')),
+        text: matched[4]
+      });
     });
     return out;
+  }
+
+  function lrcToLines(text) {
+    return lrcToPairs(text).map(function (row) { return row.text; });
   }
 
   function buildCard(song) {
@@ -95,15 +103,35 @@
           return;
         }
         lyricsBtn.disabled = true;
-        window.fetch(song.lrc)
-          .then(function (res) {
-            if (!res.ok) throw new Error(res.status);
-            return res.text();
-          })
-          .then(function (text) {
-            var lines = lrcToLines(text);
-            if (!lines.length && song.lines) lines = song.lines;
-            lyricsBox.textContent = lines.join('\n') || '（这首歌没有歌词）';
+
+        var loadMain = window.fetch(song.lrc).then(function (res) {
+          if (!res.ok) throw new Error(res.status);
+          return res.text();
+        });
+        var loadTrans = song.tlrc
+          ? window.fetch(song.tlrc)
+            .then(function (res) { return res.ok ? res.text() : ''; })
+            .catch(function () { return ''; })
+          : Promise.resolve('');
+
+        Promise.all([loadMain, loadTrans])
+          .then(function (result) {
+            var pairs = lrcToPairs(result[0]);
+            var trans = {};
+            lrcToPairs(result[1]).forEach(function (row) {
+              if (row.time !== null) trans[Math.round(row.time * 10)] = row.text;
+            });
+
+            /* 有翻译时：原文一行 + 缩进的小字翻译 */
+            var out = [];
+            pairs.forEach(function (row) {
+              out.push(row.text);
+              var sub = row.time !== null ? trans[Math.round(row.time * 10)] : '';
+              if (sub) out.push('  ' + sub);
+            });
+
+            if (!out.length && song.lines) out = song.lines;
+            lyricsBox.textContent = out.join('\n') || '（这首歌没有歌词）';
             lyricsBox.dataset.loaded = '1';
             lyricsBox.classList.add('is-open');
             lyricsBtn.textContent = '收起歌词';

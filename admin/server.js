@@ -138,7 +138,10 @@ async function neteaseLyric(id) {
   const data = await neteaseJSON(
     'https://music.163.com/api/song/lyric?os=pc&id=' + encodeURIComponent(id) + '&lv=-1&kv=-1&tv=-1'
   );
-  return (data.lrc && data.lrc.lyric) || '';
+  return {
+    lyric: (data.lrc && data.lrc.lyric) || '',
+    tlyric: (data.tlyric && data.tlyric.lyric) || ''
+  };
 }
 
 /* ---- 站点预览服务器（hexo server:4000） ---------------------------------- */
@@ -356,7 +359,7 @@ const server = http.createServer(async function (req, res) {
     if (pathname === '/api/netease/lyric' && method === 'GET') {
       const id = (url.searchParams.get('id') || '').trim();
       if (!/^\d+$/.test(id)) return sendJSON(res, 400, { error: 'id 不合法' });
-      return sendJSON(res, 200, { lyric: await neteaseLyric(id) });
+      return sendJSON(res, 200, await neteaseLyric(id));
     }
 
     /* 用系统默认图片查看器打开站内图片 */
