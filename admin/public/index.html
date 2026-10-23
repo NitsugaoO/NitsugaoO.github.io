@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>呜云 · 博客管理</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/preview/katex.min.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">呜云<span>· 管理</span></div>
+    <nav class="views" id="views">
+      <button type="button" data-view="posts" class="is-active">文章</button>
+      <button type="button" data-view="shuoshuo">说说</button>
+      <button type="button" data-view="link">友链</button>
+      <button type="button" data-view="about">关于</button>
+      <button type="button" data-view="site">公告</button>
+    </nav>
+    <div class="actions">
+      <span class="status" id="status"></span>
+      <button type="button" id="btn-site">站点预览</button>
+      <button type="button" id="btn-generate">重新生成</button>
+      <button type="button" id="btn-publish" class="primary">发布</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+  <div id="toast" class="toast"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

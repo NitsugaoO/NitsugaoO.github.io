@@ -1,0 +1,846 @@
+/* ============================================================================
+ * 本地管理页（无框架，原生 DOM）
+ * ----------------------------------------------------------------------------
+ * 视图：文章 / 说说 / 友链 / 关于 / 公告
+ * 数据全部通过 /api/* 读写，保存后提示「已保存」；
+ * 「发布」= git add -A + commit + push（会自动触发两个平台部署）。
+ * ========================================================================= */
+
+(function () {
+  'use strict';
+
+  var state = {
+    data: null,          /* 全部内容（/api/state） */
+    view: 'posts',
+    current: null,       /* 当前编辑的文章文件名 */
+    dirty: false
+  };
+
+  /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
+  var VIEWS = ['posts', 'shuoshuo', 'link', 'about', 'site'];
+  var bootParams = new URLSearchParams(window.location.search);
+  var initialView = bootParams.get('view');
+  if (VIEWS.indexOf(initialView) !== -1) state.view = initialView;
+  if (bootParams.get('file')) state.current = bootParams.get('file');
+
+  function syncViewUrl() {
+    var params = new URLSearchParams();
+    if (state.view !== 'posts') params.set('view', state.view);
+    if (state.view === 'posts' && state.current) params.set('file', state.current);
+    if (new URLSearchParams(window.location.search).get('preview') === '1') {
+      params.set('preview', '1');   /* 保留预览开关，别把地址栏改回去 */
+    }
+    var qs = params.toString();
+    window.history.replaceState(null, '', '/' + (qs ? '?' + qs : ''));
+  }
+
+  var app = document.getElementById('app');
+  var statusEl = document.getElementById('status');
+  var toastEl = document.getElementById('toast');
+
+  /* ---- 通用 -------------------------------------------------------------- */
+
+  function api(path, options) {
+    options = options || {};
+    return fetch(path, {
+      method: options.method || 'GET',
+      headers: options.body ? { 'Content-Type': 'application/json' } : {},
+      body: options.body ? JSON.stringify(options.body) : undefined
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        return data;
+      });
+    });
+  }
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+
+  function toast(message, isError) {
+    toastEl.textContent = message;
+    toastEl.classList.toggle('is-error', !!isError);
+    toastEl.classList.add('is-show');
+    window.clearTimeout(toast.timer);
+    toast.timer = window.setTimeout(function () {
+      toastEl.classList.remove('is-show');
+    }, 2600);
+  }
+
+  function setDirty(value) {
+    state.dirty = !!value;
+    statusEl.textContent = state.dirty ? '有未保存的改动' : '';
+    statusEl.classList.toggle('is-dirty', state.dirty);
+  }
+
+  function confirmLeave() {
+    return !state.dirty || window.confirm('当前修改还没保存，确定离开吗？');
+  }
+
+  function parseList(value) {
+    return String(value || '')
+      .split(/[,，]/)
+      .map(function (s) { return s.trim(); })
+      .filter(Boolean);
+  }
+
+  function joinList(value) {
+    return Array.isArray(value) ? value.join(', ') : (value || '');
+  }
+
+  /* ---- 文章 -------------------------------------------------------------- */
+
+  function postSort(a, b) {
+    return String(b.fm.date || '').localeCompare(String(a.fm.date || ''));
+  }
+
+  function renderPosts() {
+    var posts = (state.data.posts || []).slice().sort(postSort);
+    /* URL 里的 file 可能是旧的/手改的，不存在就回退第一篇 */
+    if (state.current && !posts.some(function (p) { return p.file === state.current; })) {
+      state.current = null;
+    }
+    if (!state.current && posts.length) state.current = posts[0].file;
+
+    app.innerHTML = '';
+    var wrap = el('div', 'posts-wrap');
+
+    /* --- 左列表 --- */
+    var aside = el('aside', 'post-list');
+    var head = el('div', 'list-head');
+    head.appendChild(el('h2', null, '文章 / 笔记'));
+    var addBtn = el('button', 'btn small', '+ 新建');
+    addBtn.type = 'button';
+    addBtn.addEventListener('click', createPost);
+    head.appendChild(addBtn);
+    aside.appendChild(head);
+
+    var search = el('input', 'search');
+    search.type = 'search';
+    search.placeholder = '搜索标题、分类、标签…';
+    aside.appendChild(search);
+
+    var listBox = el('div', 'list-items');
+    aside.appendChild(listBox);
+
+    function paintList(keyword) {
+      var kw = String(keyword || '').toLowerCase();
+      listBox.innerHTML = '';
+      posts.filter(function (post) {
+        if (!kw) return true;
+        var fm = post.fm;
+        var hay = [fm.title, joinList(fm.categories), joinList(fm.tags), fm.description].join(' ');
+        return hay.toLowerCase().indexOf(kw) !== -1;
+      }).forEach(function (post) {
+        var btn = el('button', 'list-item');
+        btn.type = 'button';
+        if (post.file === state.current) btn.classList.add('is-active');
+
+        var line = el('span', 'list-title');
+        if (post.fm.top) line.appendChild(el('i', 'pin', '置顶'));
+        if (post.fm.type === 'note') line.appendChild(el('i', 'note', '笔记'));
+        line.appendChild(document.createTextNode(post.fm.title || post.file));
+        btn.appendChild(line);
+        btn.appendChild(el('span', 'list-meta',
+          [post.fm.date || '', joinList(post.fm.categories)].filter(Boolean).join(' · ')));
+
+        btn.addEventListener('click', function () {
+          if (!confirmLeave()) return;
+          state.current = post.file;
+          paintList(search.value);
+          renderEditor();
+          syncViewUrl();
+        });
+        listBox.appendChild(btn);
+      });
+    }
+
+    search.addEventListener('input', function () { paintList(search.value); });
+    paintList('');
+
+    var editor = el('section', 'editor');
+    wrap.appendChild(aside);
+    wrap.appendChild(editor);
+    app.appendChild(wrap);
+
+    function renderEditor() {
+      var post = posts.filter(function (p) { return p.file === state.current; })[0];
+      if (!post) {
+        editor.innerHTML = '<p class="empty">左边还没有文章，点「+ 新建」开始。</p>';
+        return;
+      }
+      buildEditor(editor, post);
+    }
+
+    renderEditor();
+  }
+
+  function buildEditor(container, post) {
+    var fm = Object.assign({}, post.fm);
+
+    container.innerHTML = '';
+
+    var head = el('div', 'editor-head');
+    head.appendChild(el('h2', null, fm.title || post.file));
+    var tools = el('div', 'editor-tools');
+
+    var saveBtn = el('button', 'btn primary', '保存');
+    saveBtn.type = 'button';
+    saveBtn.addEventListener('click', function () { saveCurrentPost(container, post); });
+    tools.appendChild(saveBtn);
+
+    var previewBtn = el('button', 'btn', '预览');
+    previewBtn.type = 'button';
+    previewBtn.addEventListener('click', function () { togglePreview(container); });
+    tools.appendChild(previewBtn);
+
+    var delBtn = el('button', 'btn danger', '删除');
+    delBtn.type = 'button';
+    delBtn.addEventListener('click', function () { removePost(post); });
+    tools.appendChild(delBtn);
+
+    head.appendChild(tools);
+    container.appendChild(head);
+
+    /* 表单 */
+    var grid = el('div', 'form-grid');
+
+    function field(label, input, hint) {
+      var box = el('label', 'field');
+      box.appendChild(el('span', 'field-label', label));
+      box.appendChild(input);
+      if (hint) box.appendChild(el('span', 'field-hint', hint));
+      return box;
+    }
+
+    /* 分类 / 标签：逗号分隔输入 + 现有值候选（点 chip 直接追加）。
+       候选从所有文章汇总，避免「数学分析」和「数学分析 」被当成两个分类。 */
+    function suggestField(label, value, fieldKey, hint) {
+      var box = el('div', 'field');
+      box.appendChild(el('span', 'field-label', label));
+
+      var input = el('input');
+      input.type = 'text';
+      input.value = joinList(value);
+      input.addEventListener('input', function () { setDirty(true); });
+      box.appendChild(input);
+
+      var seen = {};
+      (state.data.posts || []).forEach(function (p) {
+        var list = p.fm[fieldKey];
+        if (Array.isArray(list)) {
+          list.forEach(function (name) { seen[name] = true; });
+        }
+      });
+      var candidates = Object.keys(seen).sort(function (a, b) {
+        return a.localeCompare(b, 'zh');
+      });
+
+      if (candidates.length) {
+        var chips = el('div', 'suggest');
+        candidates.forEach(function (name) {
+          var chip = el('button', 'suggest-chip', name);
+          chip.type = 'button';
+          chip.title = '添加到' + label;
+          chip.addEventListener('click', function () {
+            var list = parseList(input.value);
+            if (list.indexOf(name) === -1) list.push(name);
+            input.value = list.join(', ');
+            setDirty(true);
+            input.focus();
+          });
+          chips.appendChild(chip);
+        });
+        box.appendChild(chips);
+      }
+
+      if (hint) box.appendChild(el('span', 'field-hint', hint));
+      return { box: box, input: input };
+    }
+
+    var titleInput = el('input');
+    titleInput.type = 'text';
+    titleInput.value = fm.title || '';
+    titleInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('标题', titleInput));
+
+    var dateInput = el('input');
+    dateInput.type = 'text';
+    dateInput.value = fm.date || '';
+    dateInput.placeholder = 'YYYY-MM-DD HH:mm:ss';
+    dateInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('日期', dateInput));
+
+    var descInput = el('textarea');
+    descInput.rows = 2;
+    descInput.value = fm.description || '';
+    descInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('简介', descInput, '首页卡片和文章头部的描述'));
+
+    var cats = suggestField('分类', fm.categories, 'categories', '多个用逗号分隔，如：数学分析, 第一章');
+    var catsInput = cats.input;
+    grid.appendChild(cats.box);
+
+    var tags = suggestField('标签', fm.tags, 'tags', '多个用逗号分隔');
+    var tagsInput = tags.input;
+    grid.appendChild(tags.box);
+
+    var typeSelect = el('select');
+    [['', '文章'], ['note', '笔记']].forEach(function (pair) {
+      var opt = document.createElement('option');
+      opt.value = pair[0];
+      opt.textContent = pair[1];
+      if ((fm.type || '') === pair[0]) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeSelect.addEventListener('change', function () { setDirty(true); });
+    grid.appendChild(field('类型', typeSelect));
+
+    var coverInput = el('input');
+    coverInput.type = 'text';
+    coverInput.value = fm.cover || '';
+    coverInput.placeholder = '/images/xxx.png';
+    coverInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('封面', coverInput, '可选，首页卡片缩略图'));
+
+    /* 笔记专用字段：普通文章留空即可，保存时会被去掉 */
+    var courseInput = el('input');
+    courseInput.type = 'text';
+    courseInput.value = fm.course || '';
+    courseInput.placeholder = '如：工科数学分析（上）';
+    courseInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('课程', courseInput, '笔记专用，普通文章留空'));
+
+    var sourceInput = el('textarea');
+    sourceInput.rows = 2;
+    sourceInput.value = fm.source || '';
+    sourceInput.placeholder = '课件 / 教材章节页';
+    sourceInput.addEventListener('input', function () { setDirty(true); });
+    grid.appendChild(field('来源', sourceInput, '笔记专用，普通文章留空'));
+
+    var checks = el('div', 'field checks');
+    checks.appendChild(el('span', 'field-label', '选项'));
+
+    function checkbox(name, label, checked) {
+      var lab = el('label', 'check');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!checked;
+      cb.dataset.field = name;
+      cb.addEventListener('change', function () { setDirty(true); });
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(' ' + label));
+      checks.appendChild(lab);
+      return cb;
+    }
+
+    var topCb = checkbox('top', '置顶', fm.top);
+    var katexCb = checkbox('katex', '数学公式', fm.katex);
+    var topImgCb = checkbox('top_img', '文章横幅', fm.top_img === true);
+    grid.appendChild(checks);
+
+    container.appendChild(grid);
+
+    /* 正文 */
+    var bodyWrap = el('div', 'body-wrap');
+    var bodyArea = el('textarea', 'body');
+    bodyArea.value = post.body || '';
+    bodyArea.spellcheck = false;
+    bodyArea.addEventListener('input', function () { setDirty(true); });
+    bodyWrap.appendChild(bodyArea);
+
+    var preview = el('div', 'preview');
+    bodyWrap.appendChild(preview);
+    container.appendChild(bodyWrap);
+
+    var previewTimer = null;
+    function togglePreview() {
+      if (preview.classList.contains('is-open')) {
+        preview.classList.remove('is-open');
+        bodyArea.classList.remove('is-half');
+        return;
+      }
+      preview.classList.add('is-open');
+      bodyArea.classList.add('is-half');
+      refreshPreview();
+    }
+
+    function refreshPreview() {
+      api('/api/preview', { method: 'POST', body: { text: bodyArea.value } })
+        .then(function (result) { preview.innerHTML = result.html; })
+        .catch(function (err) { preview.textContent = '预览失败：' + err.message; });
+    }
+
+    bodyArea.addEventListener('input', function () {
+      if (!preview.classList.contains('is-open')) return;
+      window.clearTimeout(previewTimer);
+      previewTimer = window.setTimeout(refreshPreview, 500);
+    });
+
+    /* 保存 */
+    container._collect = function () {
+      var next = Object.assign({}, fm);
+      next.title = titleInput.value.trim();
+      next.date = dateInput.value.trim();
+      next.description = descInput.value.trim();
+      next.categories = parseList(catsInput.value);
+      next.tags = parseList(tagsInput.value);
+      next.cover = coverInput.value.trim();
+      next.type = typeSelect.value;
+      next.top = topCb.checked;
+      next.katex = katexCb.checked;
+      if (topImgCb.checked) next.top_img = true; else delete next.top_img;
+      next.course = courseInput.value.trim();
+      next.source = sourceInput.value.trim();
+
+      /* 空字段写回时去掉，保持 md 干净 */
+      ['cover', 'type', 'course', 'source'].forEach(function (key) {
+        if (!next[key]) delete next[key];
+      });
+      if (!next.top) delete next.top;
+      if (!next.katex) delete next.katex;
+
+      return { fm: next, body: bodyArea.value };
+    };
+
+    /* 地址栏带 ?preview=1 时默认展开预览 */
+    if (new URLSearchParams(window.location.search).get('preview') === '1') {
+      togglePreview();
+    }
+  }
+
+  function saveCurrentPost(container, post) {
+    if (!container._collect) return;
+    var payload = container._collect();
+    api('/api/posts/' + encodeURIComponent(post.file), { method: 'PUT', body: payload })
+      .then(function () {
+        return reload();
+      })
+      .then(function () {
+        toast('已保存');
+      })
+      .catch(function (err) { toast('保存失败：' + err.message, true); });
+  }
+
+  function createPost() {
+    var title = window.prompt('新文章标题');
+    if (!title) return;
+    if (!confirmLeave()) return;
+    api('/api/posts', { method: 'POST', body: { title: title } })
+      .then(function (created) {
+        state.current = created.file;
+        return reload();
+      })
+      .then(function () { toast('已新建'); })
+      .catch(function (err) { toast('新建失败：' + err.message, true); });
+  }
+
+  function removePost(post) {
+    if (!window.confirm('把《' + (post.fm.title || post.file) + '》移入回收站？')) return;
+    api('/api/posts/' + encodeURIComponent(post.file), { method: 'DELETE' })
+      .then(function () {
+        state.current = null;
+        setDirty(false);
+        return reload();
+      })
+      .then(function () { toast('已移入回收站'); })
+      .catch(function (err) { toast('删除失败：' + err.message, true); });
+  }
+
+  /* ---- 说说 -------------------------------------------------------------- */
+
+  function renderShuoshuo() {
+    app.innerHTML = '';
+    var items = (state.data.shuoshuo || []).slice();
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '说说'));
+    var add = el('button', 'btn small', '+ 新增');
+    add.type = 'button';
+    add.addEventListener('click', function () {
+      items.unshift({ date: nowString(), content: '', tags: [] });
+      state.data.shuoshuo = items;
+      paint();
+      setDirty(true);
+    });
+    head.appendChild(add);
+    app.appendChild(head);
+
+    var listBox = el('div', 'stack');
+    app.appendChild(listBox);
+
+    function paint() {
+      listBox.innerHTML = '';
+      items.forEach(function (item, index) {
+        var card = el('article', 'card');
+
+        var top = el('div', 'card-head');
+        var date = el('input');
+        date.type = 'text';
+        date.value = item.date || '';
+        date.placeholder = 'YYYY-MM-DD HH:mm:ss';
+        date.addEventListener('input', function () { item.date = date.value; setDirty(true); });
+        top.appendChild(date);
+
+        var tags = el('input');
+        tags.type = 'text';
+        tags.value = joinList(item.tags);
+        tags.placeholder = '标签（逗号分隔）';
+        tags.addEventListener('input', function () { item.tags = parseList(tags.value); setDirty(true); });
+        top.appendChild(tags);
+
+        var del = el('button', 'btn danger small', '删除');
+        del.type = 'button';
+        del.addEventListener('click', function () {
+          items.splice(index, 1);
+          state.data.shuoshuo = items;
+          paint();
+          setDirty(true);
+        });
+        top.appendChild(del);
+        card.appendChild(top);
+
+        var content = el('textarea', 'content');
+        content.rows = 6;
+        content.value = item.content || '';
+        content.addEventListener('input', function () { item.content = content.value; setDirty(true); });
+        card.appendChild(content);
+
+        listBox.appendChild(card);
+      });
+    }
+
+    paint();
+
+    var foot = el('div', 'page-foot');
+    var save = el('button', 'btn primary', '保存全部说说');
+    save.type = 'button';
+    save.addEventListener('click', function () { saveData('shuoshuo', items); });
+    foot.appendChild(save);
+    app.appendChild(foot);
+  }
+
+  /* ---- 友链 -------------------------------------------------------------- */
+
+  function renderLinks() {
+    app.innerHTML = '';
+    var groups = (state.data.link || []).slice();
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '友链'));
+
+    var addGroup = el('button', 'btn small', '+ 分组');
+    addGroup.type = 'button';
+    addGroup.addEventListener('click', function () {
+      groups.push({ class_name: '新分组', class_desc: '', link_list: [] });
+      state.data.link = groups;
+      paint();
+      setDirty(true);
+    });
+    head.appendChild(addGroup);
+    app.appendChild(head);
+
+    var listBox = el('div', 'stack');
+    app.appendChild(listBox);
+
+    function paint() {
+      listBox.innerHTML = '';
+      groups.forEach(function (group, gIndex) {
+        var card = el('article', 'card');
+
+        var top = el('div', 'card-head');
+        var name = el('input');
+        name.type = 'text';
+        name.value = group.class_name || '';
+        name.placeholder = '分组名';
+        name.addEventListener('input', function () { group.class_name = name.value; setDirty(true); });
+        top.appendChild(name);
+
+        var desc = el('input');
+        desc.type = 'text';
+        desc.value = group.class_desc || '';
+        desc.placeholder = '分组说明（可选）';
+        desc.addEventListener('input', function () { group.class_desc = desc.value; setDirty(true); });
+        top.appendChild(desc);
+
+        var delGroup = el('button', 'btn danger small', '删除分组');
+        delGroup.type = 'button';
+        delGroup.addEventListener('click', function () {
+          if (!window.confirm('删除这个分组和它下面的所有站点？')) return;
+          groups.splice(gIndex, 1);
+          state.data.link = groups;
+          paint();
+          setDirty(true);
+        });
+        top.appendChild(delGroup);
+        card.appendChild(top);
+
+        var sites = el('div', 'sites');
+        (group.link_list || []).forEach(function (site, sIndex) {
+          var row = el('div', 'site-row');
+
+          [['name', '站点名'], ['link', '链接'], ['avatar', '头像路径'], ['descr', '描述']].forEach(function (pair) {
+            var input = el('input');
+            input.type = 'text';
+            input.value = site[pair[0]] || '';
+            input.placeholder = pair[1];
+            input.addEventListener('input', function () { site[pair[0]] = input.value; setDirty(true); });
+            row.appendChild(input);
+          });
+
+          var delSite = el('button', 'btn danger small', '×');
+          delSite.type = 'button';
+          delSite.title = '删除这个站点';
+          delSite.addEventListener('click', function () {
+            group.link_list.splice(sIndex, 1);
+            paint();
+            setDirty(true);
+          });
+          row.appendChild(delSite);
+          sites.appendChild(row);
+        });
+        card.appendChild(sites);
+
+        var addSite = el('button', 'btn small', '+ 站点');
+        addSite.type = 'button';
+        addSite.addEventListener('click', function () {
+          group.link_list = group.link_list || [];
+          group.link_list.push({ name: '', link: '', avatar: '/img/cloud.jpg', descr: '' });
+          paint();
+          setDirty(true);
+        });
+        card.appendChild(addSite);
+
+        listBox.appendChild(card);
+      });
+    }
+
+    paint();
+
+    var foot = el('div', 'page-foot');
+    var save = el('button', 'btn primary', '保存友链');
+    save.type = 'button';
+    save.addEventListener('click', function () { saveData('link', groups); });
+    foot.appendChild(save);
+    app.appendChild(foot);
+  }
+
+  /* ---- 关于 / 公告 -------------------------------------------------------- */
+
+  function renderAbout() {
+    var about = state.data.about || { fm: {}, body: '' };
+    app.innerHTML = '';
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '关于'));
+    app.appendChild(head);
+
+    var card = el('article', 'card');
+    var area = el('textarea', 'content about');
+    area.rows = 24;
+    area.value = about.body || '';
+    area.addEventListener('input', function () { setDirty(true); });
+    card.appendChild(area);
+    app.appendChild(card);
+
+    var foot = el('div', 'page-foot');
+    var save = el('button', 'btn primary', '保存关于页');
+    save.type = 'button';
+    save.addEventListener('click', function () {
+      api('/api/about', {
+        method: 'PUT',
+        body: { fm: about.fm, body: area.value }
+      }).then(function () {
+        setDirty(false);
+        return reload();
+      }).then(function () { toast('已保存'); })
+        .catch(function (err) { toast('保存失败：' + err.message, true); });
+    });
+    foot.appendChild(save);
+    app.appendChild(foot);
+  }
+
+  function renderSite() {
+    var site = state.data.site || {};
+    app.innerHTML = '';
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '公告'));
+    app.appendChild(head);
+
+    var card = el('article', 'card');
+    var area = el('textarea', 'content');
+    area.rows = 6;
+    area.value = site.announcement || '';
+    area.addEventListener('input', function () { setDirty(true); });
+    card.appendChild(area);
+    app.appendChild(card);
+
+    var foot = el('div', 'page-foot');
+    var save = el('button', 'btn primary', '保存公告');
+    save.type = 'button';
+    save.addEventListener('click', function () {
+      saveData('site', { announcement: area.value.trim() });
+    });
+    foot.appendChild(save);
+    app.appendChild(foot);
+  }
+
+  function saveData(key, data) {
+    api('/api/data/' + key, { method: 'PUT', body: { data: data } })
+      .then(function () {
+        setDirty(false);
+        return reload();
+      })
+      .then(function () { toast('已保存'); })
+      .catch(function (err) { toast('保存失败：' + err.message, true); });
+  }
+
+  /* ---- 视图切换 / 发布 ---------------------------------------------------- */
+
+  function render() {
+    if (state.view === 'posts') return renderPosts();
+    if (state.view === 'shuoshuo') return renderShuoshuo();
+    if (state.view === 'link') return renderLinks();
+    if (state.view === 'about') return renderAbout();
+    if (state.view === 'site') return renderSite();
+  }
+
+  function reload() {
+    return api('/api/state').then(function (data) {
+      state.data = data;
+      setDirty(false);
+      render();
+    });
+  }
+
+  function nowString() {
+    var d = new Date();
+    function p(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  /* 当前编辑文章的站点地址。
+     permalink 是 :year/:month/:day/:title/，:title 就是去掉 .md 的文件名，
+     所以可以直接拼出来（中文靠 encodeURIComponent）。 */
+  function currentPostUrl() {
+    if (state.view !== 'posts' || !state.current) return '';
+    var post = (state.data.posts || []).filter(function (p) {
+      return p.file === state.current;
+    })[0];
+    if (!post) return '';
+    var m = String(post.fm.date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return '';
+    var name = post.file.replace(/\.md$/i, '');
+    return 'http://localhost:4000/' + m[1] + '/' + m[2] + '/' + m[3] + '/' +
+      encodeURIComponent(name) + '/';
+  }
+
+  document.getElementById('btn-site').addEventListener('click', function () {
+    var btn = this;
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '检查中…';
+
+    api('/api/site-status')
+      .then(function (status) {
+        if (status.running) return status;
+        btn.textContent = '启动中…';
+        return api('/api/site-start', { method: 'POST' });
+      })
+      .then(function (result) {
+        if (result && result.ok === false) throw new Error(result.error || '启动失败');
+        var target = currentPostUrl() || (result && result.url) || 'http://localhost:4000/';
+        window.open(target, '_blank', 'noopener');
+        toast('已打开站点预览');
+      })
+      .catch(function (err) {
+        toast('预览启动失败：' + err.message, true);
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = label;
+      });
+  });
+
+  document.getElementById('views').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-view]');
+    if (!btn) return;
+    var next = btn.dataset.view;
+    if (next === state.view) return;
+    if (!confirmLeave()) return;
+    state.view = next;
+    state.current = null;
+    Array.prototype.forEach.call(this.querySelectorAll('button'), function (b) {
+      b.classList.toggle('is-active', b === btn);
+    });
+    syncViewUrl();
+    setDirty(false);
+    render();
+  });
+
+  document.getElementById('btn-generate').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = '生成中…';
+    api('/api/generate', { method: 'POST' })
+      .then(function (result) {
+        toast(result.ok ? '生成完成' : '生成失败，看控制台输出', !result.ok);
+        if (!result.ok) console.log(result.output);
+      })
+      .catch(function (err) { toast('生成失败：' + err.message, true); })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = '重新生成';
+      });
+  });
+
+  document.getElementById('btn-publish').addEventListener('click', function () {
+    var message = window.prompt('提交说明（留空用默认）', '更新博客内容');
+    if (message === null) return;
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = '发布中…';
+    api('/api/publish', { method: 'POST', body: { message: message } })
+      .then(function (result) {
+        toast(result.ok ? '已推送，1~2 分钟后上线' : '发布失败', !result.ok);
+        console.log(result.output);
+      })
+      .catch(function (err) { toast('发布失败：' + err.message, true); })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = '发布';
+      });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      var saveBtn = document.querySelector('.editor-tools .btn.primary, .page-foot .btn.primary');
+      if (saveBtn) saveBtn.click();
+    }
+  });
+
+  window.addEventListener('beforeunload', function (e) {
+    if (!state.dirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  /* ---- 启动 -------------------------------------------------------------- */
+
+  /* 地址栏带了 view 时，把对应按钮点亮 */
+  Array.prototype.forEach.call(document.querySelectorAll('#views button'), function (btn) {
+    btn.classList.toggle('is-active', btn.dataset.view === state.view);
+  });
+  syncViewUrl();
+
+  reload().catch(function (err) {
+    app.innerHTML = '<p class="empty">加载失败：' + err.message + '</p>';
+  });
+})();
