@@ -122,6 +122,11 @@ button, input, textarea, select {
 .btn.danger { color: var(--red); }
 .btn.danger:hover { border-color: var(--red); color: var(--red); }
 .btn.small { padding: 3px 9px; font-size: 12px; }
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
 
 /* ---- 主区域 ---- */
 
@@ -373,18 +378,36 @@ main {
   position: fixed;
   inset: 0;
   z-index: 90;
-  padding: 52px 16px 16px;
+  padding: 16px;
   background: var(--bg0);
 }
 
-.fullscreen-exit {
+/* 全屏预览顶部：文章信息 + 退出 */
+.fullscreen-head {
   display: none;
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  z-index: 2;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
-.body-wrap.is-fullscreen .fullscreen-exit { display: block; }
+.body-wrap.is-fullscreen .fullscreen-head { display: flex; }
+
+.fullscreen-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.fullscreen-title {
+  margin: 0;
+  font-size: 16px;
+  color: var(--fg);
+  word-break: break-word;
+}
+.fullscreen-meta {
+  color: var(--grey0);
+  font-size: 11px;
+}
 
 .lightbox {
   position: fixed;
@@ -485,9 +508,17 @@ main {
 
 .body-wrap {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   gap: 12px;
   min-height: 260px;   /* 窗口矮的时候也保证正文有可用高度 */
+}
+
+.body-flex {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 0;
 }
 
 .body {

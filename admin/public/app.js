@@ -331,10 +331,17 @@
     codeBtn.addEventListener('click', function () { openInVSCode(post); });
     tools.appendChild(codeBtn);
 
-    var previewBtn = el('button', 'btn', '预览');
+    var previewBtn = el('button', 'btn', '预览文章');
     previewBtn.type = 'button';
-    previewBtn.addEventListener('click', function () { togglePreview(container); });
+    previewBtn.title = '全屏查看：左边原文，右边渲染效果';
+    previewBtn.addEventListener('click', function () { enterFullscreenPreview(); });
     tools.appendChild(previewBtn);
+
+    var siteBtn = el('button', 'btn', '站点预览');
+    siteBtn.type = 'button';
+    siteBtn.title = '打开本地 hexo server 上这篇文章的页面';
+    siteBtn.addEventListener('click', function () { openSitePreview(); });
+    tools.appendChild(siteBtn);
 
     var saveBtn = el('button', 'btn primary', '保存');
     saveBtn.type = 'button';
@@ -502,33 +509,61 @@
 
     container.appendChild(grid);
 
-    /* 正文 */
+    /* 正文 + 预览 */
     var bodyWrap = el('div', 'body-wrap');
+    var bodyFlex = el('div', 'body-flex');
     var bodyArea = el('textarea', 'body');
     bodyArea.value = post.body || '';
     bodyArea.spellcheck = false;
     bodyArea.addEventListener('input', function () { setDirty(true); });
-    bodyWrap.appendChild(bodyArea);
+    bodyFlex.appendChild(bodyArea);
 
     var preview = el('div', 'preview');
-    bodyWrap.appendChild(preview);
+    bodyFlex.appendChild(preview);
+
+    /* 全屏预览的头部：文章信息 + 退出 */
+    var fullHead = el('div', 'fullscreen-head');
+    var fullInfo = el('div', 'fullscreen-info');
+    var fullTitle = el('h2', 'fullscreen-title', fm.title || post.file);
+    var fullBadge = el('span', 'status-badge ' + (isDraft ? 'draft' : 'published'),
+      isDraft ? '草稿' : '已发布');
+    var fullMeta = el('span', 'fullscreen-meta', '');
+    fullInfo.appendChild(fullTitle);
+    fullInfo.appendChild(fullBadge);
+    fullInfo.appendChild(fullMeta);
+    fullHead.appendChild(fullInfo);
+
+    var exitBtn = el('button', 'btn small', '退出全屏 (Esc)');
+    exitBtn.type = 'button';
+    exitBtn.addEventListener('click', exitFullscreen);
+    fullHead.appendChild(exitBtn);
+
+    bodyWrap.appendChild(fullHead);
+    bodyWrap.appendChild(bodyFlex);
     container.appendChild(bodyWrap);
 
-    /* 全屏：正文 + 预览铺满窗口（Esc 或右上角按钮退出） */
-    var fullBtn = el('button', 'btn', '全屏');
-    fullBtn.type = 'button';
-    fullBtn.dataset.fullscreenBtn = '1';
-    fullBtn.addEventListener('click', toggleFullscreen);
-    tools.appendChild(fullBtn);
+    /* 预览文章：全屏、左边原文右边渲染，顶部带文章信息 */
+    function enterFullscreenPreview() {
+      if (!preview.classList.contains('is-open')) {
+        api('/api/preview', { method: 'POST', body: { text: bodyArea.value } })
+          .then(function (result) {
+            preview.innerHTML = result.html;
+            preview.classList.add('is-open');
+            bodyArea.classList.add('is-half');
+          })
+          .catch(function (err) { toast('预览失败：' + err.message, true); });
+      }
 
-    var exitBtn = el('button', 'btn small fullscreen-exit', '退出全屏 (Esc)');
-    exitBtn.type = 'button';
-    exitBtn.addEventListener('click', toggleFullscreen);
-    bodyWrap.appendChild(exitBtn);
+      fullTitle.textContent = titleInput.value.trim() || fm.title || post.file;
+      fullMeta.textContent = '创建 ' + (dateInput.value || '未知') +
+        ' · 更新 ' + (post.updated || dateInput.value || '未知');
+      bodyWrap.classList.add('is-fullscreen');
+    }
 
-    function toggleFullscreen() {
-      var on = bodyWrap.classList.toggle('is-fullscreen');
-      fullBtn.textContent = on ? '退出全屏' : '全屏';
+    function exitFullscreen() {
+      bodyWrap.classList.remove('is-fullscreen');
+      preview.classList.remove('is-open');
+      bodyArea.classList.remove('is-half');
     }
 
     var previewTimer = null;
@@ -581,10 +616,11 @@
       return { fm: next, body: bodyArea.value };
     };
 
-    /* 地址栏带 ?preview=1 时默认展开预览；?fullscreen=1 直接全屏 */
+    /* 地址栏带 ?preview=1 / ?fullscreen=1 时直接进全屏预览 */
     var bootParams2 = new URLSearchParams(window.location.search);
-    if (bootParams2.get('preview') === '1') togglePreview();
-    if (bootParams2.get('fullscreen') === '1') toggleFullscreen();
+    if (bootParams2.get('preview') === '1' || bootParams2.get('fullscreen') === '1') {
+      enterFullscreenPreview();
+    }
   }
 
   function postApiPath(post) {
@@ -1182,32 +1218,23 @@
       .catch(function (err) { toast('刷新失败：' + err.message, true); });
   });
 
-  document.getElementById('btn-site').addEventListener('click', function () {
-    var btn = this;
-    var label = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '检查中…';
-
+  /* 站内预览：确保 hexo server 在跑，然后打开当前文章页面 */
+  function openSitePreview() {
     api('/api/site-status')
       .then(function (status) {
         if (status.running) return status;
-        btn.textContent = '启动中…';
+        toast('启动本地 hexo server…');
         return api('/api/site-start', { method: 'POST' });
       })
       .then(function (result) {
         if (result && result.ok === false) throw new Error(result.error || '启动失败');
         var target = currentPostUrl() || (result && result.url) || 'http://localhost:4000/';
         window.open(target, '_blank', 'noopener');
-        toast('已打开站点预览');
       })
       .catch(function (err) {
         toast('预览启动失败：' + err.message, true);
-      })
-      .then(function () {
-        btn.disabled = false;
-        btn.textContent = label;
       });
-  });
+  }
 
   document.getElementById('views').addEventListener('click', function (e) {
     var btn = e.target.closest('button[data-view]');
@@ -1267,13 +1294,15 @@
       return;
     }
 
-    /* Esc 退出全屏 */
+    /* Esc 退出全屏预览 */
     if (e.key === 'Escape') {
       var wrap = document.querySelector('.body-wrap.is-fullscreen');
       if (!wrap) return;
       wrap.classList.remove('is-fullscreen');
-      var btn = document.querySelector('[data-fullscreen-btn]');
-      if (btn) btn.textContent = '全屏';
+      var pv = wrap.querySelector('.preview');
+      if (pv) pv.classList.remove('is-open');
+      var body = wrap.querySelector('.body');
+      if (body) body.classList.remove('is-half');
     }
   });
 
