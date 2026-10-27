@@ -744,6 +744,8 @@ main {
 }
 .image-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   justify-content: flex-end;
 }
 .image-hint {

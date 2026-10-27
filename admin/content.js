@@ -313,11 +313,7 @@ function deletePost(file, isDraft) {
   const full = postPath(file, isDraft);
   if (!fs.existsSync(full)) throw new Error('文件不存在');
   /* 不直接 rm：交给系统回收站，误删可恢复 */
-  const { spawnSync } = require('child_process');
-  const result = spawnSync('trash', [full], { shell: true, encoding: 'utf8' });
-  if (result.status !== 0) {
-    throw new Error('移入回收站失败：' + (result.stderr || result.error || '未知错误'));
-  }
+  moveToTrash(full);
   return { file: path.basename(full), status: isDraft ? 'draft' : 'published' };
 }
 
@@ -493,6 +489,86 @@ function replaceImage(sitePath, data, mime) {
   return { path: sitePath, size: buf.length };
 }
 
+/* 重命名图片：同目录改名 + 同步改掉所有引用它的文本文件。
+   扩展名不允许变（改了线上 MIME 会对不上），没带扩展名时自动补原扩展名。 */
+function renameImage(sitePath, newName) {
+  const rel = String(sitePath || '').replace(/^\/+/, '');
+  if (!/^(images|img)\//.test(rel)) throw new Error('只能重命名图片');
+
+  const sourceRoot = path.join(ROOT, 'source');
+  const full = ensureInside(sourceRoot, path.join(sourceRoot, rel));
+  if (!fs.existsSync(full)) throw new Error('图片不存在');
+
+  const oldExt = path.extname(full);
+  let base = String(newName || '').trim();
+  if (!base) throw new Error('新文件名不能为空');
+
+  base = path.basename(base.replace(/\\/g, '/'));
+  const givenExt = path.extname(base);
+  if (!givenExt) base += oldExt;
+  else if (givenExt.toLowerCase() !== oldExt.toLowerCase()) {
+    throw new Error('扩展名不能改（原文件是 ' + oldExt + '）');
+  }
+  if (/[\\/:*?"<>|]/.test(base)) throw new Error('文件名不能包含 \\ / : * ? " < > |');
+  if (base.charAt(0) === '.') throw new Error('文件名不能以点开头');
+
+  const dir = path.dirname(full);
+  const target = ensureInside(sourceRoot, path.join(dir, base));
+  if (target === full) throw new Error('文件名没变');
+  if (fs.existsSync(target)) throw new Error('同目录已有同名文件 ' + base);
+
+  const oldSitePath = toSitePath(full);
+  fs.renameSync(full, target);
+  const newSitePath = toSitePath(target);
+
+  /* 跟着改引用（只扫引用了旧路径的文件） */
+  const refs = collectImageRefs()[oldSitePath] || [];
+  const touched = {};
+  let updatedFiles = 0;
+  refs.forEach(function (ref) {
+    if (touched[ref.file]) return;
+    touched[ref.file] = true;
+    const abs = path.join(ROOT, ref.file);
+    if (!fs.existsSync(abs)) return;
+    const text = fs.readFileSync(abs, 'utf8');
+    const next = text.split(oldSitePath).join(newSitePath);
+    if (next !== text) {
+      fs.writeFileSync(abs, next);
+      updatedFiles++;
+    }
+  });
+
+  return {
+    path: newSitePath,
+    oldPath: oldSitePath,
+    refs: refs.length,
+    updatedFiles: updatedFiles
+  };
+}
+
+/* 移到回收站。
+   注意：npm 的 trash-cli 在本机实测会「静默失败」（exit 0 但文件不动），不敢用；
+   改用 PowerShell 的 VisualBasic.FileIO.FileSystem（真进回收站、可还原、支持中文路径）。
+   参数通过 CreateProcess 传 UTF-16，不受控制台代码页影响。 */
+function moveToTrash(full) {
+  const { spawnSync } = require('child_process');
+  const literal = String(full).replace(/'/g, "''");
+  const script = [
+    'Add-Type -AssemblyName Microsoft.VisualBasic',
+    "[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile('" + literal + "','OnlyErrorDialogs','SendToRecycleBin')"
+  ].join('; ');
+
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    encoding: 'utf8'
+  });
+  if (result.error) throw new Error('调 PowerShell 失败：' + result.error.message);
+  if (result.status !== 0) {
+    const detail = String(result.stderr || '').trim().split('\n').slice(-3).join(' ');
+    throw new Error('移入回收站失败：' + (detail || '退出码 ' + result.status));
+  }
+  if (fs.existsSync(full)) throw new Error('文件还在，移入回收站没有生效');
+}
+
 function deleteImage(sitePath) {
   const rel = String(sitePath || '').replace(/^\/+/, '');
   if (!/^(images|img)\//.test(rel)) throw new Error('只能删除图片');
@@ -501,11 +577,7 @@ function deleteImage(sitePath) {
   const full = ensureInside(sourceRoot, path.join(sourceRoot, rel));
   if (!fs.existsSync(full)) throw new Error('图片不存在');
 
-  const { spawnSync } = require('child_process');
-  const result = spawnSync('trash', [full], { shell: true, encoding: 'utf8' });
-  if (result.status !== 0) {
-    throw new Error('移入回收站失败：' + (result.stderr || result.error || '未知错误'));
-  }
+  moveToTrash(full);
   return { path: sitePath };
 }
 
@@ -567,5 +639,6 @@ module.exports = {
   listImages,
   saveImage,
   replaceImage,
+  renameImage,
   deleteImage
 };

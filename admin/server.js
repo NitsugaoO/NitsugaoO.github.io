@@ -342,7 +342,7 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, content.readAll());
     }
 
-    /* 图片管理：列表 + 上传 + 删除 */
+    /* 图片管理：列表 + 上传 + 重命名 + 替换 + 删除 */
     if (pathname === '/api/images' && method === 'GET') {
       return sendJSON(res, 200, { images: content.listImages() });
     }
@@ -355,6 +355,11 @@ const server = http.createServer(async function (req, res) {
     if (pathname === '/api/replace-image' && method === 'POST') {
       const body = await readBody(req);
       return sendJSON(res, 200, content.replaceImage(body.path, body.data, body.mime));
+    }
+
+    if (pathname === '/api/rename-image' && method === 'POST') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.renameImage(body.path, body.name));
     }
 
     if (pathname === '/api/delete-image' && method === 'POST') {

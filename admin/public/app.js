@@ -981,6 +981,29 @@
     }
   }
 
+  /* 图片在 Markdown 里的引用写法 */
+  function imageMarkdown(sitePath) {
+    return '![](' + sitePath + ')';
+  }
+
+  /* 重命名图片（后端会把引用一起改掉） */
+  function renameImageFile(image, reload) {
+    var current = image.path.split('/').pop();
+    var next = window.prompt('重命名（扩展名不能改，引用会一起更新）', current);
+    if (next === null) return;
+    next = String(next).trim();
+    if (!next || next === current) return;
+    api('/api/rename-image', { method: 'POST', body: { path: image.path, name: next } })
+      .then(function (data) {
+        var msg = '已重命名为 ' + data.path.split('/').pop();
+        if (data.updatedFiles) msg += '，同步更新了 ' + data.updatedFiles + ' 个文件';
+        else if (data.refs) msg += '（有 ' + data.refs + ' 处引用但没找到可改的文本）';
+        toast(msg);
+        reload();
+      })
+      .catch(function (err) { toast('重命名失败：' + err.message, true); });
+  }
+
   /* 用新图覆盖旧图（路径不变，所有引用自动生效） */
   function replaceImageFile(image, file, reload) {
     var reader = new FileReader();
@@ -1003,8 +1026,8 @@
     img.src = image.path + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
     img.alt = '';
     img.loading = 'lazy';
-    img.title = '点击复制路径';
-    img.addEventListener('click', function () { copyText(image.path); });
+    img.title = '点击复制 Markdown 引用 ' + imageMarkdown(image.path);
+    img.addEventListener('click', function () { copyText(imageMarkdown(image.path)); });
     card.appendChild(img);
 
     var info = el('div', 'image-info');
@@ -1026,6 +1049,18 @@
     }
 
     var actions = el('div', 'image-actions');
+
+    var copyBtn = el('button', 'btn small', '引用');
+    copyBtn.type = 'button';
+    copyBtn.title = '复制 Markdown 引用 ' + imageMarkdown(image.path);
+    copyBtn.addEventListener('click', function () { copyText(imageMarkdown(image.path)); });
+    actions.appendChild(copyBtn);
+
+    var renameBtn = el('button', 'btn small', '重命名');
+    renameBtn.type = 'button';
+    renameBtn.title = '改文件名，引用它的文章会一起更新';
+    renameBtn.addEventListener('click', function () { renameImageFile(image, reload); });
+    actions.appendChild(renameBtn);
 
     var replaceBtn = el('button', 'btn small', '替换');
     replaceBtn.type = 'button';
@@ -1049,7 +1084,11 @@
     del.addEventListener('click', function () {
       if (!window.confirm('把 ' + image.path + ' 移到回收站？引用它的页面会变成坏图。')) return;
       api('/api/delete-image', { method: 'POST', body: { path: image.path } })
-        .then(function () { toast('已移入回收站'); reload(); })
+        .then(function () {
+          card.remove();   /* 先从列表里拿掉，不等重新拉取 */
+          toast('已移入回收站（可在回收站还原）');
+          reload();
+        })
         .catch(function (err) { toast('删除失败：' + err.message, true); });
     });
     actions.appendChild(del);
@@ -1141,7 +1180,7 @@
 
     var grid = el('div', 'image-grid');
     app.appendChild(grid);
-    app.appendChild(el('p', 'image-hint', '点击缩略图复制路径；「替换」用同格式新图覆盖原文件；「×」移到回收站。'));
+    app.appendChild(el('p', 'image-hint', '点击缩略图复制 Markdown 引用 ![](/img/xxx)；「重命名」会同步改写引用了它的文章；「替换」用同格式新图覆盖原文件；「×」移到回收站。'));
 
     function uploadFiles(files) {
       Array.prototype.forEach.call(files || [], function (file) {
