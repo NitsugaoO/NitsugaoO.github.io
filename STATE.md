@@ -12,7 +12,7 @@ updated: 2026-10-28 · code: `b58da96`（最后一次改动站点代码/配置�
 ## 阶段
 
 - 技术栈：**Hexo 8 + Butterfly 5.7 + Everforest（hard 暗色）**；分支 `master`
-- 部署：**GitHub Pages**（`nitsugao.github.io`）+ **Cloudflare Workers**（`blog.wooyun.workers.dev`），
+- 部署：**GitHub Pages**（`nitsugaoo.github.io`）+ **Cloudflare Workers**（`blog.wooyun.workers.dev`），
   push 后自动构建
 - 页面结构：首页三栏（`source/js/home.js` 接管，数据来自 `/feed.json`）、文章库（`/library.json`）、
   **歌曲页 `/songs/`**、说说、关于、友链、标签、分类
