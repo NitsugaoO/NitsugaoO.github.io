@@ -20,7 +20,7 @@
   };
 
   /* 视图可以直接用 /?view=shuoshuo 打开，切换时同步到地址栏（刷新不丢） */
-  var VIEWS = ['posts', 'shuoshuo', 'lyrics', 'images', 'link', 'about', 'site'];
+  var VIEWS = ['posts', 'shuoshuo', 'lyrics', 'images', 'link', 'about', 'site', 'fonts'];
   var bootParams = new URLSearchParams(window.location.search);
   var initialView = bootParams.get('view');
   if (VIEWS.indexOf(initialView) !== -1) state.view = initialView;
@@ -472,6 +472,13 @@
     codeBtn.addEventListener('click', function () { openInVSCode(post); });
     tools.appendChild(codeBtn);
 
+    /* 重命名文件：注意文章的对外 URL 由文件名（slug）决定，改名后旧链接会 404 */
+    var renameBtn = el('button', 'btn', '重命名');
+    renameBtn.type = 'button';
+    renameBtn.title = '改 .md 文件名；文章 URL 会跟着变，旧链接会 404';
+    renameBtn.addEventListener('click', function () { renamePostFile(post); });
+    tools.appendChild(renameBtn);
+
     var previewBtn = el('button', 'btn', '预览文章');
     previewBtn.type = 'button';
     previewBtn.title = '全屏查看：左边原文，右边渲染效果';
@@ -828,6 +835,41 @@
       })
       .then(function () { toast('已转为已发布'); })
       .catch(function (err) { toast('发布失败：' + err.message, true); });
+  }
+
+  /* 重命名文章文件。URL 是 hexo 的 :year/:month/:day/:title/，:title 取 slug，
+     而 slug 默认就是文件名 —— 所以改名 = 改 URL。这里会把引用旧路径的地方
+     扫出来提示（不自动改，避免误伤正文）。 */
+  function renamePostFile(post) {
+    if (state.dirty && !window.confirm('有未保存的改动，重命名后它们会丢失。继续？')) return;
+    var current = post.file.replace(/\.md$/i, '');
+    var next = window.prompt(
+      '新文件名（.md 可省略）\n注意：文章 URL 由文件名决定，改名后旧链接会 404',
+      current
+    );
+    if (next === null) return;
+    next = String(next).trim();
+    if (!next || next === current) return;
+
+    api(postApiPath(post) + '/rename', { method: 'POST', body: { name: next } })
+      .then(function (data) {
+        state.current = data.file;
+        state.currentDraft = data.status === 'draft';
+        setDirty(false);
+        return reload().then(function () { return data; });
+      })
+      .then(function (data) {
+        var msg = '已重命名为 ' + data.file;
+        msg += data.keptUrl
+          ? '（front-matter 里有 slug，URL 没变）'
+          : '，URL 已跟着变';
+        if (data.refs && data.refs.length) {
+          msg += '；发现 ' + data.refs.length + ' 处引用旧路径';
+          console.log('引用了旧文件名的地方：', data.refs);
+        }
+        toast(msg);
+      })
+      .catch(function (err) { toast('重命名失败：' + err.message, true); });
   }
 
   function removePost(post) {
@@ -1809,6 +1851,131 @@
 
   /* ---- 视图切换 / 发布 ---------------------------------------------------- */
 
+  /* ---------- 字体维护 ------------------------------------------------ */
+  /* 站点字体是 JetBrains Maple Mono 的子集分片（tools/build-fonts.py 生成）。
+     新增文章里出现字体没有的字时，这些字会回退到系统字体，这里能看到它们。 */
+  function renderFonts() {
+    app.innerHTML = '';
+
+    var head = el('div', 'page-head');
+    head.appendChild(el('h2', null, '网页字体'));
+    var actions = el('div', 'font-actions');
+    var reloadBtn = el('button', 'btn small', '刷新状态');
+    reloadBtn.type = 'button';
+    var rebuildBtn = el('button', 'btn small primary', '重新生成子集');
+    rebuildBtn.type = 'button';
+    actions.appendChild(reloadBtn);
+    actions.appendChild(rebuildBtn);
+    head.appendChild(actions);
+    app.appendChild(head);
+
+    var summary = el('div', 'font-summary', '读取中…');
+    app.appendChild(summary);
+    var tableBox = el('div', 'font-slices');
+    app.appendChild(tableBox);
+    var cover = el('div', 'font-cover');
+    app.appendChild(cover);
+    var output = el('pre', 'font-output', '');
+    output.style.display = 'none';   /* 没有输出时不占地方 */
+    app.appendChild(output);
+
+    function showOutput(text) {
+      output.textContent = text || '';
+      output.style.display = text ? '' : 'none';
+    }
+    app.appendChild(el('p', 'image-hint',
+      '字体是 JetBrains Maple Mono 的子集分片：只含站点实际用到的字，加上 GB2312 一二级兑底。' +
+      '文章里出现新的生僻字/符号后，点「重新生成子集」重跑一次（约 1~2 分钟）。'));
+
+    function formatSize(bytes) {
+      if (bytes >= 1024 * 1024) return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+      return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    }
+
+    function loadStatus() {
+      api('/api/fonts/status')
+        .then(function (data) {
+          var slices = data.slices || [];
+          summary.innerHTML = '';
+          [
+            ['字体族', data.fontFamily],
+            ['分片', slices.length + ' 个'],
+            ['总体积', formatSize(data.totalSize)],
+            ['站点字符', data.chars.total + ' 个（汉字 ' + data.chars.cjk + '）'],
+            ['CSS', data.css ? formatSize(data.css.size) + ' · ' + data.css.faces + ' 个 @font-face' : '缺失']
+          ].forEach(function (pair) {
+            var item = el('span');
+            item.appendChild(el('span', null, pair[0] + '：'));
+            item.appendChild(el('b', null, String(pair[1])));
+            summary.appendChild(item);
+          });
+
+          tableBox.innerHTML = '';
+          if (!slices.length) {
+            tableBox.appendChild(el('p', 'image-hint', 'source/fonts/JetBrainsMapleMono/ 里没有分片，先点「重新生成子集」。'));
+          } else {
+            var table = el('table', 'font-table');
+            var thead = el('tr');
+            ['字重', '分片', '大小', '修改时间'].forEach(function (label) {
+              thead.appendChild(el('th', null, label));
+            });
+            table.appendChild(thead);
+            slices.forEach(function (slice) {
+              var tr = el('tr');
+              tr.appendChild(el('td', null, slice.weight));
+              tr.appendChild(el('td', null, slice.slice));
+              tr.appendChild(el('td', null, formatSize(slice.size)));
+              tr.appendChild(el('td', null, slice.mtime.slice(0, 16).replace('T', ' ')));
+              table.appendChild(tr);
+            });
+            tableBox.appendChild(table);
+          }
+
+          cover.innerHTML = '';
+          if (data.chars.missingCount) {
+            cover.appendChild(el('p', 'font-warn',
+              '有 ' + data.chars.missingCount + ' 个字符不在字体子集里（会回退到系统字体）：'));
+            cover.appendChild(el('p', 'font-missing', data.chars.missing.join(' ')));
+          } else {
+            cover.appendChild(el('p', 'font-ok', '✓ 站点用到的字符全部被字体覆盖。'));
+          }
+        })
+        .catch(function (err) {
+          summary.textContent = '读取失败：' + err.message;
+        });
+    }
+
+    reloadBtn.addEventListener('click', loadStatus);
+
+    rebuildBtn.addEventListener('click', function () {
+      if (!window.confirm('重跑 tools/build-fonts.py，会重写 source/fonts/ 与 source/css/fonts.css（约 1~2 分钟）。继续？')) return;
+      var label = rebuildBtn.textContent;
+      rebuildBtn.disabled = true;
+      reloadBtn.disabled = true;
+      rebuildBtn.textContent = '生成中…（1~2 分钟）';
+      showOutput('正在重建字体子集，请稍等…');
+      api('/api/fonts/rebuild', { method: 'POST' })
+        .then(function (result) {
+          showOutput(result.output || '(无输出)');
+          toast(result.ok
+            ? '字体已重新生成（' + result.seconds + ' 秒），记得再点顶栏「生成站点」'
+            : '生成失败，看下面的输出', !result.ok);
+          loadStatus();
+        })
+        .catch(function (err) {
+          showOutput('失败：' + err.message);
+          toast('生成失败：' + err.message, true);
+        })
+        .then(function () {
+          rebuildBtn.disabled = false;
+          reloadBtn.disabled = false;
+          rebuildBtn.textContent = label;
+        });
+    });
+
+    loadStatus();
+  }
+
   function render() {
     cleanupImageView();
     if (state.view === 'posts') return renderPosts();
@@ -1818,6 +1985,7 @@
     if (state.view === 'link') return renderLinks();
     if (state.view === 'about') return renderAbout();
     if (state.view === 'site') return renderSite();
+    if (state.view === 'fonts') return renderFonts();
   }
 
   var lastStateJSON = '';

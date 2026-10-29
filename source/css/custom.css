@@ -1671,7 +1671,8 @@ html .song-lyrics {
   border-radius: 8px;
   background: var(--ef-bg0);
   color: var(--ef-grey1);
-  font-family: var(--ef-font-mono, monospace);
+  /* 歌词用等宽字体对齐时间轴（--ef-mono 的字体栈见 everforest.css 第六节） */
+  font-family: var(--ef-mono, monospace);
   font-size: .84em;
   line-height: 1.9;
   white-space: pre-wrap;

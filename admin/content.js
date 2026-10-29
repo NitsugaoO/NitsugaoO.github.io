@@ -317,6 +317,83 @@ function deletePost(file, isDraft) {
   return { file: path.basename(full), status: isDraft ? 'draft' : 'published' };
 }
 
+/* 重命名文章文件。
+   ⚠️ permalink 是 :year/:month/:day/:title/，而 :title 取的是 slug，
+   slug 默认就是文件名 —— 所以改文件名会改文章 URL（旧链接会 404）。
+   front-matter 里写了 slug 的文章 URL 不受影响，返回值 keptUrl 会告诉前端。
+
+   引用旧路径的地方（{% post_link %} / 手写的 URL）不自动改，只扫出来报告，
+   由人来判断要不要动 —— 自动改短 slug 太容易误伤正文。 */
+function renamePost(file, newName, isDraft) {
+  const source = postPath(file, isDraft);
+  if (!fs.existsSync(source)) throw new Error('文章不存在');
+
+  const oldFile = path.basename(source);
+  const requested = String(newName || '').trim();
+  if (!requested) throw new Error('新文件名不能为空');
+  /* 只能改文件名，不能靠改名把文件挪到别的目录 */
+  if (/[\\/]/.test(requested)) throw new Error('只能改名，不能改目录（文件名里不要带 / 或 \\）');
+  /* 非法字符必须在 basename 之前查：Windows 下 path.basename('a:b') 会返回 'b' */
+  if (/[:*?"<>|]/.test(requested)) throw new Error('文件名不能包含 : * ? " < > |');
+  const raw = path.basename(requested);
+  if (!raw) throw new Error('新文件名不能为空');
+  const next = /\.md$/i.test(raw) ? raw : raw + '.md';
+  if (/[\\/:*?"<>|]/.test(next)) throw new Error('文件名不能包含 \\ / : * ? " < > |');
+  if (next.charAt(0) === '.') throw new Error('文件名不能以点开头');
+  if (next === oldFile) throw new Error('文件名没变');
+
+  const dir = path.dirname(source);
+  const target = path.join(dir, next);
+  if (fs.existsSync(target)) throw new Error('同目录已有同名文件 ' + next);
+
+  const keptUrl = hasSlugField(readText(source));
+  fs.renameSync(source, target);
+
+  return {
+    file: next,
+    oldFile: oldFile,
+    status: isDraft ? 'draft' : 'published',
+    keptUrl: keptUrl,
+    refs: findPostRefs(path.basename(oldFile, '.md'))
+  };
+}
+
+/* front-matter 里有 slug 的话，URL 其实钉在 slug 上，改名不影响链接 */
+function hasSlugField(raw) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
+  return !!(m && /^slug\s*:/m.test(m[1]));
+}
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/* 找出引用了某篇文章的地方（它的对外路径由文件名决定） */
+function findPostRefs(slug) {
+  const out = [];
+  if (!slug) return out;
+  const postLinkRe = new RegExp('\\{%\\s*post_link\\s+[\'"]?' + escapeRegExp(slug) + '[\'"]?[\\s%]');
+  const urlRe = new RegExp('\\/' + escapeRegExp(slug) + '\\/');
+  const files = [];
+  walkFiles(path.join(ROOT, 'source'), function (file) {
+    const rel = path.relative(ROOT, file).split(path.sep).join('/');
+    if (/^source\/(fonts|images|img)\//.test(rel)) return;
+    if (TEXT_EXTS.test(file)) files.push(file);
+  });
+  files.forEach(function (file) {
+    readText(file).split('\n').forEach(function (line, index) {
+      if (postLinkRe.test(line) || urlRe.test(line)) {
+        out.push({
+          file: path.relative(ROOT, file).split(path.sep).join('/'),
+          line: index + 1,
+          text: line.trim().slice(0, 120)
+        });
+      }
+    });
+  });
+  return out;
+}
+
 /* ---- 歌词（source/lrc/*.lrc） ----------------------------------------- */
 
 function lrcPath(name) {
@@ -630,6 +707,7 @@ module.exports = {
   createPost,
   publishPost,
   deletePost,
+  renamePost,
   readAbout,
   saveAbout,
   readYaml,

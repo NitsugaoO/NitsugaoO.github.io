@@ -603,18 +603,20 @@ html #post .post-copyright:hover {
 
 
 /* ============================================================================
- * 六、字体（同步 VSCode）
+ * 六、字体
  * ----------------------------------------------------------------------------
- * VSCode settings.json 的实际配置：
- *   "editor.fontFamily": "FiraCode Nerd Font Mono, Consolas, monospace"
- *   "editor.fontLigatures": true
- * 其中文并非显式配置，而是系统回退到 Windows 默认中文字体（微软雅黑）。
- * 字体栈按“英文 Fira Code + 中文微软雅黑”复刻。
+ * 全站统一 **JetBrains Maple Mono**（JetBrains Mono 英文 + Maple Mono 中文合成字体，
+ * 中英文 2:1 等宽对齐）。网页字体是自托管的子集分片：
+ *   source/css/fonts.css      ← @font-face + unicode-range（tools/build-fonts.py 生成）
+ *   source/fonts/JetBrainsMapleMono/*.woff2
+ * 正文字体由 _config.butterfly.yml 的 font.font_family 控制，这里只管等宽元素。
+ *
+ * 回退链保留原来的 Fira Code：网页字体没下载成功、或字符不在子集里时用得上。
  * ========================================================================= */
 
 :root {
-  --ef-mono: 'FiraCode Nerd Font Mono', 'Fira Code', 'Cascadia Code',
-             Consolas, 'Microsoft YaHei', '微软雅黑', monospace;
+  --ef-mono: 'JetBrains Maple Mono', 'FiraCode Nerd Font Mono', 'Fira Code',
+             'Cascadia Code', Consolas, 'Microsoft YaHei', '微软雅黑', monospace;
 }
 
 /* 等宽字体（代码块、行内代码、代码工具栏、行号）*/

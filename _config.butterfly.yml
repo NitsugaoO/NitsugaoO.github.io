@@ -840,13 +840,14 @@ beautify:
 font:
   global_font_size:
   code_font_size:
-  font_family:
-  code_font_family:
+  # 全站统一 JetBrains Maple Mono（自托管子集，见 source/css/fonts.css）
+  font_family: "'JetBrains Maple Mono', 'Microsoft YaHei', '微软雅黑', -apple-system, sans-serif"
+  code_font_family: "'JetBrains Maple Mono', 'Fira Code', Consolas, monospace"
 
 # Font settings for the site title and site subtitle
 blog_title_font:
   font_link:
-  font_family:
+  font_family: "'JetBrains Maple Mono', 'Microsoft YaHei', sans-serif"
 
 # The setting of divider icon
 hr_icon:
@@ -1072,6 +1073,8 @@ css_prefix: true
 # Insert the code to head (before '</head>' tag) and the bottom (before '</body>' tag)
 inject:
   head:
+    # 字体 @font-face 要最先声明（子集化分片，由 tools/build-fonts.py 生成）
+    - <link rel="stylesheet" href="/css/fonts.css">
     - <link rel="stylesheet" href="/css/everforest.css">
     - <link rel="stylesheet" href="/css/custom.css">
     # 首页时间流 / 说说页的公式可能是含 KaTeX 的（feed.json 里已渲染成

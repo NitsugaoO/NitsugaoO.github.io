@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec, execFile } = require('child_process');
 const content = require('./content');
+const fonts = require('./fonts');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.ADMIN_PORT || 5173);
@@ -413,6 +414,14 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, content.publishPost(file));
     }
 
+    /* 重命名文章文件。注意：permalink 的 :title 就是 slug=文件名，会改变文章 URL */
+    if (/^\/api\/posts\/[^/]+\/rename$/.test(pathname) && method === 'POST') {
+      const file = pathname.slice('/api/posts/'.length, -'/rename'.length);
+      const body = await readBody(req);
+      const isDraft = url.searchParams.get('draft') === '1';
+      return sendJSON(res, 200, content.renamePost(file, body.name, isDraft));
+    }
+
     if (pathname.startsWith('/api/posts/') && method === 'PUT') {
       const file = pathname.slice('/api/posts/'.length);
       const body = await readBody(req);
@@ -517,6 +526,16 @@ const server = http.createServer(async function (req, res) {
     if (pathname === '/api/about' && method === 'PUT') {
       const body = await readBody(req);
       return sendJSON(res, 200, content.saveAbout(body.fm, body.body));
+    }
+
+    if (pathname === '/api/fonts/status' && method === 'GET') {
+      return sendJSON(res, 200, fonts.status());
+    }
+
+    /* 重跑 tools/build-fonts.py（子集化 + 分片），新增生僻字后用。约 1~2 分钟 */
+    if (pathname === '/api/fonts/rebuild' && method === 'POST') {
+      const result = await fonts.rebuild();
+      return sendJSON(res, result.ok ? 200 : 500, result);
     }
 
     if (pathname === '/api/generate' && method === 'POST') {

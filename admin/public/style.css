@@ -909,3 +909,67 @@ main {
   .body-wrap { flex: none; min-height: 420px; }
   .body, .preview { min-height: 420px; }
 }
+
+/* ============================================================================
+ * 字体维护视图（data-view="fonts"）
+ * ========================================================================= */
+.font-actions { display: flex; gap: 8px; }
+
+.font-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin-bottom: 14px;
+  color: var(--grey0);
+  font-size: 13px;
+}
+.font-summary b { color: var(--fg); font-weight: 600; }
+
+.font-slices { margin-bottom: 12px; }
+
+.font-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.font-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--grey0);
+  font-weight: 500;
+  border-bottom: 1px solid var(--bg3);
+}
+.font-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--bg2);
+  font-family: var(--mono);
+}
+.font-table tr:last-child td { border-bottom: none; }
+
+.font-ok { color: var(--green); font-size: 13px; margin: 0 0 10px; }
+.font-warn { color: var(--yellow); font-size: 13px; margin: 0 0 6px; }
+.font-missing {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg1);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 18px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.font-output {
+  max-height: 320px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg1);
+  color: var(--grey1);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
