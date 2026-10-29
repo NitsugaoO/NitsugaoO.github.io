@@ -1,10 +1,10 @@
 - class_name: 鸣谢
   class_desc: ''
   link_list:
-    - name: Everforest
+    - name: Everforest (Sainnhe Park)
       link: https://github.com/sainnhe/everforest
       avatar: /img/everforest.png
-      descr: 本站配色的源头
+      descr: 本站配色的源作者
     - name: DeepSeek
       link: https://deepseek.com/
       avatar: /img/67e7d5ff4c.png

@@ -1,8 +1,9 @@
-# 呜云 WooYun : Blog
+# 呜云的博客
 
 个人博客：CTF Writeup / 学习笔记 / 软件配置 / 生活琐事。
 
-技术栈：**Hexo 8** + **Butterfly 5.7** + **Everforest 配色**（hard 档）
+技术栈：**Hexo 8** + **Butterfly 5.7** + **Everforest 配色**（hard 档）+
+**JetBrains Maple Mono**（自托管子集字体）
 
 ---
 

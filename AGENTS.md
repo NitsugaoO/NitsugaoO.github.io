@@ -9,7 +9,7 @@
 站点代码/配置的提交**，用它判过期：
 
 ```bash
-git log -1 --format=%h -- source scripts _config.yml _config.butterfly.yml
+git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterfly.yml
 ```
 
 只改文章（`source/_posts/`）的提交不算过期。**用户可能有未提交的在途改动，先看
@@ -32,9 +32,20 @@ git log -1 --format=%h -- source scripts _config.yml _config.butterfly.yml
 1. **改完 `source/css/` 或 `_config*.yml` 必须 `pnpm exec hexo generate`**，否则页面还是旧的。
 2. **`scripts/` 下的站点脚本只在进程启动时加载** → 改完必须重启 `hexo server`；
    改过 `updated_option` 或代码块相关配置还要 `hexo clean`（Hexo 缓存渲染结果）。
+   改 `_config*.yml` 后也一样要 `bash scripts/sync.sh --restart` —— `hexo server` 有**渲染缓存**，
+   只 generate 不重启，刷出来还是旧页面（改站点 `title` 时踩过）。
 3. **不修改 `themes/butterfly/`**（主题要能 `git pull` 升级）；所有定制放 `source/` 下的自定义文件。
 4. **发布 = add + commit + push 三步**。只 commit 不 push，GitHub Pages 和 Cloudflare 都拉不到代码。
 5. 改完只在本地看，记得 **Ctrl+Shift+R** 强刷（普通 F5 用缓存 CSS）。
+6. **图片路径分两种写法**：md 正文写相对路径 `../images/xxx`（`scripts/img-path.js` 渲染时转回
+   `/images/xxx`，VSCode 预览才看得到图）；**front-matter 的 `cover` / `avatar` 必须绝对路径**
+   `/images/xxx`（不走 Markdown 渲染，写相对路径线上必 404）。
+7. **网页字体是子集化的**：正文里出现字体没有的字（生僻字 / 新符号）→ 管理页「字体」页会黄字报缺字，
+   点「重新生成子集」（或 `python tools/build-fonts.py`），别只改 CSS 硬撑。
+8. **CSS 里两个 `:has()` 死法**（都会静默出错，没有报错信息）：
+   `p:has(> a ~ a)` 会把「一段文字里有两个普通链接」当成图片行 → 拆成网格、撑出大片空白；
+   `:has()` 里面再套 `:has()` 是非法语法 → 整条规则被浏览器丢弃。图片行请用
+   `p:has(> a:nth-of-type(2) > img)`。
 
 ## 常用验证
 
