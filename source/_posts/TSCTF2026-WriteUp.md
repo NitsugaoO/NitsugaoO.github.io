@@ -33,7 +33,7 @@ TSCTF-J{会当凌绝顶一览众山小}
 
 解压缩 ```the_thirteen_seals_of_rsa.zip``` 得到 13 个 Python 脚本
 
-![alt text](/images/tsctf2026/image.png)
+![alt text](../images/tsctf2026/image.png)
 
 阅读文件不难发现这是出题人用来**生成密文**的脚本，再结合题目名称可知这里有 13 个经典的 RSA 算法漏洞。逐个来看：
 
@@ -52,11 +52,11 @@ c = pow(m, e, n)
 
 （并且接下来的内容会显得像是学习笔记...）
 
-![alt text](/images/tsctf2026/image-1.png)
+![alt text](../images/tsctf2026/image-1.png)
 
 然后把拿到的 ```m``` 用 ```long_to_bytes``` 转回去即可。下同。
 
-![alt text](/images/tsctf2026/image-2.png)
+![alt text](../images/tsctf2026/image-2.png)
 
 #### 02_low_exponent_k.py
 由于 
@@ -82,7 +82,7 @@ for k in range(1, 1000):
         m = int(r)
         print(m)
 ```
-![alt text](/images/tsctf2026/image-3.png)
+![alt text](../images/tsctf2026/image-3.png)
 
 (推荐 VSCode 插件 Jupyter Notebook，在写 WP 时非常方便，可以把多段 py 脚本与结果集中展示)
 
@@ -130,7 +130,7 @@ for a in (mp, p - mp):
         x = int(crt([p, q], [a, b])[0])
         print(l2b(x))
 ```
-![alt text](/images/tsctf2026/image-4.png)
+![alt text](../images/tsctf2026/image-4.png)
 
 肉眼可知 ```'J{H'``` 即为所求。
 
@@ -212,7 +212,7 @@ r, exact = gmpy2.iroot(X, 3)
 m = int(r)
 ```
 
-![alt text](/images/tsctf2026/image-5.png)
+![alt text](../images/tsctf2026/image-5.png)
 
 #### 后面
 后面的都好难。我大概看了看思路吧...写不了 WP...杀了我罢...
@@ -236,12 +236,12 @@ Pwn 方向！
 
 先 `checksec signin`
 
-![alt text](/images/tsctf2026/image-6.png)
+![alt text](../images/tsctf2026/image-6.png)
 
 `No PIE + No Canary + NX` 初见端倪。然后用 IDA 打开：
 
-![alt text](/images/tsctf2026/image-7.png)
-![alt text](/images/tsctf2026/image-8.png)
+![alt text](../images/tsctf2026/image-7.png)
+![alt text](../images/tsctf2026/image-8.png)
 
 `main` 中有 `read()`，`win` 是后门函数，无疑是 `ret2text` 了。
 
@@ -266,13 +266,13 @@ io.interactive()
 
 换成 remote 后执行：
 
-![alt text](/images/tsctf2026/image-9.png)
+![alt text](../images/tsctf2026/image-9.png)
 
 问了 AI 得知原来不是所有环境都会有 ls...感觉自己撒撒的...
 
 那么可以用 `echo *` 来代替。不过先直接 `cat /flag`：
 
-![alt text](/images/tsctf2026/image-10.png)
+![alt text](../images/tsctf2026/image-10.png)
 
 ```flag
 flag{WH4T_woULD-y0u_Ilk3-fOr-DiNn3r874c87}
@@ -283,17 +283,17 @@ flag{WH4T_woULD-y0u_Ilk3-fOr-DiNn3r874c87}
 ### flag-memory
 
 依旧上来先 `file + checksec` 一下：
-![alt text](/images/tsctf2026/image-11.png)
+![alt text](../images/tsctf2026/image-11.png)
 
 再 IDA 反编译看一看：
 
-![alt text](/images/tsctf2026/image-12.png)
+![alt text](../images/tsctf2026/image-12.png)
 
 在 `main` 中立刻注意到 `fgets` 与 `read`，符号表中也有 `true_end`。
 
 再执行一下，`printf("[Memory] Original location: %p\n", save_data)` 把 `save_data` 的堆地址打印出来了：
 
-![alt text](/images/tsctf2026/image-13.png)
+![alt text](../images/tsctf2026/image-13.png)
 
 这就让我们得到了关键的思路：
 
@@ -302,13 +302,13 @@ flag{WH4T_woULD-y0u_Ilk3-fOr-DiNn3r874c87}
 开始操作。
 
 1. 由于程序会检查 flag_stream 是否存在，否则会自刎归天，本地测试时需要先创建 /flag 文件。例如创建这样的：
-![alt text](/images/tsctf2026/image-15.png)
+![alt text](../images/tsctf2026/image-15.png)
 
 2. 比较难的一步就是怎么从泄露的地址得到缓冲区的地址。其实我没有怎么细想，问了一下 AI `fgets` 相关的知识感觉也许可能这个 `offset` 是固定的？先试一下吧。
 
 在 IDA 里找一下 `memset` 的地址用来打断点：
 
-![alt text](/images/tsctf2026/image-16.png)
+![alt text](../images/tsctf2026/image-16.png)
 
 用 `gdb` 测试（截图感觉比较乱，整理成代码段了）：
 
@@ -384,7 +384,7 @@ io.interactive()
 
 本地测试通过后就可以连上 `remote` 了。
 
-![alt text](/images/tsctf2026/image-17.png)
+![alt text](../images/tsctf2026/image-17.png)
 
 其实后来知道 `ELF()` 可以用 `checksec = False` 参数，就不会再输出一遍 `checksec` 信息了。
 
@@ -398,7 +398,7 @@ TSCTF{stdi0_remembers_what_y0u_f0rg0t}
 
 先 `file + checksec`：
 
-![alt text](/images/tsctf2026/image-18.png)
+![alt text](../images/tsctf2026/image-18.png)
 
 `No PIE + No Canary + NX + Partial RELRO`，非常标准的堆栈溢出。
 
@@ -468,15 +468,15 @@ void vuln(void) {
 
 当然我们不能忘记题目给的妙妙小提示：
 
-![alt text](/images/tsctf2026/image-19.png)
+![alt text](../images/tsctf2026/image-19.png)
 
 > "the **back of** murasame's **draft** hides a more elegant path"
 
 总之我们来 IDA 里看一下 `Names` 栏：
 
-![alt text](/images/tsctf2026/image-20.png)
+![alt text](../images/tsctf2026/image-20.png)
 
-![alt text](/images/tsctf2026/image-21.png)
+![alt text](../images/tsctf2026/image-21.png)
 
 `draft` 是个 16KB 的全局数组，没有任何一行代码引用过它，可以拿来爽用。赞美出题人。而 "back of" 是字面意思：栈是向下生长的，把伪栈放在 `draft` 的后半截，下面才有足够的可写空间给 `system` 用栈；要是放在开头，rsp 一往下走就会进 `.bss` 下���那片只读页，就段错误了。
 
@@ -576,7 +576,7 @@ io.interactive()
 
 终于要写完了！懒得本地了直接来吧
 
-![alt text](/images/tsctf2026/image-22.png)
+![alt text](../images/tsctf2026/image-22.png)
 
 ```flag
 TSCTF{who_ar3_you_i_am_murasam3}

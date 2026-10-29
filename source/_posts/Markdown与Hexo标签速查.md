@@ -61,14 +61,20 @@ top_img: false
 ### 图片
 
 ```markdown
-![描述](/images/tsctf2026/image-1.png)
+![描述](../images/tsctf2026/image-1.png)
 ```
 
 效果：
 
-![描述](/images/tsctf2026/image-1.png)
+![描述](../images/tsctf2026/image-1.png)
 
-图片放 `source/images/` 或 `source/img/`，正文用 `/images/...`、`/img/...` 绝对路径。
+图片放 `source/images/` 或 `source/img/`。正文里写**相对路径** `../images/...`、`../img/...`
+（文章都在 `source/_posts/`，所以相对路径指向 `source/images/`），渲染时 `scripts/img-path.js`
+会自动改回站内绝对路径 —— 这样 VSCode 的 Markdown 预览也能看到图。
+
+例外：front-matter 的 `cover`、`avatar` 这类配置项不走 Markdown 渲染，**必须**写 `/images/...` 绝对路径。
+
+**多图并排**：连续写多张图（中间不空行）会自动排成两列；想单列大图就在两张图之间空一行。
 
 ### 列表
 
@@ -334,8 +340,8 @@ $$
 {% raw %}
 ```markdown
 {% gallery %}
-![图一](/images/tsctf2026/image-1.png)
-![图二](/images/tsctf2026/image-2.png)
+![图一](../images/tsctf2026/image-1.png)
+![图二](../images/tsctf2026/image-2.png)
 {% endgallery %}
 ```
 {% endraw %}
@@ -343,8 +349,8 @@ $$
 效果：
 
 {% gallery %}
-![图一](/images/tsctf2026/image-1.png)
-![图二](/images/tsctf2026/image-2.png)
+![图一](../images/tsctf2026/image-1.png)
+![图二](../images/tsctf2026/image-2.png)
 {% endgallery %}
 
 ### 行内图片 inlineImg
@@ -353,11 +359,11 @@ $$
 
 {% raw %}
 ```markdown
-{% inlineImg /img/cloud.jpg 80px %}
+{% inlineImg ../img/cloud.jpg 80px %}
 ```
 {% endraw %}
 
-效果：{% inlineImg /img/cloud.jpg 80px %}
+效果：{% inlineImg ../img/cloud.jpg 80px %}
 
 ### 系列文章 series
 
@@ -443,6 +449,7 @@ series: 数学分析     # 系列文章
 
 1. **示例里的 Hexo 标签必须包在 raw 标签里**，否则会被真的执行（连行内代码里的也会）。
 2. 站内链接一律用 `/...` 绝对路径，别用相对路径。
-3. 图片路径也要绝对：`/images/...`、`/img/...`。
+3. 图片路径用相对写法 `../images/...`、`../img/...`（渲染时自动转成绝对路径，VSCode 预览也能看图）；
+   只有 front-matter 的 `cover` 必须写绝对 `/images/...`。
 4. 数学公式要在 front-matter 写 `katex: true`。
 5. 改完文章记得在管理页点「保存」，再点「发布」才会推到线上。

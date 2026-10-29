@@ -600,6 +600,7 @@
     var coverInput = el('input');
     coverInput.type = 'text';
     coverInput.value = fm.cover || '';
+    /* 封面是 front-matter，不经过 Markdown 渲染，所以这里必须是站点绝对路径 */
     coverInput.placeholder = '/images/xxx.png';
     var coverPreview = makeImagePreview(function () { return coverInput.value; });
     coverInput.addEventListener('input', function () {
@@ -981,9 +982,13 @@
     }
   }
 
-  /* 图片在 Markdown 里的引用写法 */
+  /* 图片在 Markdown 里的引用写法。
+     写相对路径 ../images/… 而不是 /images/…：文章都在 source/_posts/ 下，
+     相对路径在 VSCode 的 Markdown 预览里也能显示（它把 /images/ 当磁盘根）；
+     渲染时 scripts/img-path.js 会把它改回 /images/…，线上路径不变。
+     注意：front-matter 的 cover 不走 Markdown 渲染，仍必须写绝对路径。 */
   function imageMarkdown(sitePath) {
-    return '![](' + sitePath + ')';
+    return '![](../' + String(sitePath).replace(/^\/+/, '') + ')';
   }
 
   /* 重命名图片（后端会把引用一起改掉） */
@@ -1180,7 +1185,7 @@
 
     var grid = el('div', 'image-grid');
     app.appendChild(grid);
-    app.appendChild(el('p', 'image-hint', '点击缩略图复制 Markdown 引用 ![](/img/xxx)；「重命名」会同步改写引用了它的文章；「替换」用同格式新图覆盖原文件；「×」移到回收站。'));
+    app.appendChild(el('p', 'image-hint', '点击缩略图复制 Markdown 引用 ![](../images/xxx)（相对路径，VSCode 预览也能看图）；「重命名」会同步改写引用了它的文章；「替换」用同格式新图覆盖原文件；「×」移到回收站。'));
 
     function uploadFiles(files) {
       Array.prototype.forEach.call(files || [], function (file) {

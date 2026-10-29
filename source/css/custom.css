@@ -961,9 +961,15 @@ html #article-container .shuoshuo-item .shuoshuo-content img {
 /* ---- 6.1 说说里的九宫格图床 ------------------------------------------ */
 /* Markdown 里连续写多张图片时，markdown-it 会把它们放进同一个 <p>。
    这种 <p>（含 ≥2 张图）自动排成三列网格，一张图时仍按普通大图显示。 */
-/* fancybox 会把图片包成 <a><img></a>，所以「> img」和「> a」两种情况都要覆盖 */
+/* fancybox 会把图片包成 <a><img></a>，所以要覆盖两种情况：
+   「> img ~ img」（包裹前的初始 DOM）和「> a:nth-of-type(2) > img」（包裹后）。
+   ⚠️ 两个坑都不许踩：
+      · 写成 `p:has(> a ~ a)` —— 会命中「一段文字里有两个普通链接」的段落，
+        把整段文字拆成网格、链接被套上固定高度，撑出大片空白；
+      · 写成 `p:has(> a:has(> img) ~ a:has(> img))` —— CSS 规定 :has() 不能嵌套，
+        整条选择器会被浏览器丢弃，图片根本不并排。 */
 html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) {
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) {
   display: grid;
   /* 站点的 markdown 开了 breaks:true，图片之间会多个 <br>，
      它会被当成网格项占位，所以隐藏掉 */
@@ -974,13 +980,13 @@ html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) {
 }
 
 html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) br,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) br {
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) br {
   display: none;
 }
 
 html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) img,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) img,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) a {
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) img,
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) a {
   width: 100%;
   height: 108px;
   max-height: none;
@@ -991,9 +997,9 @@ html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) a {
 
 /* 窄屏两列 */
 @media screen and (max-width: 600px) {
-  /* fancybox 会把图片包成 <a><img></a>，所以「> img」和「> a」两种情况都要覆盖 */
+  /* 选择器为什么这么写，见上面 6.1 开头的注释 */
 html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a ~ a) {
+html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1155,19 +1161,20 @@ html .feed-body img {
   border-radius: 8px;
 }
 
-/* 连续图片 → 九宫格（站点开了 breaks:true，图片间会插 <br>） */
+/* 连续图片 → 九宫格（站点开了 breaks:true，图片间会插 <br>）
+   选择器说明同 6.1：必须限定 a 里包着 img，否则文字里的普通链接会被当成图 */
 html .feed-body p:has(> img ~ img),
-html .feed-body p:has(> a ~ a) {
+html .feed-body p:has(> a:nth-of-type(2) > img) {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   margin: 12px 0;
 }
 html .feed-body p:has(> img ~ img) br,
-html .feed-body p:has(> a ~ a) br { display: none; }
+html .feed-body p:has(> a:nth-of-type(2) > img) br { display: none; }
 html .feed-body p:has(> img ~ img) img,
-html .feed-body p:has(> a ~ a) img,
-html .feed-body p:has(> a ~ a) a {
+html .feed-body p:has(> a:nth-of-type(2) > img) img,
+html .feed-body p:has(> a:nth-of-type(2) > img) a {
   width: 100%;
   height: 108px;
   max-height: none;
@@ -1676,4 +1683,77 @@ html .songs-empty {
   color: var(--ef-grey0);
   text-align: center;
   padding: 40px 0;
+}
+
+
+/* ============================================================================
+ * 十一、文章正文里的多图并排
+ * ──────────────────────────────────────────────────────────────────────────
+ * Markdown 里**连续写多张图（中间不空行）**时，markdown-it 会把它们放进同一个 <p>。
+ * 这种 <p> 自动排成两列网格 —— 竖屏截图并排后省掉一半纵向空间。
+ * 想恢复单列大图 → 两张图之间空一行（它们就分属不同 <p>）。
+ *
+ * 注意：
+ *   1. fancybox 在运行时会把 <img> 包成 <a><img></a>，所以两种情况都要写：
+ *      `> img ~ img` 和 `> a:nth-of-type(2) > img`（第 2 个 <a> 里直接包着 <img>）；
+ *      ⚠️ 写成 `p:has(> a ~ a)` 会连「一段文字里有两个普通链接」的段落一起命中，
+ *      把文字拆进网格、链接被套固定高度，撑出一大片空白；
+ *      而 `:has()` 里再套 `:has()` 是非法的，整条规则会被浏览器丢弃（两个都踩过）；
+ *   2. 站点的 markdown 开了 breaks:true，图片之间会多一个 <br>，
+ *      它会变成网格项占位，必须隐藏；
+ *   3. 说说页的九宫格由第六节管（三列小图），这里用 article 前缀避开。
+ * ========================================================================= */
+
+html article#article-container p:has(> img ~ img),
+html article#article-container p:has(> a:nth-of-type(2) > img) {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+html article#article-container p:has(> img ~ img) br,
+html article#article-container p:has(> a:nth-of-type(2) > img) br {
+  display: none;
+}
+
+/* 统一行高 + 裁切：竖图并排后宽度约减半，不限高的话一张 9:16 截图就有 700px 高。
+   裁掉的部分点开 fancybox 看原图。 */
+html article#article-container p:has(> img ~ img) img,
+html article#article-container p:has(> a:nth-of-type(2) > img) img {
+  width: 100%;
+  height: 460px;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 8px;
+}
+
+/* fancybox 的包裹层也要撑满格子，否则图片按自身宽度缩回去 */
+html article#article-container p:has(> a:nth-of-type(2) > img) > a {
+  display: block;
+  width: 100%;
+  height: 460px;
+  margin: 0;
+}
+
+/* 窄屏：两列各只有 ~190px 宽，再固定 460px 高裁切就太狠了 —— 退回单列、完整显示 */
+@media screen and (max-width: 600px) {
+  html article#article-container p:has(> img ~ img),
+  html article#article-container p:has(> a:nth-of-type(2) > img) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  html article#article-container p:has(> img ~ img) img,
+  html article#article-container p:has(> a:nth-of-type(2) > img) img {
+    height: auto;
+    max-height: 70vh;
+    object-fit: contain;
+  }
+
+  html article#article-container p:has(> a:nth-of-type(2) > img) > a {
+    height: auto;
+  }
 }
