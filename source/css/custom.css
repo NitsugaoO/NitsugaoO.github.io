@@ -1448,6 +1448,10 @@ html .home-board-text {
   color: var(--ef-grey1);
   font-size: .84em;
   line-height: 1.8;
+  /* home.js 用 textContent 塞进来（不解析 HTML），所以 site.yml 里的换行
+     必须靠这个保留，否则 \n\n 会被折叠成一个空格。 */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 

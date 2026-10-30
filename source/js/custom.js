@@ -10,6 +10,7 @@
  *   2. 侧栏座右铭 → 点击展开 / 收起下半句
  *   3. 页脚左侧 → 插入二次元动图挂件（图不存在时静默隐藏）
  *   4. 侧栏歌词卡 → 读取 LRC，用自走时钟按原曲速度滚动，可暂停 / 换歌
+ *   5. 作者卡 / 移动端统计格（文章·标签·分类）→ 统一跳文章库 /library/
  * ========================================================================= */
 
 (function () {
@@ -541,6 +542,21 @@
     }
   }
 
+  /* ---- 7. 作者卡的三格统计 → 文章库 ------------------------------------- */
+  /* 主题把「文章 / 标签 / 分类」分别指向 /archives/、/tags/、/categories/。
+     分类树、标签筛选、搜正文现在都由文章库承载，所以整组改指向 /library/。
+     数字不用动：仍是主题服务端渲染的 site.posts / site.tags / site.categories。
+
+     ⚠️ 同样的三格出现两处，选择器都要覆盖：
+       宽屏：  #aside-content .card-info .site-data（card_author.pug）
+       移动端：#sidebar-menus .site-data（sidebar.pug 侧滑栏） */
+  function linkSiteDataToLibrary() {
+    var links = document.querySelectorAll('#aside-content .site-data a, #sidebar-menus .site-data a');
+    for (var i = 0; i < links.length; i++) {
+      links[i].href = '/library/';
+    }
+  }
+
   /* ---- 入口 ------------------------------------------------------------- */
   function init() {
     linkAuthorName();
@@ -548,6 +564,7 @@
     addFooterMascot();
     initLyricsCard();
     linkMetaToLibrary();
+    linkSiteDataToLibrary();
     whenReady('#aside-content', placeLyricsCard);
   }
 

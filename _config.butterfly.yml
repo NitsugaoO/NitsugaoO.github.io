@@ -57,7 +57,7 @@ social:
 # Image Settings
 # --------------------------------------
 
-favicon: /img/favicon.ico   # 实际文件是主题自带的 themes/butterfly/source/img/favicon.ico（没有 .png，写 .png 会 404）
+favicon: /img/favicon-cloud.ico   # 由 source/img/cloud.jpg 转出的 16/32/48 多尺寸 ico（源图改了就重新生成）
 
 avatar:
   img: /img/cloud.jpg
@@ -443,9 +443,9 @@ wordcount:
 
 # Busuanzi count for PV / UV in site
 busuanzi:
-  site_uv: false
-  site_pv: false
-  page_pv: false
+  site_uv: true
+  site_pv: true
+  page_pv: true
 
 # --------------------------------------
 # Math

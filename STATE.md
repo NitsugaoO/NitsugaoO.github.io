@@ -1,8 +1,11 @@
 # 博客状态
 
-updated: 2026-10-30 · code: `08a0bba`（最后一次改动站点代码/配置的提交）
+updated: 2026-10-31 · code: `07ed062`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source _config.yml _config.butterfly.yml`
-> 工作区干净；`master` 与 `origin/master` 同步，三次 push 的 CI 均 success。
+> ⚠️ 工作区有未提交改动（6 改 1 新）：`_config.butterfly.yml`、`source/css/custom.css`、
+> `source/js/custom.js`、`source/img/favicon-cloud.ico`(新)、`docs/agent/01`、`docs/agent/02`；
+> 另有 `source/_posts/devices.md` 是用户手写中的文章，**别提交**。
+> `master` 与 `origin/master` 同步，最近 CI 均 success。
 
 > 本文件只放**会过期**的事实：阶段 / 下一步 / 待验证 / 入口。
 > 开工规矩见 [`AGENTS.md`](AGENTS.md)，配色/样式见 [`docs/agent/01-配色与样式.md`](docs/agent/01-配色与样式.md)，
@@ -28,6 +31,11 @@ updated: 2026-10-30 · code: `08a0bba`（最后一次改动站点代码/配置�
   顶栏区分 未保存 / 已保存未发布 / 已同步，可发布）。单张图片上限 **17 MB** ——
   `server.js` 的 `MAX_BODY_CHARS`（24 MB 字符 ≈ 17 MB 文件）与 `content.js` 的 `MAX_IMAGE_BYTES`
   **必须一起改**，只改一边不生效
+- 最近完成（10-31，未提交）：作者卡 / 手机侧滑栏的「文章·标签·分类」三格 → `/library/`
+  （`custom.js` 的 `linkSiteDataToLibrary()`，两处 DOM 都要覆盖）；公告换行改由
+  `custom.css` 的 `white-space: pre-wrap` 保住（`home.js` 用 textContent，不吃 `\n`）；
+  favicon 换 `source/img/favicon-cloud.ico`（`cloud.jpg` 裁上部天空 + 提对比，16/32/48）；
+  启用不蒜子（`busuanzi` 三开关 = true，脚本外链 `busuanzi.ibruce.info`）
 - 最近完成（10-30，`08a0bba`）：首屏提速（灯箱换本地文件 + 站点脚本 `defer` +
   `/feed.json`/`/site.json` 在 `<head>` 预取 `window.__homeData` + `home-pending` 期间画骨架；
   三栏出现 462→221ms）+ 正文字号 14→16px
@@ -41,8 +49,8 @@ updated: 2026-10-30 · code: `08a0bba`（最后一次改动站点代码/配置�
 
 ## 下一步
 
-1. 文档已补到 10-30（视频 / 首屏提速 / 正文字号，见 `docs/agent/01-配色与样式.md`），
-   后续改动继续同步 `docs/agent/`；`docs/agent/02` 还缺「17 MB 上限成对改」和「站内视频投稿规矩」
+1. 文档已同步到 10-31（本次补：17 MB 上限成对改 / 站内视频投稿规矩 / 公告换行靠 pre-wrap /
+   统计格跳文章库 / 浏览量不蒜子 / favicon 生成法），后续改动继续同步 `docs/agent/`
 2. 图片管理可选项（**暂缓，不做也能用**）：重命名用 `window.prompt`，可改卡片内联输入（非必须）
 3. 歌曲页目前只展示列表，没做播放器；侧栏歌词卡仍是「无声按时间轴滚动」
 4. 网易云接口（搜索 / 歌词 / 翻译）是外部依赖，失效时管理页会提示手动粘贴；
@@ -53,10 +61,13 @@ updated: 2026-10-30 · code: `08a0bba`（最后一次改动站点代码/配置�
 ## 待验证
 
 ```bash
-pnpm exec hexo generate        # 必须成功（改过 _config / scripts 先 pnpm exec hexo clean）
-                               # ✅ 2026-10-30 通过（157 files）
-pnpm admin                     # ⚠️ 10-30 改了 server.js/content.js（17 MB 上限）后未重跑
-                               # 上次 ✅ 2026-10-29：字体视图 / 缺字检测 / 重建 / 文章重命名
+pnpm exec hexo clean && pnpm exec hexo generate   # ✅ 2026-10-31 通过（158 files）
+pnpm admin                     # ⚠️ 17 MB 上传仍未实测；10-31 只验了服务在跑（5173 已有实例）
+                               # ✅ / 与 /api/state 均 200；功能验证仍是 2026-10-29
+curl -sI http://localhost:4000/img/favicon-cloud.ico   # ✅ 2026-10-31：200, 7101B
+浏览器人工确认                  # ⚠️ 未做：公告要两段 / favicon 要换掉（关标签页重开）/
+                               # 关于页三格要跳 /library/。无头 Edge 在本机起不来
+                               # （Abnormal renderer termination），别指望自动截图验证
 python tools/build-fonts.py    # 新增生僻字后重跑  # 10-30 未跑（没动字体）
 bash scripts/sync.sh --check '#78818a'   # 旧色值残留（改了样式没生效时用）
                                # 10-30 未跑：只加字号/骨架，没动配色变量值
