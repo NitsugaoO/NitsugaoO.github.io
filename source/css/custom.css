@@ -874,6 +874,61 @@ html.home-pending #recent-posts:not(.home-split) > * {
   visibility: hidden;
 }
 
+/* 骨架：脚本 + 数据还没回来的这几秒里，左列和中栏原本是空白（屏幕上只剩右列），
+   看着像“只有右栏”。这里画两块占位，让三栏的形从第一帧就在。
+   旧卡片流虽然被 visibility: hidden 藏着但仍然占着高度，所以骨架用绝对定位盖上去，
+   不参与布局；home.js 渲染完成后 .home-split 出现，骨架自动失效。
+   窄屏（<900px，真实布局是单列）只画一块。 */
+html.home-pending #recent-posts:not(.home-split) {
+  position: relative;
+}
+
+html.home-pending #recent-posts:not(.home-split)::before,
+html.home-pending #recent-posts:not(.home-split)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 320px;
+  border-radius: 10px;
+  background: var(--ef-bg1);
+  animation: ef-home-skeleton 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 左列（老作者卡的位置） */
+html.home-pending #recent-posts:not(.home-split)::before {
+  left: 0;
+  width: 268px;
+}
+
+/* 中栏（时间流） */
+html.home-pending #recent-posts:not(.home-split)::after {
+  left: 288px;   /* 268px + 20px 间距，和 .home-split 的 gap 一致 */
+  right: 0;
+}
+
+@keyframes ef-home-skeleton {
+  0%,
+  100% { opacity: .32; }
+  50%  { opacity: .58; }
+}
+
+@media screen and (max-width: 900px) {
+  html.home-pending #recent-posts:not(.home-split)::before {
+    display: none;
+  }
+  html.home-pending #recent-posts:not(.home-split)::after {
+    left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.home-pending #recent-posts:not(.home-split)::before,
+  html.home-pending #recent-posts:not(.home-split)::after {
+    animation: none;
+  }
+}
+
 
 /* ---- 5.6 首页左列的分区标题（文章 / 笔记） ---- */
 html .home-group {

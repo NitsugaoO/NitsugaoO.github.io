@@ -275,16 +275,25 @@
     });
   }
 
-  /* 两个数据源并行拉：feed 必填，site 失败时退化成没有公告 */
-  Promise.all([
+  /* 两个数据源并行拉：feed 必填，site 失败时退化成没有公告。
+     正常情况下 window.__homeData 已经在 <head> 里发起过了（见
+     _config.butterfly.yml 的 inject.head），这里直接复用那个 promise，
+     省掉一次往返；只有它不存在时（比如脚本被单独引用）才自己拉。 */
+  var boot = window.__homeData || Promise.all([
     fetchJSON(DATA_URL),
     fetchJSON(SITE_URL).catch(function () { return {}; })
-  ])
+  ]);
+
+  boot
     .then(function (result) {
       ANNOUNCEMENT = result[1].announcement || '';
       render(result[0]);
+      /* 三栏已经出来了，防闪烁的隐藏标记没必要再留着 */
+      document.documentElement.classList.remove('home-pending');
     })
     .catch(function () {
-      /* 拿不到数据就别动，保留主题原有的卡片流 */
+      /* 拿不到数据就别动，保留主题原有的卡片流；顺手撤掉防闪烁的隐藏，
+         否则旧的卡片流还被藏着，要等 <head> 里那个 4 秒兜底才出来 */
+      document.documentElement.classList.remove('home-pending');
     });
 })();
