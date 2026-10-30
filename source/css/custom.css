@@ -1845,3 +1845,33 @@ html article#article-container video {
   border-radius: 8px;
   background: var(--ef-bg0);
 }
+
+/* ============================================================================
+ * 十三、正文字号
+ * ──────────────────────────────────────────────────────────────────────────
+ * 主题把 body 和 #article-container 的字号都绑在 --global-font-size 上，
+ * 而 _config.butterfly.yml 的 font.global_font_size 是空值 → 默认 14px。
+ * 14px 中文长文偏小，正文单独放大到 16px。
+ *
+ * 为什么不去改 font.global_font_size：那个变量是全站 em 的基准，
+ * 侧栏 / 三栏首页 / 管理页预览里几十处 .72em / .86em 都按它折算，
+ * 一改会连带把布局挤坏。这里只放大正文容器，其它区域维持原样。
+ *
+ * 注意（有意为之，别当成没生效）：
+ *   1. 行内 `code` 不受影响（主题自己绑了 var(--global-font-size)，是绝对值）；
+ *   2. 代码块默认会跟着变大（主题的 .line 是 0.92em，父级 14px → 16px 时
+ *      从 12.88px 涨到 14.72px，行宽一起变、横向滚动更多），所以下面把它
+ *      钉回 14px，保持原来的观感；
+ *   3. 行高沿用主题的 2（→32px）。中文 16px 配 2 倍行高偏松但读起来稳，
+ *      想紧凑就把 #article-container 的 line-height 调到 1.85 左右。
+ * ========================================================================= */
+
+html #article-container {
+  font-size: 16px;
+}
+
+/* 代码块保持原大小（详情见本节注释第 2 条） */
+html #article-container figure.highlight,
+html #article-container .code-wrapper {
+  font-size: 14px;
+}
