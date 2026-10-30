@@ -26,6 +26,13 @@ const ROOT = content.ROOT;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CSS_DIR = path.join(ROOT, 'source/css');
 
+/* 请求体上限（字符数）。前端上传图片走 base64，字符数 ≈ 二进制 × 1.37：
+   24 MB 字符 ≈ 17 MB 文件，正好和 content.js 的 MAX_IMAGE_BYTES 对齐。
+   原来这里是 5 MB —— base64 下只能传 ~3.7 MB，比 gif 动图还小。 */
+const MAX_BODY_CHARS = 24 * 1024 * 1024;
+/* 下载外部图片保存到 source/img/ 时的单文件上限（不走 base64，直接用二进制长度）。 */
+const MAX_IMAGE_BYTES = 17 * 1024 * 1024;
+
 /* ---- 小工具 ------------------------------------------------------------ */
 
 function sendJSON(res, code, data) {
@@ -47,8 +54,8 @@ function readBody(req) {
     let raw = '';
     req.on('data', function (chunk) {
       raw += chunk;
-      if (raw.length > 5 * 1024 * 1024) {
-        reject(new Error('请求体太大'));
+      if (raw.length > MAX_BODY_CHARS) {
+        reject(new Error('请求体太大（上限 24 MB，约合 17 MB 的文件）'));
         req.destroy();
       }
     });
@@ -147,7 +154,7 @@ async function downloadImage(url) {
   if (!/^image\//.test(type)) throw new Error('不是图片（' + (type || '未知类型') + '）');
 
   const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+  if (buf.length > MAX_IMAGE_BYTES) throw new Error('图片超过 17 MB');
 
   const subtype = type.split('/')[1].split(';')[0].trim().toLowerCase();
   const ext = subtype === 'jpeg' ? 'jpg' : (subtype === 'svg+xml' ? 'svg' : subtype);

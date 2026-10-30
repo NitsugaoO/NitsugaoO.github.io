@@ -33,6 +33,11 @@ const DRAFTS_DIR = path.join(ROOT, 'source/_drafts');
 const DATA_DIR = path.join(ROOT, 'source/_data');
 const ABOUT_FILE = path.join(ROOT, 'source/about/index.md');
 
+/* 单张图片上限（上传 / 替换都走这个数）。
+   与 server.js 的 MAX_BODY_CHARS 配套：前端用 base64 提交，字符数 ≈ 二进制 × 1.37，
+   24 MB 的请求体约合 17 MB 的文件 —— 两边要一起改，单独调大这边不会生效。 */
+const MAX_IMAGE_BYTES = 17 * 1024 * 1024;
+
 /* front-matter 字段顺序（其余字段原样排在后面） */
 const FM_ORDER = [
   'title', 'date', 'description',
@@ -513,7 +518,7 @@ function ensureInside(baseDir, full) {
 function saveImage(data, mime, dir) {
   const buf = Buffer.from(String(data || ''), 'base64');
   if (!buf.length) throw new Error('图片为空');
-  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+  if (buf.length > MAX_IMAGE_BYTES) throw new Error('图片超过 17 MB');
 
   const type = String(mime || '').toLowerCase();
   if (!/^image\//.test(type)) throw new Error('不是图片');
@@ -550,7 +555,7 @@ function replaceImage(sitePath, data, mime) {
 
   const buf = Buffer.from(String(data || ''), 'base64');
   if (!buf.length) throw new Error('图片为空');
-  if (buf.length > 15 * 1024 * 1024) throw new Error('图片超过 15MB');
+  if (buf.length > MAX_IMAGE_BYTES) throw new Error('图片超过 17 MB');
 
   const type = String(mime || '').toLowerCase();
   if (!/^image\//.test(type)) throw new Error('不是图片');

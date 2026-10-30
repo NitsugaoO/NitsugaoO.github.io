@@ -6,7 +6,6 @@ categories: [环境与配置]
 tags: [配置, 美化]
 cover: /images/5312dcf7a0.png
 ---
-
 # 前言
 
 此系列介绍我当前使用的设备、一些实用软件与环境、各类配置与做的美化（本文）。希望能给到一些启发。
@@ -18,6 +17,10 @@ cover: /images/5312dcf7a0.png
 有关 Pi Agent 的介绍决定日后写一篇关于我的 Pi 插件 / 使用经验的文章。
 
 有关 WSL，由于近期都在用 pwn.college 的远程环境，自从参与招新赛之后本地的 WSL 没有什么发展，基本上变成了用来编译计导课 C 代码的环境...几个月后也许会更加有话说。
+
+正如难绷视频 [我不写代码，我一辈子都在配置 Emacs](https://www.bilibili.com/video/BV1Xse263E4V/?p=2) 所言：
+
+![](../images/0af03e8885.jpg)
 
 {% hideToggle 一些有趣的事实 %}
 
@@ -65,15 +68,20 @@ Linux/Unix社区（尤其是r/unixporn板块）的爱好者们，把这种“重
 
 ![日常展示](../images/0c28f93afb.png)
 
-21 世纪最伟大的开机动画 (bushi)：
+
+{% hideToggle 21 世纪最伟大的开机动画 (bushi)： %}
 
 <video controls src="../videos/VID_20261030111335804.mp4" title="Title"></video>
+
+GIF Here: ![我抠这张图花了 8000 年的时间](../images/combo.gif)
+
+{% endhideToggle %}
 
 # 概述
 
 - 系统：Windows 11
 - 配色方案：[EverForest Colorscheme](https://everforest.vercel.app/)，以绿色为主题色的低饱和度护眼主题
-- 字体：微软雅黑，[~~FiraCode~~](https://github.com/tonsky/FiraCode) [Jetbrains Maple Mono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono)，融合 Jetbrains Mono 与 Maple Mono 的优秀等宽字体方案，中英文 2:1 与可变字体
+- 字体：微软雅黑，[~~FiraCode~~](https://github.com/tonsky/FiraCode) [Jetbrains Maple Mono](https://github.com/SpaceTimee/Fusion-JetBrainsMapleMono)，融合 Jetbrains Mono 与 Maple Mono 的优秀等宽字体方案，中英文 2:1 与可变字体；不出意外的话，就是你现在在这个网页上看到的字体。
 - 动态壁纸：Wallpaper Engine
 - 窗口管理器：[GlazeWM](https://github.com/glzr-io/glazewm)，Windows 上的 i3 式平铺窗口管理器
 - 状态栏：[YASB](https://github.com/amnweb/yasb)，一款高度可配置的 Windows 状态栏，使用 Python 编写，支持多种小部件、便捷的主题定制以及深度自定义。
@@ -144,16 +152,81 @@ YASB (Yet Another Status Bar)。
 
 1. 大改了自带的 CPU / GPU / RAM / Battery 组件。统一把默认左键打开的显示状态波线图的窗口都去掉了，我的设计思路基本上是一个 HUD，平时根本就不会去点；右键显示的详细信息保留了，抬头就能看到电脑还有多久才会没电确实很好用。图标应该是从系统的字体和 JetBrains Mono 的字体里掏出来的。随着占用率 / 剩余电量的不同会有红橙黄的变化，默认情况下就是 EverForest 的米白色。不过似乎由于这个硬件比较新，暂时测不出温度？也不错，反正眼不见心不烦了。
 2. 大改（感觉基本是重写）了自带的 WiFi 组件。
-3. 音量组件似乎没怎么改？只记得把左键点出来的音量滑块关掉了（我没记错的话）
+3. 音量组件似乎没怎么改？只记得把左键点出来的音量滑块关掉了（我没记错的话应该是支持分别调各个应用的音量的，这个其实挺好用），鼠标 hover 在上面的时候可以滚轮调音量。
+4. 日历调了好久也不满意，也被我关掉了。
+5. 左侧有 GlazeWM 联动的工作区显示和迷你任务栏。
+6. 做了一个 OBS 的组件，检测到 OBS 在后台的时候会显示当前录制状态，可以左键开始 / 暂停录制，右键结束录制并打开输出视频所在文件夹。
+7. 主题色、按钮的颜色和胶囊的样式，都调了好久...
+
+不知道最终有没有修改 YASB 本体的功能（）我记得好像为了实现 CPU 图标和文字一起变色是有改的。如果想要用这套配置最好让你的 Agent 检查一下。
 
 # 窗口管理器
 
+GlazeWM。其实网络上也挺多教程的。简单来说，软件会在打开新窗口的时候进行自动分配位置和大小。比如说打开了一个终端，再打开一个，就会自动左右分屏这样。
 
+在 Linux 上有很多窗口管理器吧。Windows 上这款就比较稳定好用了。当然还有别的，你可以自行探索一下。
+
+为了推荐这个软件（或者说，这种快捷的管理窗口的方式），我想尽力讲一讲一些大概的功能：
+
+1. 可以拖动窗口，改变位置；
+2. 拖动窗口变宽改变大小的时候都会自动平铺，把左边的窗口变窄，右边就会自动变宽填充；
+3. 设计思路上，窗口大致分为三层：平铺层、全屏层，以及不被 GlazeWM 接管的层。比如说你可以把开了 CTF 赛题的网页（用快捷键 Alt + F）全屏放在后面，前面开着 VSCode 和 WSL 的分屏，然后再（用快捷键 Alt + Space 在全屏层和平铺层切换）。平铺层的窗口都是一个组，你点任务栏打开其中一个窗口的时候（一般）都会把那一组都打开；
+4. 工作区功能，平替了 Win11 自带的多桌面，不过总之就是感觉会更加灵敏；
+5. 各种切换窗口 / 移动窗口位置 / 在工作区之间移动窗口 / 改变窗口大小 等等操作，基本上都有快捷键覆盖。 ALt 键最有用的一集。`alt + enter` 打开终端真是很方便。Windows 居然没有默认的 `Win` 开头的这种打开 Windows Terminal 的键吗，我觉得很诡异。
+
+哎呀我根本讲不出来这种好用的感觉。总之推荐你试一下。
+
+我的配置基本上就是
+
+1. 去掉了一些冲突的快捷键（比如说 alt + 上下，和 VSCode 里的移动代码行的快捷键就冲突了。直接去掉了，需要的时候就用 alt + j / k。并没有加什么快捷键）；
+2. 加上了一些需要被 ignore 的或者 set-floating 的窗口规则（比如 QQ、Clash Party、Windhawk 是 ignore，Explorer 窗口和 Nanazip 是 set-floating 自动居中放置）；
+3. 把描边改成绿色、加上了屏幕边缘和窗口之间的间距。
+
+此外，Windows 自带的窗口贴靠 / 分屏功能都要在设置里关掉，不然会感觉很奇怪。一定要记得这一点，不要因为两种窗口管理模式的冲突而被劝退了。
+
+{% hideToggle 在此之上有一些思考 %}
+
+高考完 8 月份的时候去装 Agent，第一个装的是 Reasonix。因为我觉得：既然都用 Windows 系统了，还是老老实实 GUI 吧。结果 Reasonix 变成了一坨 Vibe 出来的屎山，10 个小版本都没有修好简单的会话渲染问题，我没招了，就开始搞 Pi。TUI 真好用。
+
+然后看那个 Omarchy 系统火了，简单尝试了一下；结合暑假刚开始很豪地给旧电脑装了一个别人配置好的 Arch Linux，感觉窗口管理器这种东西才是我真正想要的，所以找到了 GlazeWM。
+
+在调键位的时候却又感到 Windows 果然不是以键盘控制为目标的。很多软件依然不太能够用键盘全盘控制，但已经折腾了很久了，我也只能先接受这种一点点的膈应的感觉了。
+
+怎么说呢。感谢 AI 大人吧。“让操作变得更顺手”的终点，大概直到 AI 能读心的时候就会到来。期待那一天。
+
+{% endhideToggle%}
 
 # 应用启动器
+
+隆重介绍 TUPA Luancher！
+
+[Github](https://github.com/NitsugaoO/tupa-launcher)
+
+描述全是 AI 写的。目前看起来比较像施工现场。大概等我很久以后有空了会来好好写 README 的...
+
+虽然自己用的很爽，但是如果想要发布成什么成果的话还有很长的路要走。有生之年会去这么做的。
+
+简单来说，这是一个 Rust 写的 TUI App Launcher。
+
+我一直觉得像什么 Utools 这种工具都太臃肿了。后来用 Powertoys 的 CmdPallete，感觉也不好用，而且拓展性太差了。明明 TUI 这种紧凑列表才是最适合做 App Launcher 的啊！还有做个毫无软用的二维码扫描插件和有一点用的单位换算插件并不能证明你们所谓的高可拓展性啊...总之我受不了了，Vibe 启动。
+
+大改写一下设计思路。
+
+![](../images/603de2f1d9.png)
+![](../images/97d3ba36e5.png)
+![](../images/a5cd2921b8.png)
+
+基本架构：
+1. ``alt + ` `` 呼出 tupa。
+2. 开屏显示收藏信息和历史记录
+3. 输入 `@` 开始打命令，支持 `Tab` 自动补全
+4. 命令支持参数，例如 `@run:admin` 以管理员权限运行命令。
+
+比较好用的命令 (Provider) 有 `ev` 调用 Everything 搜索、`web` 查找网页浏览历史、`go`  调用 Zoxide 智能打开路径等等。
 
 # Pi Agent
 决定另写一篇文章详细介绍。施工中。
 
 # 后记
 
+折腾是好奇心是人的本能。感谢一直都在不顾一切地折腾电脑的自己，这一路上我收获了许多。
