@@ -9,7 +9,9 @@
  *     · VSCode 预览 / 管理页预览（markdown-it 直接渲染）→ 能正常显示
  *     · Hexo 渲染出的 HTML → 由这里改回 `/images/x.png`，线上路径不变
  *
- * 改写的三种写法：Markdown 图片、裸 <img src>、{% inlineImg ../img/x %} 的标签参数。
+ * 改写的写法：Markdown 图片 / 链接、裸 <img src>、{% inlineImg ../img/x %} 的标签参数、
+ *             裸 <video|audio|source src> 与 <video poster>（视频放 source/videos/，
+ *             单个文件必须 ≤ 25 MiB —— 超了 Cloudflare Workers 部署会整体失败）。
  * 跳过三种区域：fenced 代码块、{% raw %}…{% endraw %}、行内代码 ——
  * 那些是「演示给人看的写法」，改了会把示例弄错。
  *
@@ -30,7 +32,13 @@ function toAbsolute(segment) {
     /* 裸 HTML 写法：<img src="../images/x.png"> */
     .replace(/(<img[^>]*\ssrc=["'])\.\.\/(images|img)\//gi, '$1/$2/')
     /* 主题标签：{% inlineImg ../img/x.jpg 80px %} */
-    .replace(/(\{%\s*inlineImg\s+)\.\.\/(images|img)\//g, '$1/$2/');
+    .replace(/(\{%\s*inlineImg\s+)\.\.\/(images|img)\//g, '$1/$2/')
+    /* 裸 HTML 视频 / 音频：<video src="../videos/x.mp4">、<source src="…"> */
+    .replace(/(<(?:video|audio|source)[^>]*\ssrc=["'])\.\.\/(videos|images|img)\//gi, '$1/$2/')
+    /* 视频封面：<video poster="../images/x.jpg"> */
+    .replace(/(<(?:video|audio)[^>]*\sposter=["'])\.\.\/(images|img)\//gi, '$1/$2/')
+    /* Markdown 链接（下载 / 外链）：[下载](../videos/x.mp4) */
+    .replace(/(\]\()\.\.\/(videos)\//g, '$1/$2/');
 }
 
 hexo.extend.filter.register('before_post_render', function (data) {

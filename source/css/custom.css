@@ -1758,3 +1758,35 @@ html article#article-container p:has(> a:nth-of-type(2) > img) > a {
     height: auto;
   }
 }
+
+
+/* ============================================================================
+ * 十二、文章正文里的视频
+ * ──────────────────────────────────────────────────────────────────────────
+ * 站内没有 {% video %} 标签（主题 tag 插件只有 button/chartjs/flink/gallery/
+ * hide/inlineImg/label/mermaid/note/score/series/tabs/timeline），所以正文直接写裸 HTML：
+ *
+ *     <video controls playsinline preload="metadata"
+ *            src="../videos/demo.mp4" poster="../images/demo.jpg"></video>
+ *
+ * `../videos/` 与图片同理，由 scripts/img-path.js 改写成 `/videos/` ——
+ * VSCode 预览能播，线上路径也对。
+ *
+ * ⚠️ 单文件必须 ≤ 25 MiB：超过后 Cloudflare Workers 静态资源会整包部署失败
+ *    （`Asset too large`），比 GitHub Pages 的 100 MB 单文件限制更紧。
+ *
+ * 注意：
+ *   1. 主题对 <video> 没有任何样式，不加这段会按视频原始像素尺寸撑破正文栏；
+ *   2. background 用最暗的 bg0：首帧解码前不闪一块白（暗色站特别明显）；
+ *   3. 控件条是浏览器原生的（Safari/Chrome 偏亮），纯 CSS 改不动，接受即可。
+ * ========================================================================= */
+
+html article#article-container video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  background: var(--ef-bg0);
+}
