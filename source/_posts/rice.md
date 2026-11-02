@@ -93,7 +93,7 @@ GIF Here: ![我抠这张图花了 8000 年的时间](../images/combo.gif)
 - 浏览器：Microsoft Edge，其实有点想换掉。
 - WSL: Ubuntu 24.04
 
-你应该可以在 [这个仓库](https://github.com/NitsugaoO/windows-everforest-rice) 找到本文提到的各个配置文件的成品（和本文没有提到的配置文件...让 AI 整理项目是一门学问）。如果没有的话可以在评论说一声~~或者直接在 QQ / 微信上拷问我~~。
+你应该可以在 [这个仓库](https://github.com/NitsugaoO/dotfiles) 找到本文提到的各个配置文件的成品（和本文没有提到的配置文件...让 AI 整理项目是一门学问）。如果没有的话可以在评论说一声~~或者直接在 QQ / 微信上拷问我~~。
 
 接下来介绍一下一些有趣的部分。
 
