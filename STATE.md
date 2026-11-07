@@ -1,18 +1,15 @@
 # 博客状态
 
-updated: 2026-10-31 · code: `07ed062`（最后一次改动站点代码/配置的提交）
+updated: 2026-11-07 · code: `b9940d1`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source _config.yml _config.butterfly.yml`
-> ⚠️ 工作区有未提交改动（6 改 1 新）：`_config.butterfly.yml`、`source/css/custom.css`、
-> `source/js/custom.js`、`source/img/favicon-cloud.ico`(新)、`docs/agent/01`、`docs/agent/02`；
-> 另有 `source/_posts/devices.md` 是用户手写中的文章，**别提交**。
-> `master` 与 `origin/master` 同步，最近 CI 均 success。
+> `master` 与 `origin/master` 同步。
 
-> 本文件只放**会过期**的事实：阶段 / 下一步 / 待验证 / 入口。
-> 开工规矩见 [`AGENTS.md`](AGENTS.md)，配色/样式见 [`docs/agent/01-配色与样式.md`](docs/agent/01-配色与样式.md)，
+> 本文件只放**会过期**的事实：阶段 / 未完成 / 入口。
+> 开工规矩、验证命令、「试过不行」清单见 [`AGENTS.md`](AGENTS.md)；配色/样式见 [`docs/agent/01-配色与样式.md`](docs/agent/01-配色与样式.md)，
 > 内容与管理页见 [`docs/agent/02-内容与数据.md`](docs/agent/02-内容与数据.md)，
 > 构建发布见 [`docs/agent/03-构建与发布.md`](docs/agent/03-构建与发布.md)。
 >
-> **每次会话收尾只需要改这一个文件的三节**，并更新首行。
+> **每次会话收尾只需要改这一个文件的两节**，并更新首行。
 
 ## 阶段
 
@@ -31,7 +28,7 @@ updated: 2026-10-31 · code: `07ed062`（最后一次改动站点代码/配置�
   顶栏区分 未保存 / 已保存未发布 / 已同步，可发布）。单张图片上限 **17 MB** ——
   `server.js` 的 `MAX_BODY_CHARS`（24 MB 字符 ≈ 17 MB 文件）与 `content.js` 的 `MAX_IMAGE_BYTES`
   **必须一起改**，只改一边不生效
-- 最近完成（10-31，未提交）：作者卡 / 手机侧滑栏的「文章·标签·分类」三格 → `/library/`
+- 最近完成（10-31，`bb0e888`）：作者卡 / 手机侧滑栏的「文章·标签·分类」三格 → `/library/`
   （`custom.js` 的 `linkSiteDataToLibrary()`，两处 DOM 都要覆盖）；公告换行改由
   `custom.css` 的 `white-space: pre-wrap` 保住（`home.js` 用 textContent，不吃 `\n`）；
   favicon 换 `source/img/favicon-cloud.ico`（`cloud.jpg` 裁上部天空 + 提对比，16/32/48）；
@@ -47,43 +44,10 @@ updated: 2026-10-31 · code: `07ed062`（最后一次改动站点代码/配置�
   （`my-dot.md` 已改名 `devices.md`，文章 URL 随之变为 `/2026/10/25/devices/`）
 - 更早：正文多图并排、歌曲页、管理页图片管理（删除→回收站 / 重命名 / 点图复制引用），细节看 git log
 
-## 下一步
+## 未完成
 
-1. 文档已同步到 10-31（本次补：17 MB 上限成对改 / 站内视频投稿规矩 / 公告换行靠 pre-wrap /
-   统计格跳文章库 / 浏览量不蒜子 / favicon 生成法），后续改动继续同步 `docs/agent/`
-2. 图片管理可选项（**暂缓，不做也能用**）：重命名用 `window.prompt`，可改卡片内联输入（非必须）
-3. 歌曲页目前只展示列表，没做播放器；侧栏歌词卡仍是「无声按时间轴滚动」
-4. 网易云接口（搜索 / 歌词 / 翻译）是外部依赖，失效时管理页会提示手动粘贴；
-   真挂了就退回手动维护 `lyrics.yml` + `source/lrc/*.lrc`
-5. `source/videos/VID_20261030111335804.mp4` 是 17.4 MiB，已进 git（历史里永久留着）；
-   要不要压小 / 改外链 **还没定**，别默认重做
-
-## 待验证
-
-```bash
-pnpm exec hexo clean && pnpm exec hexo generate   # ✅ 2026-10-31 通过（158 files）
-pnpm admin                     # ⚠️ 17 MB 上传仍未实测；10-31 只验了服务在跑（5173 已有实例）
-                               # ✅ / 与 /api/state 均 200；功能验证仍是 2026-10-29
-curl -sI http://localhost:4000/img/favicon-cloud.ico   # ✅ 2026-10-31：200, 7101B
-浏览器人工确认                  # ⚠️ 未做：公告要两段 / favicon 要换掉（关标签页重开）/
-                               # 关于页三格要跳 /library/。无头 Edge 在本机起不来
-                               # （Abnormal renderer termination），别指望自动截图验证
-python tools/build-fonts.py    # 新增生僻字后重跑  # 10-30 未跑（没动字体）
-bash scripts/sync.sh --check '#78818a'   # 旧色值残留（改了样式没生效时用）
-                               # 10-30 未跑：只加字号/骨架，没动配色变量值
-gh run list --limit 3          # ✅ 2026-10-30：三次 push 均 success
-curl -sI https://nitsugaoo.github.io/js/vendor/fancybox.umd.min.js
-                               # ✅ 2026-10-30：200（107599B），灯箱本地文件已上线
-```
-
-⚠️ 改完 `_config*.yml` / `scripts/` 必须 `bash scripts/sync.sh --restart` —— `hexo server` 有渲染缓存，
-不重启会继续返回旧页面（改站点 title 时踩过）。
-
-⚠️ 首页首屏的三处改动是一对：`<head>` 的 `window.__homeData` 预取、`inject.bottom` 的 `defer`、
-`.home-pending` 骨架。删掉预取不会坏（`home.js` 会自己 fetch），但会退回慢路径。
-
-⚠️ 灯箱换版本要**同时**换 `source/js/vendor/fancybox.umd.min.js` 和 `source/css/fancybox.css`
-（版本号 6.1.14，对应 `themes/butterfly/plugins.yml`），只换一个会样式/行为错位。
+- **管理页单图上传上限（17 MB）仍未实测**：`server.js` 的 `MAX_BODY_CHARS` 与 `content.js` 的
+  `MAX_IMAGE_BYTES` **必须成对改**，只改一边不生效；改完要真的传一张接近上限的图验一次。
 
 ## 入口
 

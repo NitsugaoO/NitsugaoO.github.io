@@ -1,7 +1,7 @@
 # 博客开工规矩
 
 > pi 在 `~/blog`（或子目录）启动时自动加载本节。
-> **状态（阶段 / 下一步 / 待验证）只看 [`STATE.md`](STATE.md)**；用户怎么写作看 [`README.md`](README.md)。
+> **状态（阶段 / 未完成 / 入口）只看 [`STATE.md`](STATE.md)**；用户怎么写作看 [`README.md`](README.md)。
 
 ## 开工第一步
 
@@ -23,7 +23,7 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
 | 文章 / 歌曲 / 说说 / 公告 / 评论 / 管理页 | [`docs/agent/02-内容与数据.md`](docs/agent/02-内容与数据.md) |
 | 生成 / 预览 / 发布 / 不能碰的约束 | [`docs/agent/03-构建与发布.md`](docs/agent/03-构建与发布.md) |
 | 怎么写作、日常三条命令、数据文件字段 | [`README.md`](README.md)（给用户看的） |
-| 现在做到哪、下一步 | `STATE.md` |
+| 现在做到哪、未完成 | `STATE.md` |
 
 配色权威不在本仓库：`~/Themes/themes/everforest/tokens.yaml`（博客只是它的一个应用）。
 
@@ -46,19 +46,30 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
    `p:has(> a ~ a)` 会把「一段文字里有两个普通链接」当成图片行 → 拆成网格、撑出大片空白；
    `:has()` 里面再套 `:has()` 是非法语法 → 整条规则被浏览器丢弃。图片行请用
    `p:has(> a:nth-of-type(2) > img)`。
+9. **网易云接口（搜索 / 歌词 / 翻译）是外部依赖**：失效时管理页会提示手动粘贴，
+   真挂了就退回手动维护 `source/_data/lyrics.yml` + `source/lrc/*.lrc`，别去反向破解接口。
+10. **首页首屏的三处改动是一对**：`<head>` 的 `window.__homeData` 预取、`inject.bottom` 的 `defer`、
+    `.home-pending` 骨架。删掉预取不会坏（`home.js` 会自己 fetch），但会退回慢路径。
+11. **灯箱换版本要成对换**：`source/js/vendor/fancybox.umd.min.js` 和 `source/css/fancybox.css`
+    （版本号要与 `themes/butterfly/plugins.yml` 一致），只换一个会样式/行为错位。
+12. **站内视频单文件 ≤ 25 MiB**：超了 CF Workers 整包部署失败；文件名不能以 `_` 开头。
 
-## 常用验证
+## 改完怎么生效 + 怎么验证
+
+生成 → 重启（改过 `scripts/` 或 `_config*.yml`）→ 强刷（Ctrl+Shift+R）→ 发布（add+commit+push）。
 
 ```bash
-pnpm exec hexo generate                    # 生成（必须成功）
-bash scripts/sync.sh --check '#78818a'     # 查旧色值残留（排查"改了没生效"）
-pnpm exec hexo server                      # 本地预览 http://localhost:4000
+pnpm exec hexo clean && pnpm exec hexo generate   # 生成必须成功
+pnpm exec hexo server                             # 本地预览 http://localhost:4000
+pnpm admin                                        # 管理页 http://127.0.0.1:5173
+bash scripts/sync.sh --check '#78818a'            # 查旧色值残留（排查"改了没生效"）
+gh run list --limit 3                             # 发布后确认 CI 结果
 ```
 
 ## 收尾清单
 
 1. `hexo generate` 通过（改过配置/脚本先 `clean`）
-2. 更新 `STATE.md` 三节 + 首行 `code`
+2. 更新 `STATE.md` 两节 + 首行 `code`
 3. 文档与实际不符 → 改 `docs/agent/` 里的对应专题（不要往 `AGENTS.md` 里堆细节）
 4. 提交：日常用 `git commit`；要发布用 `bash scripts/sync.sh "描述"`（add + commit + push）
 5. 汇报里写清：改了哪些文件、是否需要 `hexo clean` / 重启预览、是否已发布
