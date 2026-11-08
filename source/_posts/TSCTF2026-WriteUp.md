@@ -5,7 +5,6 @@ description: TSCTF 2026 部分题题解
 categories: [CTF]
 tags: [CTF, WriteUp, TSCTF]
 katex: true
-top: true
 cover: /images/tsctf2026/image-5.png
 ---
 ## Abstract 方向
@@ -478,7 +477,7 @@ void vuln(void) {
 
 ![alt text](../images/tsctf2026/image-21.png)
 
-`draft` 是个 16KB 的全局数组，没有任何一行代码引用过它，可以拿来爽用。赞美出题人。而 "back of" 是字面意思：栈是向下生长的，把伪栈放在 `draft` 的后半截，下面才有足够的可写空间给 `system` 用栈；要是放在开头，rsp 一往下走就会进 `.bss` 下���那片只读页，就段错误了。
+`draft` 是个 16KB 的全局数组，没有任何一行代码引用过它，可以拿来爽用。赞美出题人。而 "back of" 是字面意思：栈是向下生长的，把伪栈放在 `draft` 的后半截，下面才有足够的可写空间给 `system` 用栈；要是放在开头，rsp 一往下走就会进 `.bss` 下���那��只读页，就段错误了。
 
 于是我们的思路就是：**两阶段 + 栈迁移**
 
