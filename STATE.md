@@ -45,7 +45,9 @@ updated: 2026-11-10 · code: `c5a5a1e`（最后一次改动站点代码/配置�
   - 模糊：`custom.css` 第十四节，`backdrop-filter: blur(16px) saturate(1.15)`；
     列表行（`.lib-item`）只半透明不加 blur，控件保持实色，窄屏降到 blur(10px)，
     `@supports not` 回退成不透明
-  - 桌面验证过首页 / 文章页 / 文章库 / 说说页（暗色）+ 首页（亮色）四张截图
+  - 桌面验证过首页 / 文章页 / 文章库 / 说说页（暗色）+ 首页（亮色）共 5 张截图
+  - 已推送：`c5a5a1e`（代码）+ `1c93709`（状态）；**线上 CI 结果未确认**
+    （推送后 3 分钟时 GitHub Actions 仍在跑，用户说稍后自己看）
 - 最近完成（11-09）：**图片组分档 + 列表缩略图 + 说说插图**
   - `scripts/img-group.js`：`before_post_render` 里把「连续图片行」换成
     `<div class="ph-imgs ph-imgs--N">`（Markdown 阶段，主题说说页和 feed.json 都吃得到）；
