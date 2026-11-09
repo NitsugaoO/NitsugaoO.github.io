@@ -392,6 +392,7 @@
 
         root.innerHTML = '';
         root.appendChild(root2);
+        root.dataset.built = '1';   /* 之后切歌才显示 loading */
 
         /* 感想超过默认折叠高度时才加底部渐变；只有一行就完整显示 */
         var noteEl = root2.querySelector('.lyrics-note');
@@ -417,7 +418,10 @@
 
         if (!song.lrc) { build(song, null); return; }
 
-        root.innerHTML = '<p class="lyrics-loading">加载歌词…</p>';
+        /* 首次进页面不动 DOM：root 里是 widget.yml 的兜底歌词，跟最终结构
+           差不多高；整块换成一行「加载歌词…」会让右栏塌下去再长回来
+           （实测 CLS 里最明显的一笔）。只有用户主动切歌时才换成 loading。 */
+        if (root.dataset.built) root.innerHTML = '<p class="lyrics-loading">加载歌词…</p>';
 
         /* 记下这一轮是给第几首歌发的请求：若用户又快速切了歌，
            晚回来的旧响应就不能再覆盖新内容。 */
@@ -568,9 +572,8 @@
     whenReady('#aside-content', placeLyricsCard);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  /* 这个脚本是 defer：执行时 DOM 已经解析完，直接跑就行。
+     别等 DOMContentLoaded —— 歌词卡要搬进 .sticky_layout（吸附区），
+     晚一拍搬会让右栏的卡片顺序在首帧之后突然变一次（实测 CLS 里最明显的一笔）。 */
+  init();
 })();

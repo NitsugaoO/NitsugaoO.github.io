@@ -23,8 +23,9 @@
   var AVATAR = '/img/cloud.jpg';
   var ABOUT_URL = '/about/';
 
-  /* 给 body 打标记：首页专用样式靠它生效（注意选择器要写 body.home-mode） */
-  document.body.classList.add('home-mode');
+  /* 首页专用样式的标记。正常由 <head> 的内联脚本最早加上（那里能让首帧就是
+     最终布局），这里只是兜底 —— 类挂在 <html> 上，选择器写 html.home-mode。 */
+  document.documentElement.classList.add('home-mode');
 
   /* 公告板文案从 /site.json 读（source/_data/site.yml），管理页可以直接改，
      不再硬编码在这里。 */

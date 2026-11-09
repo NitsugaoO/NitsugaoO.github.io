@@ -65,6 +65,19 @@ html .card-lyrics .lyrics {
   margin: 2px 0 0;
 }
 
+/* 歌词卡的内容是异步填的（/site.json + 每首歌的 .lrc）。widget.yml 里的
+   兜底内容比最终结构矮几十像素，留个下限，填充前后右栏不会整块跳。
+   注意主题的卡片里没有 .card-content 这层，高度要钉在 #lyrics-root 上。 */
+html .card-lyrics #lyrics-root {
+  min-height: 170px;
+}
+
+/* 整张卡也给个下限：歌词是异步填的，兜底内容 ≈ 254px 高。
+   任何「内容还没到位」的瞬间都不该让下面的标签卡往上缩。 */
+html.home-mode #aside-content #card-lyrics {
+  min-height: 254px;
+}
+
 /* 视窗：固定 3 行高，多出来的裁掉。
    font-size 定在这里，下面行高用 em 才能和视窗高对应上。 */
 html .card-lyrics .lyrics-viewport {
@@ -585,20 +598,36 @@ html #recent-posts.home-split {
   grid-template-columns: 268px minmax(0, 1fr);
   gap: 20px;          /* 左列 ↔ 中列 */
   align-items: start;
+  /* flex item 默认 min-width:auto —— 中栏里任何「最小宽度」大于列宽的东西
+     （图片组、长 URL、长单词、宽表格）都会把 #recent-posts 撑宽，
+     进而把右栏从 304px 挤到 160px，三栏来回跳。必须钉成 0。 */
+  min-width: 0;
 }
+
+/* 同一类问题：这几层都是 flex/grid 的子项，min-width:auto 会让内容撑破容器 */
+html .home-side,
+html .home-main,
+html .home-feed,
+html .feed-item { min-width: 0; }
 
 /* 中列 ↔ 右栏的间距：不再用 #aside-content 的 padding-left 凑，
    而是让主区 flex 吃掉剩余宽度、自己留 20px 右外边距。
    这样两处间距严格相等（都是 20px），不会因为盒子模型/滚动条出现误差。 */
 @media screen and (min-width: 900px) {
-  /* 注意是 body.home-mode —— 类加在 <body> 上，写成 html.home-mode 不会匹配 */
-  html body.home-mode .layout > div:first-child {
+  /* 注意：类加在 <html> 上（_config.butterfly.yml 的 head 内联脚本），
+     不要写成 body.home-mode —— 那是 runtime 才有的，会导致右栏先排版再挪动 */
+  html.home-mode .layout > div:first-child {
     width: auto;
+    /* 保持 basis:auto（basis:0 会让主区在内容插入前先缩成 0，
+       右栏会瞬间跳到最左边，CLS 反而飙到 0.65）。
+       真正让三栏稳定的是下面右栏的 flex-shrink:0：
+       容器宽度固定，右栏不让位，主区就只能吃剩下的空间。 */
     flex: 1 1 auto;
     min-width: 0;
     margin-right: 20px;
   }
-  html body.home-mode #aside-content {
+  html.home-mode #aside-content {
+    flex-shrink: 0;    /* 右栏宽度固定，不被主区的内容挤掉（三栏抖动的根因） */
     padding-left: 0;   /* 间距已由主区的 margin-right 提供 */
   }
 }
@@ -883,6 +912,15 @@ html.home-pending #recent-posts:not(.home-split) {
   position: relative;
 }
 
+/* 右栏的作者卡会被 home.js 整块搬到左列顶部（按设计如此）。它一直在右栏
+   待着会先占 ~300px，搬走时右栏其余卡片（歌词卡 / 标签 / 网站信息）
+   整体上跳一大截 —— 首屏量到最明显的一笔 CLS。
+   骨架期就先不占位：搬走之后 .home-pending 才被摘掉，两边不会互相打架；
+   万一 home.js 挂了、兜底摘掉 .home-pending，作者卡会照常回到右栏。 */
+html.home-pending #aside-content .card-info {
+  display: none;
+}
+
 html.home-pending #recent-posts:not(.home-split)::before,
 html.home-pending #recent-posts:not(.home-split)::after {
   content: '';
@@ -1053,7 +1091,7 @@ html .home-side {
 
 /* 左右栏吸附在同一个高度（导航下方），滚动时顶部才对得齐。
    主题默认 top: 20px，会被导航挡住，也导致和左栏错位。 */
-html body.home-mode #aside-content .sticky_layout {
+html.home-mode #aside-content .sticky_layout {
   /* 主题在 #page-header.fixed + .layout 下把 top 写成了 70px（特异性更高），
      这里必须 !important 才能和左栏的 88px 对齐 */
   top: 88px !important;
@@ -1061,7 +1099,7 @@ html body.home-mode #aside-content .sticky_layout {
 
 /* 右栏内容比「视口 - 导航 - 页脚」还高的话，滚到底部时会被父容器挤上去。
    首页隐藏信息量最小的「网站信息」卡，右栏就装得下，可以全程保持吸附。 */
-html body.home-mode #aside-content .card-webinfo {
+html.home-mode #aside-content .card-webinfo {
   display: none;
 }
 
@@ -1479,22 +1517,22 @@ html .home-side .card-info .site-data .length-num {
  * 这里统一成 16px —— 只在首页生效，文章页的侧栏保持主题原样。
  * ========================================================================= */
 
-html body.home-mode .home-side,
-html body.home-mode .home-main,
-html body.home-mode .home-feed {
+html.home-mode .home-side,
+html.home-mode .home-main,
+html.home-mode .home-feed {
   gap: 16px;
 }
 
-html body.home-mode #aside-content .card-widget {
+html.home-mode #aside-content .card-widget {
   margin-bottom: 16px;
 }
 
 /* 置顶那一组里的文章小卡片属于同一组，内部保持紧凑的 6px，
    只把「标题 → 第一张卡片」的间距对齐到组间距 */
-html body.home-mode .home-pins {
+html.home-mode .home-pins {
   gap: 6px;
 }
-html body.home-mode .home-pins-title {
+html.home-mode .home-pins-title {
   padding: 0 2px 4px;
 }
 
@@ -1730,6 +1768,7 @@ html .ph-imgs {
 html .ph-imgs > a,
 html .ph-imgs > p > a {
   display: block;
+  min-width: 0;          /* 同上：别让图片的 min-content 撑开网格 */
   overflow: hidden;
   border-radius: 8px;
 }
@@ -1761,14 +1800,18 @@ html .ph-imgs--1 img {
   object-fit: contain;
 }
 
-html .ph-imgs--2 { grid-template-columns: repeat(2, 1fr); }
-html .ph-imgs--3 { grid-template-columns: repeat(3, 1fr); }
+/* 列宽一律 minmax(0, 1fr)：`1fr` 的最小宽度是 min-content，
+   而图片/链接的 min-content 是图片内在宽度（缩略图也有 1000px）。
+   首页三栏里中栏被这种「最小宽度」撑宽，会把右栏从 304px 挤到 160px
+   —— 三栏来回跳的根因（实测 CLS 0.13 → 见 docs/agent/01）。 */
+html .ph-imgs--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html .ph-imgs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* 4 张 → 2×2，比 3 + 1 好看 */
-html .ph-imgs--4 { grid-template-columns: repeat(2, 1fr); }
+html .ph-imgs--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 /* 5 张以上 → 九宫格 */
-html .ph-imgs--many { grid-template-columns: repeat(3, 1fr); }
+html .ph-imgs--many { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* 比例放在 img 上（width:100% + height:auto + aspect-ratio + object-fit:cover）：
    不要放在包裹层 <a> 上 —— grid item 默认 stretch，行高由图片内在高度决定，
@@ -1786,7 +1829,7 @@ html .ph-imgs--many img { aspect-ratio: 1; }
 /* 窄屏：三列太挤，降到两列；单图照旧完整显示 */
 @media screen and (max-width: 600px) {
   html .ph-imgs--3,
-  html .ph-imgs--many { grid-template-columns: repeat(2, 1fr); }
+  html .ph-imgs--many { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ============================================================================
