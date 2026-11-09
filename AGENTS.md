@@ -59,6 +59,13 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
     原图 17 MB / 6144×8192 直接进首页会把滚动搞卡。上传 / 替换 / 改名会自动补单张；
     **手动把图拷进 `source/images/` 后要去管理页「图片 → 重建缩略图」跑一次**。
     缩略图缺失时站点脚本自动回退原图，不会坏。
+14. **首页三栏的布局约束**（动之前先读 `docs/agent/01` 的「首屏不能有二次重排」）：
+    · `home-mode` 决定首页专用样式，必须由 `_config.butterfly.yml` 的 head 内联脚本加在
+      `<html>` 上，选择器写 `html.home-mode` —— 写成 `body.home-mode` 会晚一拍，
+      右栏先按旧布局排完再整块挪动（实测是首屏最大的一笔位移）；
+    · 图片组列宽用 `repeat(N, minmax(0, 1fr))`：`1fr` 的最小宽度是 min-content，会撑破中栏；
+    · 右栏 `#aside-content` 必须 `flex-shrink: 0`。**别**改用 `flex: 1 1 0%` 去修主区 ——
+      内容插入前主区会先缩成 0，右栏瞬间跳到最左边（实测 CLS 0.13 → 0.65，试过不行）。
 
 ## 改完怎么生效 + 怎么验证
 

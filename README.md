@@ -67,10 +67,15 @@ git commit -m "新增：xxx 题解"
 图片放在 `source/images/<文章名>/` 目录，正文里这样引用：
 
 ```markdown
-![描述](/images/tsctf2026/image-1.png)
+![描述](../images/tsctf2026/image-1.png)
 ```
 
-> 注意用 `/images/...` 开头的绝对路径，不要用相对路径。
+> 正文里写**相对路径** `../images/...`：VSCode 的 Markdown 预览也能看到图；
+> 渲染时 `scripts/img-path.js` 会自动改回 `/images/...`，线上地址不变。
+> （只有 front-matter 的 `cover` / `avatar` 必须写绝对路径 —— 它们不走 Markdown 渲染。）
+
+**多张图并排**：连续写几行、中间别空行，就会自动排成一组 —— 1 张完整显示、
+2 张两列、3 张三列、4 张 2×2、5 张以上九宫格。点开仍是原图大图。
 
 ### 数学公式
 
@@ -151,6 +156,7 @@ pnpm admin
 | 友链 | `source/_data/link.yml` |
 | 关于 | `source/about/index.md` |
 | 公告 | `source/_data/site.yml` |
+| 图片 | `source/images/`（上传 / 替换 / 重命名 / 删到回收站 / 引用统计 / 重建缩略图） |
 
 文章编辑器里：
 
@@ -161,6 +167,12 @@ pnpm admin
 - 缩略图可以点开看大图；大图弹窗里站内图片还能「用系统查看器打开」
 - 正文区保底高度 260px，窗口矮的时候整页滚动而不是把正文挤成一条
 - 编辑器头部：标题 + 状态第一行、「创建 / 更新」时间第二行，右边五个按钮固定在第一行
+
+说说页面里每张卡片有：
+
+- **插入图片**：展开图库（可搜索、按引用状态筛），点缩略图把引用插到光标处；
+  连点多张会排成同一组（渲染时并排）
+- **图片：自动 / 单列 / 两列 / 三列 / 四列**：只影响「连续写的图片」，写进 YAML 的 `layout` 字段
 
 ### 草稿与外部编辑
 
@@ -248,8 +260,10 @@ C:\Users\Agustin\blog\
 | `date` | 时间，格式 `YYYY-MM-DD HH:mm:ss`，页面按它倒序 |
 | `content` | 正文，支持完整 Markdown、Hexo 标签（`{% hideToggle %}` 等）、KaTeX |
 | `tags` | 标签数组（可选） |
+| `layout` | 图片组列数（可选）：`single` / `grid2` / `grid3` / `grid4`，不写就按张数自动 |
+| `key` | 评论区标识（Giscus 用），新建条时管理页会自动生成 |
 
-图片放在 `source/images/` 或 `source/img/`，正文里写绝对路径 `/images/xxx.png`。
+图片放在 `source/images/`，正文里写相对路径 `../images/xxx.png`（同上）。
 
 ### `lyrics.yml` — 歌曲（侧栏歌词卡）
 
