@@ -1892,3 +1892,97 @@ html #article-container figure.highlight,
 html #article-container .code-wrapper {
   font-size: 14px;
 }
+
+
+/* ============================================================================
+ * 十四、壁纸与亚克力（#web_bg + backdrop-filter）
+ * ──────────────────────────────────────────────────────────────────────────
+ * 壁纸层由 _config.butterfly.yml 的 `background` 触发（主题 layout.pug 只在
+ * 该配置非空时生成 #web_bg）。配色相关内容——遮罩浓度、明暗换图、--ef-glass
+ * 的定义——在 everforest.css 第十七节与 1.1 / 2.1 色板里。这一节只管两件事：
+ *   1. 把硬写 `background: var(--ef-bg1)` 的自定义卡片改成 --ef-glass
+ *      （主题卡片走 --card-bg，改一个变量就已经半透明了）；
+ *   2. 给「大面板」加 backdrop-filter 模糊。
+ *
+ * 三条硬规矩：
+ *   · 列表行（.lib-item 那种几十条的）只半透明、不加 blur —— 每个 blur 层
+ *     在滚动时都要逐帧重采样，长列表会掉帧；卡片背后本来就被上层卡片盖住，
+ *     少一层模糊几乎看不出来；
+ *   · 按钮 / 输入框 / chip（.home-filter、.library-search…）保持实色：
+ *     玻璃叠玻璃会糊成一片，字也不好读；
+ *   · 不支持 backdrop-filter 的浏览器整块回退成不透明 bg1，
+ *     --card-bg 和 background 要一起回退，只改一半会出现「半透明但没模糊」。
+ * ========================================================================= */
+
+/* ---- 14.1 自定义卡片：实色 bg1 → 半透明玻璃底 ---- */
+html .lib-item,
+html .home-item,
+html .home-preview,
+html .feed-item,
+html .home-board,
+html .song-card,
+html .library-tree,
+html #page .category-lists li.category-list-item {
+  background: var(--ef-glass);
+}
+
+/* ---- 14.2 大面板加模糊（主题卡片 + 自定义卡片）---- */
+html .cardHover,
+html #recent-posts .recent-post-item,
+html .card-widget,
+html #article-container .shuoshuo-item,
+html .feed-item,
+html .home-board,
+html .home-item,
+html .song-card,
+html .library-tree,
+html #page .category-lists li.category-list-item {
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+}
+
+/* ---- 14.3 固定导航也吃玻璃（原来只有 rgba 底，没有 blur）---- */
+html[data-theme='dark'] #page-header.nav-fixed > #nav,
+html[data-theme='dark'] #page-header.not-top-img > #nav,
+html:root:not([data-theme='dark']) #page-header.nav-fixed > #nav,
+html:root:not([data-theme='dark']) #page-header.not-top-img > #nav {
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+/* ---- 14.4 窄屏减负：手机 GPU 弱，壁纸收益也小 ---- */
+@media screen and (max-width: 768px) {
+  html .cardHover,
+  html #recent-posts .recent-post-item,
+  html .card-widget,
+  html #article-container .shuoshuo-item,
+  html .feed-item,
+  html .home-board,
+  html .home-item,
+  html .song-card,
+  html .library-tree,
+  html #page .category-lists li.category-list-item {
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    backdrop-filter: blur(10px) saturate(1.1);
+  }
+}
+
+/* ---- 14.5 不支持模糊时回退实色（变量与自定义卡片一起回退）---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html[data-theme='dark'] {
+    --card-bg: var(--ef-bg1);
+  }
+  html:root:not([data-theme='dark']) {
+    --card-bg: var(--ef-bg1);
+  }
+  html .lib-item,
+  html .home-item,
+  html .home-preview,
+  html .feed-item,
+  html .home-board,
+  html .song-card,
+  html .library-tree,
+  html #page .category-lists li.category-list-item {
+    background: var(--ef-bg1);
+  }
+}

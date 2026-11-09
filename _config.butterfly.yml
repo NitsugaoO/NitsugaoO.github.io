@@ -92,7 +92,12 @@ footer_img: false
 # Website Background
 # Can set it to color, image URL or an array containing colors and/or image URLs
 # If an array is provided, a random background will be selected from the array on each load
-background:
+#
+# 本站：壁纸 → #web_bg 固定层（主题 layout.pug 只有这一行开关）。
+# 这里只能填一张，暗色模式用这张；亮色模式由 everforest.css 里
+# `html:root:not([data-theme='dark']) #web_bg` 覆盖成 wallpaper-light.webp。
+# 两张都由 3840x2160 原图压到 2560 宽 / webp q72（538 KB + 88 KB）。
+background: /images/wallpaper-dark.webp
 
 cover:
   # Disable the cover or not

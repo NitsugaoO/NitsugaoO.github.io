@@ -34,6 +34,18 @@ updated: 2026-11-09 · code: `15687f1`（最后一次改动站点代码/配置�
   顶栏区分 未保存 / 已保存未发布 / 已同步，可发布）。单张图片上限 **17 MB** ——
   `server.js` 的 `MAX_BODY_CHARS`（24 MB 字符 ≈ 17 MB 文件）与 `content.js` 的 `MAX_IMAGE_BYTES`
   **必须一起改**，只改一边不生效
+- 最近完成（11-10）：**壁纸 + 亚克力**
+  - 壁纸：`source/images/wallpaper-dark.webp`（538 KB）/ `wallpaper-light.webp`（88 KB），
+    2560×1440 webp q72；`_config.butterfly.yml` 的 `background` 指向暗色那张（主题只支持一张），
+    亮色由 `everforest.css` 第十七节覆盖 `#web_bg` 的 `background-image`（内联样式，必须 `!important`）
+  - 遮罩：暗色从主题自带的 70% 压到 40%；亮色主题没遮罩，自己补 55% 米白；
+    `#web_bg.bg-animation` 的 4s 淡入已关掉（否则首屏先空 4 秒）
+  - 玻璃底：新增 `--ef-glass`（暗 `rgba(46,56,60,.72)` / 亮 `rgba(248,245,228,.74)`），
+    `--card-bg` 指向它 —— 主题卡片全自动半透明
+  - 模糊：`custom.css` 第十四节，`backdrop-filter: blur(16px) saturate(1.15)`；
+    列表行（`.lib-item`）只半透明不加 blur，控件保持实色，窄屏降到 blur(10px)，
+    `@supports not` 回退成不透明
+  - 桌面验证过首页 / 文章页 / 文章库 / 说说页（暗色）+ 首页（亮色）四张截图
 - 最近完成（11-09）：**图片组分档 + 列表缩略图 + 说说插图**
   - `scripts/img-group.js`：`before_post_render` 里把「连续图片行」换成
     `<div class="ph-imgs ph-imgs--N">`（Markdown 阶段，主题说说页和 feed.json 都吃得到）；
@@ -60,6 +72,10 @@ updated: 2026-11-09 · code: `15687f1`（最后一次改动站点代码/配置�
 
 ## 未完成
 
+- **亚克力只做了静态截图验证，滚动帧率没实测**：桌面 Edge 无头截图看不出掉帧。
+  下次用 DevTools Performance 滚一遍首页时间流和文章库；真掉帧就先砍 `.feed-item` 的 blur。
+- **亮色模式的卡片边框几乎看不见**：`--ef-bg3`（#edeada）在米白玻璃 + 浅色壁纸上边界很淡，
+  要不要给亮色单独加深一档，等看几天观感再定。
 - **管理页单图上传上限（17 MB）仍未实测**：`server.js` 的 `MAX_BODY_CHARS` 与 `content.js` 的
   `MAX_IMAGE_BYTES` **必须成对改**，只改一边不生效；改完要真的传一张接近上限的图验一次。
 - **缩略图依赖本机 Python + Pillow**：`tools/make-thumbs.py` 只在本地跑（CI 不跑，缩略图提交进仓库）。
@@ -73,6 +89,8 @@ updated: 2026-11-09 · code: `15687f1`（最后一次改动站点代码/配置�
 | 配色权威 | `~/Themes/themes/everforest/tokens.yaml`（本仓库只是应用方） |
 | 自定义样式 | `source/css/everforest.css`（配色）、`source/css/custom.css`（非配色；5.5 节=首页骨架、十一节=图片组、十三节=正文字号） |
 | 网页字体 | `tools/build-fonts.py` → `source/fonts/JetBrainsMapleMono/`、`source/css/fonts.css` |
+| 壁纸 | `source/images/wallpaper-{dark,light}.webp` → `#web_bg`（开关在 `_config.butterfly.yml` 的 `background`，遮罩与亮色换图在 `everforest.css` 第十七节） |
+| 亚克力 | `--ef-glass` / `--card-bg`（`everforest.css` 1.1 / 2.1）+ 模糊规则（`custom.css` 第十四节） |
 | 列表缩略图 | `tools/make-thumbs.py` → `source/images/thumbs/`（增量清单 `tools/.thumb-manifest.json`，已 gitignore） |
 | 图片组 / 缩略图改写 | `scripts/img-group.js`（Markdown 阶段分组）、`scripts/img-thumb.js`（HTML 阶段兜底 + 缩略图） |
 | 媒体路径改写 | `scripts/img-path.js`（`../images/`、`../videos/` → 站点绝对路径；跳过代码块 / `{% raw %}` / 行内代码） |

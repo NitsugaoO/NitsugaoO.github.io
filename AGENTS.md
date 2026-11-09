@@ -66,6 +66,13 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
     · 图片组列宽用 `repeat(N, minmax(0, 1fr))`：`1fr` 的最小宽度是 min-content，会撑破中栏；
     · 右栏 `#aside-content` 必须 `flex-shrink: 0`。**别**改用 `flex: 1 1 0%` 去修主区 ——
       内容插入前主区会先缩成 0，右栏瞬间跳到最左边（实测 CLS 0.13 → 0.65，试过不行）。
+15. **壁纸 + 亚克力的三处入口，别写错地方**（详见 `docs/agent/01` 的「壁纸与亚克力」）：
+    · 壁纸开关在 `_config.butterfly.yml` 的 `background`（非空才生成 `#web_bg`）；主题只支持一张，
+      亮色那张靠 `everforest.css` 第十七节覆盖 `background-image`（内联样式，**必须 `!important`**）；
+    · 卡片半透明走 `--card-bg: var(--ef-glass)`，**新写的卡片不要硬写 `background: var(--ef-bg1)`**，
+      否则它会永远不透明，除非你把它加进 `custom.css` 第十四节的选择器组；
+    · 模糊只给「大面板」：列表行（`.lib-item`）不加 blur，按钮 / 输入框 / chip 保持实色；
+      `@supports not` 的回退里 `--card-bg` 与 `background` **要成对改回**。
 
 ## 改完怎么生效 + 怎么验证
 

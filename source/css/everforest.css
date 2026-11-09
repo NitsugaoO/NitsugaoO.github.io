@@ -45,10 +45,14 @@ html[data-theme='dark'] {
   --ef-blue:    #7fbbb3;
   --ef-purple:  #d699b6;
 
+  /* 亚克力卡片底：bg1 的半透明版，壁纸从卡片后透出（见第十五节）。
+     alpha 别低于 .68 —— 正文 #d3c6aa 压在海浪高光上会糊。 */
+  --ef-glass:   rgba(46, 56, 60, .72);
+
   /* ---- 1.2 全局 ------------------------------------------------------ */
   --global-bg:            var(--ef-bg0);
   --font-color:           var(--ef-fg);
-  --card-bg:              var(--ef-bg1);
+  --card-bg:              var(--ef-glass);
   --card-meta:            var(--ef-grey1);
   --sidebar-bg:           var(--ef-bg1);
   --sidebar-menu-bg:      var(--ef-bg2);
@@ -186,10 +190,13 @@ html:root:not([data-theme='dark']) {
   --ef-blue:    #3a94c5;
   --ef-purple:  #df69ba;
 
+  /* 亚克力卡片底：bg1 (#f8f5e4) 的半透明版 */
+  --ef-glass:   rgba(248, 245, 228, .74);
+
   /* ---- 2.2 全局 ------------------------------------------------------ */
   --global-bg:            var(--ef-bg0);
   --font-color:           var(--ef-fg);
-  --card-bg:              var(--ef-bg1);
+  --card-bg:              var(--ef-glass);
   --card-meta:            var(--ef-grey1);
   --sidebar-bg:           var(--ef-bg1);
   --sidebar-menu-bg:      var(--ef-bg2);
@@ -1060,4 +1067,45 @@ html .custom-hr {
 /* 保险：万一配置没生效，图标也不显示 */
 html .custom-hr:before {
   display: none;
+}
+
+
+/* ============================================================================
+ * 十七、壁纸层（#web_bg）
+ * ----------------------------------------------------------------------------
+ * 壁纸由 _config.butterfly.yml 的 `background` 触发：主题 layout.pug 只在
+ * 该配置非空时才生成 #web_bg（fixed / z-index:-999 / cover），暗色用
+ * wallpaper-dark.webp，亮色在这里覆盖成浅色那张。
+ *
+ * 主题自带两件会毁掉壁纸的东西，这里都要盖掉：
+ *   1. 暗色模式给 #web_bg:before 盖了 70% 黑遮罩（darkmode.styl）→ 调到 40%；
+ *   2. bg-animation 的 to_show 4s 淡入 → 首屏先空 4 秒再浮出壁纸。
+ * 亮色模式主题根本没有遮罩，这里补一层米白（否则深色海浪图会压住深灰正文）。
+ *
+ * 卡片的半透明底走 --ef-glass（1.1 / 2.1），模糊在 custom.css 第十四节。
+ * ========================================================================= */
+
+/* 亮色模式换图：主题把 background-image 写在 #web_bg 的内联样式上，
+   只有 !important 能覆盖 */
+html:root:not([data-theme='dark']) #web_bg {
+  background-image: url('/images/wallpaper-light.webp') !important;
+}
+
+/* 首帧就是最终背景，不要 4 秒淡入 */
+#web_bg.bg-animation {
+  animation: none !important;
+}
+
+/* 暗色：压暗 40%（够压住海浪高光，又不至于把壁纸糊成一块灰） */
+html[data-theme='dark'] #web_bg:before {
+  background-color: rgba(30, 35, 38, .40);
+}
+
+/* 亮色：米白遮罩 55%，把青绿图提亮成雾面 */
+html:root:not([data-theme='dark']) #web_bg:before {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 251, 239, .55);
+  content: '';
 }
