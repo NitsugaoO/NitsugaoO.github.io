@@ -1,3 +1,22 @@
+- date: '2026-11-09 21:37:15'
+  key: shuoshuo-mw9b2kb6
+  content: |
+    学习内存破坏。
+    力竭了，与 pwn.college 给的远程环境搏斗未果。正如 w00YUN 在 2026 年 11 月 9 号说过的那样：ssh 和 tmux 只能存在其中一层，尤其是你是在 Windows Terminal 里面 ssh 的情况下。为什么我按不出来 ctrl-b /keyword。为什么！我力竭。
+    这个远程环境由于延迟，不管是 ssh 还是用 pwn.college 的网页远程桌面都很难用啊… 以至于我搞了一堆 alias 和 py 函数来辅助。还有这个 tmux，在这个延迟下总感觉自己没点到。还有搜索也点不出来。TUI 就是这点不好，一定要有内置的搜索，不然我用 WT 的 C-F 是搜不了的。好难受啊。
+    然后 dojo 的 challenge 的二进制可以 objdump 但是不能 ida? 我本来还想着硬着头皮用远程桌面的 ida 来 decomplie 的。现在没招了还在啃汇编中。
+    而且感觉目前做的题其实不需要写自动化的，我只是需要 pwntools 帮我输 payload，但是 1. payload 里面的 NULL 我不太好手动复制粘贴 2. pwntools 把 io 给绑到自己的 pipe 里面，我在 ipython 里面啥都看不见。总之感觉自己因为工具不顺手花了好多垃圾时间，最后让 AI 帮我写了个 talk() 函数终于算是好用了。
+  tags: []
+- date: '2026-11-05 21:36:20'
+  key: shuoshuo-mw9b1dfl
+  content: |
+    这几天把 <https://pwn.college/intro-to-cybersecurity/binary-exploitation/> 做完了。学会了基础的 Overflow 和 处理 PIE 和 NOP Sleds 和 Null-free shellcode，对 GDB 的使用和 exp.py 的写更熟练了。下一步是什么呢…
+    <https://pwn.college/program-security/program-security/>
+    此外发现之前一直跳过的 pwn.college 上的视频，看了一下其实讲的挺好的。
+
+    ?!`0x67616c662f`!?
+    突然意识到自己可以用这种神秘的 hex 来作为密码（口令）…
+  tags: []
 - date: '2026-11-08 21:54:40'
   key: shuoshuo-mw7w93cy
   content: |-
@@ -13,14 +32,11 @@
     ![](../images/0f77c30fb0.jpg)
     ![](../images/90eae6dc0a.jpg)
   tags: []
-  line: 1
 - date: '2026-11-01 10:51:00'
   key: shuoshuo-mw7w79fg
   content: ok 啊计导上机也是半小时拿下（）哎呀明明是来炸鱼的为什么不要脸地这么开心呢（）
   tags: []
-  line: 8
 - date: '2026-10-23 20:15:51'
   key: shuoshuo-mvkxodzl
   content: 艰难建站中！
   tags: []
-  line: 13

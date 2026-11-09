@@ -355,6 +355,11 @@ const server = http.createServer(async function (req, res) {
       return sendJSON(res, 200, { images: content.listImages() });
     }
 
+    if (pathname === '/api/build-thumbs' && method === 'POST') {
+      const body = await readBody(req);
+      return sendJSON(res, 200, content.buildAllThumbs(!!body.force));
+    }
+
     if (pathname === '/api/upload-image' && method === 'POST') {
       const body = await readBody(req);
       return sendJSON(res, 200, content.saveImage(body.data, body.mime, body.dir));

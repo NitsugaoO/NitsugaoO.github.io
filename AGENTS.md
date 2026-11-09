@@ -42,10 +42,12 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
    `/images/xxx`（不走 Markdown 渲染，写相对路径线上必 404）。
 7. **网页字体是子集化的**：正文里出现字体没有的字（生僻字 / 新符号）→ 管理页「字体」页会黄字报缺字，
    点「重新生成子集」（或 `python tools/build-fonts.py`），别只改 CSS 硬撑。
-8. **CSS 里两个 `:has()` 死法**（都会静默出错，没有报错信息）：
-   `p:has(> a ~ a)` 会把「一段文字里有两个普通链接」当成图片行 → 拆成网格、撑出大片空白；
-   `:has()` 里面再套 `:has()` 是非法语法 → 整条规则被浏览器丢弃。图片行请用
-   `p:has(> a:nth-of-type(2) > img)`。
+8. **正文图片组走 `.ph-imgs`，不要再写 `:has()` 数张数**：连续写的图片由
+   `scripts/img-group.js` 在 Markdown 阶段包成 `<div class="ph-imgs ph-imgs--N">`，
+   CSS 只按 class 排版（`custom.css` 第十一节）。原来那套 `p:has(...)` 已删：
+   它数不出「这一段几张」、会误伤「文字 + 一张图」的段落，`:has()` 嵌套还是非法语法
+   （静默失败，没有报错）。另一个坑：任何「容器里所有 img」的规则
+   （如 `.shuoshuo-content img`）都会把网格的比例顶掉，必须限定成 `> p img`。
 9. **网易云接口（搜索 / 歌词 / 翻译）是外部依赖**：失效时管理页会提示手动粘贴，
    真挂了就退回手动维护 `source/_data/lyrics.yml` + `source/lrc/*.lrc`，别去反向破解接口。
 10. **首页首屏的三处改动是一对**：`<head>` 的 `window.__homeData` 预取、`inject.bottom` 的 `defer`、
@@ -53,6 +55,10 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
 11. **灯箱换版本要成对换**：`source/js/vendor/fancybox.umd.min.js` 和 `source/css/fancybox.css`
     （版本号要与 `themes/butterfly/plugins.yml` 一致），只换一个会样式/行为错位。
 12. **站内视频单文件 ≤ 25 MiB**：超了 CF Workers 整包部署失败；文件名不能以 `_` 开头。
+13. **列表用的是缩略图**（`source/images/thumbs/*.webp`，`tools/make-thumbs.py` 生成）：
+    原图 17 MB / 6144×8192 直接进首页会把滚动搞卡。上传 / 替换 / 改名会自动补单张；
+    **手动把图拷进 `source/images/` 后要去管理页「图片 → 重建缩略图」跑一次**。
+    缩略图缺失时站点脚本自动回退原图，不会坏。
 
 ## 改完怎么生效 + 怎么验证
 

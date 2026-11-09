@@ -829,9 +829,22 @@ main {
 
 .card-tools {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   margin-top: 8px;
 }
+
+/* 说说卡片的「图片组列数」下拉框 */
+.shuoshuo-layout {
+  padding: 4px 8px;
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  background: var(--bg1);
+  color: var(--fg);
+  font-size: 12px;
+}
+.shuoshuo-layout:focus { border-color: var(--green); outline: none; }
 
 .shuoshuo-preview {
   display: none;
@@ -850,6 +863,73 @@ main {
   overflow: auto;
 }
 .shuoshuo-preview a { color: var(--blue); }
+
+/* ---- 说说：插入图片的内嵌图库面板 ---- */
+.thumb-picker {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--bg3);
+  border-radius: 8px;
+  background: var(--bg0);
+}
+
+.thumb-picker-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.thumb-picker-search {
+  flex: 1 1 180px;
+  min-width: 140px;
+  padding: 5px 10px;
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  background: var(--bg1);
+  outline: none;
+}
+.thumb-picker-search:focus { border-color: var(--green); }
+
+.thumb-picker-chips { display: flex; gap: 6px; }
+
+.thumb-picker-hint {
+  color: var(--grey0);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.thumb-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.thumb-picker-cell {
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  background: var(--bg1);
+  cursor: pointer;
+}
+.thumb-picker-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb-picker-cell:hover { border-color: var(--green); }
+.thumb-picker-cell.is-picked {
+  border-color: var(--green);
+  box-shadow: inset 0 0 0 2px rgba(167, 192, 128, .35);
+}
 
 .about { min-height: 420px; }
 

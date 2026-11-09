@@ -886,6 +886,151 @@
 
   /* ---- 说说 -------------------------------------------------------------- */
 
+  /* 说说插图用的图片列表：整个视图拉一次，切卡片不重复请求 */
+  var shuoshuoImageCache = null;
+
+  /* /images/x.jpg → /images/thumbs/x.webp（列表缩略图，不存在时 onerror 回退原图） */
+  function thumbUrl(sitePath) {
+    return String(sitePath)
+      .replace(/^\/images\//, '/images/thumbs/')
+      .replace(/\.[^.\/]+$/, '.webp');
+  }
+
+  /* 在光标处插入图片引用。
+     换行规则（不然图片不会成组，也就没有并排）：
+       · 光标前最后一行已经是图片行 → 只留一个换行，继续同一组（连点两张就并排）；
+       · 否则前后各留一个空行，让这一组独立成一个段落。 */
+  function insertImageRef(textarea, sitePath) {
+    var snippet = imageMarkdown(sitePath);
+    var start = typeof textarea.selectionStart === 'number'
+      ? textarea.selectionStart : textarea.value.length;
+    var end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : start;
+
+    var beforeRaw = textarea.value.slice(0, start);
+    var afterRaw = textarea.value.slice(end);
+
+    var beforeTrim = beforeRaw.replace(/\s+$/, '');
+    var lastLine = beforeTrim.slice(beforeTrim.lastIndexOf('\n') + 1).trim();
+    var continuing = /^!\[[^\]]*\]\([^)]*\)/.test(lastLine);
+
+    var before = beforeRaw;
+    var after = afterRaw;
+    if (beforeTrim) before = beforeTrim + (continuing ? '\n' : '\n\n');
+    if (afterRaw.trim()) {
+      after = afterRaw.replace(/^\s+/, '');
+      snippet += '\n\n';
+    }
+
+    textarea.value = before + snippet + after;
+    var pos = before.length + snippet.length - (afterRaw.trim() ? 2 : 0);
+    textarea.selectionStart = textarea.selectionEnd = pos;
+    /* 让卡片上那个 input 监听器跑起来：更新 item.content + 标脏 */
+    textarea.dispatchEvent(new Event('input'));
+    textarea.focus();
+  }
+
+  /* 内嵌图库面板：搜索 + 引用状态筛选 + 缩略图网格，点一下就插一行引用 */
+  function buildImagePicker(box, textarea) {
+    box.innerHTML = '';
+
+    var inserted = 0;
+    var filter = 'all';
+    var keyword = '';
+
+    var bar = el('div', 'thumb-picker-bar');
+
+    var search = el('input', 'thumb-picker-search');
+    search.type = 'search';
+    search.placeholder = '搜图片路径…';
+    search.addEventListener('input', function () {
+      keyword = search.value.trim().toLowerCase();
+      paintGrid();
+    });
+    bar.appendChild(search);
+
+    var chips = el('div', 'thumb-picker-chips');
+    var chipDefs = [['all', '全部'], ['used', '已引用'], ['unused', '未引用']];
+    chipDefs.forEach(function (pair) {
+      var chip = el('button', 'status-chip' + (pair[0] === 'all' ? ' is-active' : ''), pair[1]);
+      chip.type = 'button';
+      chip.addEventListener('click', function () {
+        filter = pair[0];
+        Array.prototype.forEach.call(chips.children, function (node) {
+          node.classList.toggle('is-active', node === chip);
+        });
+        paintGrid();
+      });
+      chips.appendChild(chip);
+    });
+    bar.appendChild(chips);
+
+    var hint = el('span', 'thumb-picker-hint', '点缩略图插入引用');
+    bar.appendChild(hint);
+    box.appendChild(bar);
+
+    var grid = el('div', 'thumb-picker-grid');
+    box.appendChild(grid);
+
+    function buildCell(image) {
+      var cell = el('button', 'thumb-picker-cell');
+      cell.type = 'button';
+      cell.title = image.path
+        + (image.refs && image.refs.length ? '（' + image.refs.length + ' 处引用）' : '');
+
+      var thumb = el('img');
+      thumb.loading = 'lazy';
+      thumb.alt = '';
+      thumb.src = thumbUrl(image.path)
+        + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
+      thumb.addEventListener('error', function onError() {
+        thumb.removeEventListener('error', onError);
+        thumb.src = image.path;   /* 小图没有缩略图，回退原图 */
+      });
+      cell.appendChild(thumb);
+
+      cell.addEventListener('click', function () {
+        insertImageRef(textarea, image.path);
+        cell.classList.add('is-picked');
+        inserted++;
+        hint.textContent = '已插入 ' + inserted + ' 张（可继续点）';
+      });
+      return cell;
+    }
+
+    function paintGrid() {
+      var list = (shuoshuoImageCache || []).filter(function (image) {
+        var refs = image.refs || [];
+        if (filter === 'used' && !refs.length) return false;
+        if (filter === 'unused' && refs.length) return false;
+        if (keyword && image.path.toLowerCase().indexOf(keyword) === -1) return false;
+        return true;
+      });
+
+      grid.innerHTML = '';
+      if (!list.length) {
+        grid.appendChild(el('p', 'empty', '没有符合条件的图片。'));
+        return;
+      }
+      list.forEach(function (image) { grid.appendChild(buildCell(image)); });
+    }
+
+    if (shuoshuoImageCache) {
+      paintGrid();
+      return;
+    }
+
+    grid.innerHTML = '<p class="empty">加载中…</p>';
+    api('/api/images')
+      .then(function (data) {
+        shuoshuoImageCache = data.images || [];
+        paintGrid();
+      })
+      .catch(function (err) {
+        grid.innerHTML = '';
+        grid.appendChild(el('p', 'empty', '加载失败：' + err.message));
+      });
+  }
+
   function renderShuoshuo() {
     app.innerHTML = '';
     var items = (state.data.shuoshuo || []).slice();
@@ -985,7 +1130,49 @@
         });
         tools.appendChild(previewBtn);
 
+        /* 图片组列数：留空 = 按张数自动（1/2/3/4/5+ 分档） */
+        var layoutSel = document.createElement('select');
+        layoutSel.className = 'shuoshuo-layout';
+        layoutSel.title = '图片组列数（只影响「连续写的图片」，留空则按张数自动）';
+        [['', '图片：自动'], ['single', '单图'], ['grid2', '两列'],
+          ['grid3', '三列'], ['grid4', '四列']].forEach(function (pair) {
+          var opt = document.createElement('option');
+          opt.value = pair[0];
+          opt.textContent = pair[1];
+          layoutSel.appendChild(opt);
+        });
+        layoutSel.value = item.layout || '';
+        layoutSel.addEventListener('change', function () {
+          if (layoutSel.value) item.layout = layoutSel.value;
+          else delete item.layout;
+          setDirty(true);
+        });
+        tools.appendChild(layoutSel);
+
+        /* 插入图片：展开内嵌图库（默认收起，省得每张卡片都拉一次） */
+        var picker = el('div', 'thumb-picker');
+        picker.style.display = 'none';
+
+        var pickerBtn = el('button', 'btn small', '插入图片');
+        pickerBtn.type = 'button';
+        pickerBtn.title = '从图库里选图，插到光标处（可连点多张）';
+        pickerBtn.addEventListener('click', function () {
+          var opened = picker.style.display !== 'none';
+          if (opened) {
+            picker.style.display = 'none';
+            pickerBtn.textContent = '插入图片';
+            return;
+          }
+          picker.style.display = '';
+          pickerBtn.textContent = '插入图片 ▴';
+          if (!picker.dataset.ready) {
+            picker.dataset.ready = '1';
+            buildImagePicker(picker, content);
+          }
+        });
+        tools.appendChild(pickerBtn);
         card.appendChild(tools);
+        card.appendChild(picker);
         card.appendChild(preview);
 
         listBox.appendChild(card);
@@ -994,7 +1181,15 @@
 
     paint();
 
-    state.saveHandler = function () { saveData('shuoshuo', items); };
+    state.saveHandler = function () {
+      /* line 只是给「VSCode」按钮定位用的行号，不能写回 YAML
+         （以前会残留一堆 line: 1 / line: 12） */
+      saveData('shuoshuo', items.map(function (item) {
+        var copy = Object.assign({}, item);
+        delete copy.line;
+        return copy;
+      }));
+    };
   }
 
   /* ---- 图片管理 ---------------------------------------------------------- */
@@ -1070,7 +1265,14 @@
     var card = el('div', 'image-card');
 
     var img = el('img');
-    img.src = image.path + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
+    /* 列表用缩略图（44 张原图共 100+ MB，全尺寸缩略图加载很卡）；
+       小图没有缩略图 → onerror 回退到原图 */
+    img.src = thumbUrl(image.path)
+      + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
+    img.addEventListener('error', function onError() {
+      img.removeEventListener('error', onError);
+      img.src = image.path + (image.mtime ? '?v=' + encodeURIComponent(image.mtime) : '');
+    });
     img.alt = '';
     img.loading = 'lazy';
     img.title = '点击复制 Markdown 引用 ' + imageMarkdown(image.path);
@@ -1159,6 +1361,26 @@
     reloadBtn.type = 'button';
     reloadBtn.addEventListener('click', loadImages);
     head.appendChild(reloadBtn);
+
+    /* 手动把图拷进 source/images/ 时用（上传/替换/改名会自动补单张） */
+    var thumbBtn = el('button', 'btn small', '重建缩略图');
+    thumbBtn.type = 'button';
+    thumbBtn.title = '扫描 source/images/，补齐所有列表缩略图（tools/make-thumbs.py）';
+    thumbBtn.addEventListener('click', function () {
+      thumbBtn.disabled = true;
+      thumbBtn.textContent = '生成中…';
+      api('/api/build-thumbs', { method: 'POST', body: {} })
+        .then(function (res) {
+          toast('缩略图已更新 ' + (res.message || ''));
+          loadImages();
+        })
+        .catch(function (err) { toast('生成失败：' + err.message, true); })
+        .then(function () {
+          thumbBtn.disabled = false;
+          thumbBtn.textContent = '重建缩略图';
+        });
+    });
+    head.appendChild(thumbBtn);
     app.appendChild(head);
 
     /* 上传 */

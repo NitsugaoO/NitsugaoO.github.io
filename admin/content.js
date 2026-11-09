@@ -438,13 +438,22 @@ function saveAbout(fm, body) {
 const IMAGE_EXTS = /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i;
 const TEXT_EXTS = /\.(md|markdown|ya?ml|js|css|json)$/i;
 
-function walkFiles(dir, onFile) {
+function walkFiles(dir, onFile, skipDir) {
   if (!fs.existsSync(dir)) return;
   fs.readdirSync(dir, { withFileTypes: true }).forEach(function (entry) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walkFiles(full, onFile);
-    else if (entry.isFile()) onFile(full);
+    if (entry.isDirectory()) {
+      if (skipDir && skipDir(full, entry.name)) return;
+      walkFiles(full, onFile, skipDir);
+    } else if (entry.isFile()) onFile(full);
   });
+}
+
+/* source/images/thumbs/ 是 tools/make-thumbs.py 生成的列表缩略图，
+   不是用户素材：图库列表、引用扫描都要跳过，否则图库里每张图都变成两条。 */
+function isThumbDir(full) {
+  return path.basename(full) === 'thumbs'
+    && path.basename(path.dirname(full)) === 'images';
 }
 
 function toSitePath(full) {
@@ -460,7 +469,7 @@ function collectImageRefs() {
     const rel = path.relative(ROOT, file).split(path.sep).join('/');
     if (rel.indexOf('source/img/') === 0 || rel.indexOf('source/images/') === 0) return;
     if (TEXT_EXTS.test(file)) scanFiles.push(file);
-  });
+  }, isThumbDir);
   ['_config.yml', '_config.butterfly.yml'].forEach(function (name) {
     const file = path.join(ROOT, name);
     if (fs.existsSync(file)) scanFiles.push(file);
@@ -500,7 +509,7 @@ function listImages() {
         mtime: stat.mtime.toISOString(),
         refs: refs[sitePath] || []
       });
-    });
+    }, isThumbDir);
   });
 
   images.sort(function (a, b) { return b.mtime.localeCompare(a.mtime); });
@@ -513,6 +522,70 @@ function ensureInside(baseDir, full) {
     throw new Error('非法路径');
   }
   return normalized;
+}
+
+/* ---- 列表缩略图（tools/make-thumbs.py） --------------------------------
+   原图（手机原图动辄 17 MB / 6144×8192）在列表里只是 100~300px 的格子，
+   但浏览器照样要下载全尺寸、按原分辨率解码。这里在图片变动后调一次脚本，
+   生成 source/images/thumbs/<同路径>.webp；脚本自身会判断是否真的需要重建。
+   脚本挂了不算错——站点脚本找不到缩略图时会回退到原图。 */
+const THUMB_SCRIPT = path.join(ROOT, 'tools', 'make-thumbs.py');
+const THUMB_DIR = path.join(ROOT, 'source', 'images', 'thumbs');
+
+/* 缩略图脚本用的 key：相对 source/images 的路径（source/img 下的不处理） */
+function thumbKeyOf(sitePath) {
+  const rel = String(sitePath || '').replace(/^\/+/, '');
+  return rel.indexOf('images/') === 0 ? rel.slice('images/'.length) : '';
+}
+
+function thumbFileOf(sitePath) {
+  const key = thumbKeyOf(sitePath);
+  if (!key) return '';
+  return path.join(THUMB_DIR, key.replace(/\.[^.\/]+$/, '.webp'));
+}
+
+function buildThumb(sitePath) {
+  const key = thumbKeyOf(sitePath);
+  if (!key) return false;
+  try {
+    execFileSync(process.env.PYTHON || 'python', [THUMB_SCRIPT, '--only', key], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      timeout: 120000
+    });
+    return true;
+  } catch (err) {
+    console.warn('[thumbs] 生成失败（不影响图片本身）：' + (err.message || err));
+    return false;
+  }
+}
+
+/* 全量重建（手动把图片拷进 source/images/ 时用；上传/替换/改名都会自动补单张） */
+function buildAllThumbs(force) {
+  const args = [THUMB_SCRIPT];
+  if (force) args.push('--force');
+  try {
+    const output = execFileSync(process.env.PYTHON || 'python', args, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      timeout: 600000
+    });
+    const tail = String(output || '').trim().split('\n').slice(-2).join(' ');
+    return { ok: true, message: tail };
+  } catch (err) {
+    const detail = String((err.stdout || err.message || '')).trim().split('\n').slice(-3).join(' ');
+    throw new Error('缩略图生成失败：' + detail);
+  }
+}
+
+function removeThumb(sitePath) {
+  const file = thumbFileOf(sitePath);
+  if (!file) return;
+  try {
+    fs.unlinkSync(file);
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.warn('[thumbs] 删旧缩略图失败：' + err.message);
+  }
 }
 
 function saveImage(data, mime, dir) {
@@ -540,7 +613,10 @@ function saveImage(data, mime, dir) {
   const full = path.join(targetDir, name);
   if (!fs.existsSync(full)) fs.writeFileSync(full, buf);
 
-  return { path: '/' + targetRel + '/' + name, size: buf.length };
+  const sitePath = '/' + targetRel + '/' + name;
+  buildThumb(sitePath);
+
+  return { path: sitePath, size: buf.length };
 }
 
 /* 用新图覆盖旧图（路径不变，引用处自动生效）。
@@ -568,6 +644,7 @@ function replaceImage(sitePath, data, mime) {
   }
 
   fs.writeFileSync(full, buf);
+  buildThumb(sitePath);   /* 覆盖后 size/mtime 都变了，脚本会重做这一张 */
   return { path: sitePath, size: buf.length };
 }
 
@@ -602,6 +679,10 @@ function renameImage(sitePath, newName) {
   const oldSitePath = toSitePath(full);
   fs.renameSync(full, target);
   const newSitePath = toSitePath(target);
+
+  /* 缩略图跟着改名（旧文件删掉，新名字重生成） */
+  removeThumb(oldSitePath);
+  buildThumb(newSitePath);
 
   /* 跟着改引用（只扫引用了旧路径的文件） */
   const refs = collectImageRefs()[oldSitePath] || [];
@@ -660,6 +741,7 @@ function deleteImage(sitePath) {
   if (!fs.existsSync(full)) throw new Error('图片不存在');
 
   moveToTrash(full);
+  removeThumb(sitePath);
   return { path: sitePath };
 }
 
@@ -720,6 +802,7 @@ module.exports = {
   readLrc,
   writeLrc,
   listImages,
+  buildAllThumbs,
   saveImage,
   replaceImage,
   renameImage,

@@ -993,8 +993,12 @@ html .lib-pin {
  * 六、说说页 / 友链页的排版微调
  * ========================================================================= */
 
-/* 说说里的图片：按原比例限制高度，否则一张竖图会把整条说说撑到屏幕外 */
-html #article-container .shuoshuo-item .shuoshuo-content img {
+/* 说说里「混排段落」的图片（文字中间夹一张图）：按原比例限制高度，
+   否则一张竖图会把整条说说撑到屏幕外。
+   ⚠️ 必须限定 > p img，不能写成 .shuoshuo-content img ——
+      那样会连 div.ph-imgs 里的分组图片一起命中，
+      用 width:auto 把网格的 aspect-ratio 顶掉（踩过，表现为九宫格变成高矮不一的竖图）。 */
+html #article-container .shuoshuo-item .shuoshuo-content > p img {
   width: auto;
   max-width: 100%;
   max-height: 320px;
@@ -1013,51 +1017,11 @@ html #article-container .shuoshuo-item .shuoshuo-content img {
 }
 
 
-/* ---- 6.1 说说里的九宫格图床 ------------------------------------------ */
-/* Markdown 里连续写多张图片时，markdown-it 会把它们放进同一个 <p>。
-   这种 <p>（含 ≥2 张图）自动排成三列网格，一张图时仍按普通大图显示。 */
-/* fancybox 会把图片包成 <a><img></a>，所以要覆盖两种情况：
-   「> img ~ img」（包裹前的初始 DOM）和「> a:nth-of-type(2) > img」（包裹后）。
-   ⚠️ 两个坑都不许踩：
-      · 写成 `p:has(> a ~ a)` —— 会命中「一段文字里有两个普通链接」的段落，
-        把整段文字拆成网格、链接被套上固定高度，撑出大片空白；
-      · 写成 `p:has(> a:has(> img) ~ a:has(> img))` —— CSS 规定 :has() 不能嵌套，
-        整条选择器会被浏览器丢弃，图片根本不并排。 */
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) {
-  display: grid;
-  /* 站点的 markdown 开了 breaks:true，图片之间会多个 <br>，
-     它会被当成网格项占位，所以隐藏掉 */
-
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin: 12px 0;
-}
-
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) br,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) br {
-  display: none;
-}
-
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img) img,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) img,
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) a {
-  width: 100%;
-  height: 108px;
-  max-height: none;
-  margin: 0;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-/* 窄屏两列 */
-@media screen and (max-width: 600px) {
-  /* 选择器为什么这么写，见上面 6.1 开头的注释 */
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> img ~ img),
-html #article-container .shuoshuo-item .shuoshuo-content p:has(> a:nth-of-type(2) > img) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
+/* ---- 6.1 说说里的图片组 ------------------------------------------------ */
+/* 连续图片在渲染期就被包成 <div class="ph-imgs ph-imgs--N">
+   （scripts/img-group.js），样式统一在第十一节，这里不再单独猜选择器。
+   历史上这里用过 `p:has(> a:nth-of-type(2) > img)`，数不出张数、也分不开
+   「文字 + 一张图」的段落，已经删掉。 */
 
 /* ---- 6.2 首页中栏预览里的封面图 -------------------------------------- */
 html .home-preview-cover {
@@ -1208,6 +1172,7 @@ html .feed-body {
 }
 html .feed-body > *:first-child { margin-top: 0; }
 html .feed-body > *:last-child { margin-bottom: 0; }
+/* 混排段落里的单图（不在图片组里的） */
 html .feed-body img {
   width: auto;
   max-width: 100%;
@@ -1216,26 +1181,9 @@ html .feed-body img {
   border-radius: 8px;
 }
 
-/* 连续图片 → 九宫格（站点开了 breaks:true，图片间会插 <br>）
-   选择器说明同 6.1：必须限定 a 里包着 img，否则文字里的普通链接会被当成图 */
-html .feed-body p:has(> img ~ img),
-html .feed-body p:has(> a:nth-of-type(2) > img) {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin: 12px 0;
-}
-html .feed-body p:has(> img ~ img) br,
-html .feed-body p:has(> a:nth-of-type(2) > img) br { display: none; }
-html .feed-body p:has(> img ~ img) img,
-html .feed-body p:has(> a:nth-of-type(2) > img) img,
-html .feed-body p:has(> a:nth-of-type(2) > img) a {
-  width: 100%;
-  height: 108px;
-  max-height: none;
-  margin: 0;
-  object-fit: cover;
-}
+/* 图片组（.ph-imgs）在首页比正文更紧凑；分档规则见第十一节 */
+html .feed-body .ph-imgs { gap: 6px; margin: 12px 0; }
+html .feed-body .ph-imgs--1 img { max-height: 360px; }
 
 /* 封面缩略图 */
 html .feed-thumb {
@@ -1275,9 +1223,6 @@ html .home-empty {
 /* ---- 7.3 窄屏 ---- */
 @media screen and (max-width: 900px) {
   html .home-side { position: static; }
-  html .home-feed .feed-body p:has(> img ~ img) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 
@@ -1747,77 +1692,102 @@ html .songs-empty {
 
 
 /* ============================================================================
- * 十一、文章正文里的多图并排
+ * 十一、图片组（.ph-imgs）：按张数分档
  * ──────────────────────────────────────────────────────────────────────────
- * Markdown 里**连续写多张图（中间不空行）**时，markdown-it 会把它们放进同一个 <p>。
- * 这种 <p> 自动排成两列网格 —— 竖屏截图并排后省掉一半纵向空间。
- * 想恢复单列大图 → 两张图之间空一行（它们就分属不同 <p>）。
+ * 连续写的图片（中间不空行）由 scripts/img-group.js 在 **Markdown 阶段**
+ * 就包成一段现成的 HTML：
  *
- * 注意：
- *   1. fancybox 在运行时会把 <img> 包成 <a><img></a>，所以两种情况都要写：
- *      `> img ~ img` 和 `> a:nth-of-type(2) > img`（第 2 个 <a> 里直接包着 <img>）；
- *      ⚠️ 写成 `p:has(> a ~ a)` 会连「一段文字里有两个普通链接」的段落一起命中，
- *      把文字拆进网格、链接被套固定高度，撑出一大片空白；
- *      而 `:has()` 里再套 `:has()` 是非法的，整条规则会被浏览器丢弃（两个都踩过）；
- *   2. 站点的 markdown 开了 breaks:true，图片之间会多一个 <br>，
- *      它会变成网格项占位，必须隐藏；
- *   3. 说说页的九宫格由第六节管（三列小图），这里用 article 前缀避开。
+ *     <div class="ph-imgs ph-imgs--N">     ← N = 1 / 2 / 3 / 4 / many
+ *
+ * 张数在渲染期就数好了，CSS 只按 class 排版。为什么不再用
+ * `p:has(> a:nth-of-type(2) > img)` 那种写法（踩过，见 AGENTS.md 第 8 条）：
+ *   ① 选择器数不出「这一段到底几张」，只能判断「≥2」；
+ *   ② 它会连「一段文字 + 一张图」的段落一起命中，把文字拆进网格；
+ *   ③ `:has()` 里再套 `:has()` 是非法语法，整条规则被浏览器静默丢弃。
+ *
+ * 分档：1 张完整显示（不裁切）/ 2 张两列 / 3 张三列 / 4 张 2×2 /
+ *       5 张以上九宫格。多图用固定比例的格子 + cover，裁掉的部分点开看原图。
+ *
+ * 想给某一组图指定列数：说说在 shuoshuo.yml 里写 `layout: grid2`
+ * （single / grid1 / grid2 / grid3 / grid4），管理页有下拉框。
+ * 正文里没有显式覆盖，按张数自动。
+ *
+ * ⚠️ 文章页的容器带 ID，主题对 #article-container img 有自己的基础样式
+ *    （margin / max-width），所以 img 相关规则要带上同样的 ID 前缀才压得住；
+ *    文章页是 article#article-container、说说页是 div#article-container，
+ *    统一写 #article-container 就能两处都命中；首页 feed 没有这层容器，
+ *    走不带前缀的那条。
  * ========================================================================= */
 
-html article#article-container p:has(> img ~ img),
-html article#article-container p:has(> a:nth-of-type(2) > img) {
+html .ph-imgs {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 16px 0;
 }
 
-html article#article-container p:has(> img ~ img) br,
-html article#article-container p:has(> a:nth-of-type(2) > img) br {
-  display: none;
-}
-
-/* 统一行高 + 裁切：竖图并排后宽度约减半，不限高的话一张 9:16 截图就有 700px 高。
-   裁掉的部分点开 fancybox 看原图。 */
-html article#article-container p:has(> img ~ img) img,
-html article#article-container p:has(> a:nth-of-type(2) > img) img {
-  width: 100%;
-  height: 460px;
-  max-height: none;
-  margin: 0;
-  object-fit: cover;
-  object-position: center;
+/* 包裹层（分组时直接输出的 <a>，或 fancybox 事后包的）撑满格子，
+   否则图片按自身宽度缩回去、网格对齐就乱了 */
+html .ph-imgs > a,
+html .ph-imgs > p > a {
+  display: block;
+  overflow: hidden;
   border-radius: 8px;
 }
 
-/* fancybox 的包裹层也要撑满格子，否则图片按自身宽度缩回去 */
-html article#article-container p:has(> a:nth-of-type(2) > img) > a {
+html #article-container .ph-imgs img,
+html .ph-imgs img {
   display: block;
   width: 100%;
-  height: 460px;
+  height: auto;
+  max-width: none;
+  max-height: none;
   margin: 0;
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: center;
 }
 
-/* 窄屏：两列各只有 ~190px 宽，再固定 460px 高裁切就太狠了 —— 退回单列、完整显示 */
+/* 单张：完整显示（竖图不再被裁）、居中，太高时按视口收 */
+html .ph-imgs--1 { grid-template-columns: 1fr; justify-items: center; }
+html .ph-imgs--1 > a,
+html .ph-imgs--1 > p > a { width: fit-content; max-width: 100%; }
+
+html #article-container .ph-imgs--1 img,
+html .ph-imgs--1 img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+html .ph-imgs--2 { grid-template-columns: repeat(2, 1fr); }
+html .ph-imgs--3 { grid-template-columns: repeat(3, 1fr); }
+
+/* 4 张 → 2×2，比 3 + 1 好看 */
+html .ph-imgs--4 { grid-template-columns: repeat(2, 1fr); }
+
+/* 5 张以上 → 九宫格 */
+html .ph-imgs--many { grid-template-columns: repeat(3, 1fr); }
+
+/* 比例放在 img 上（width:100% + height:auto + aspect-ratio + object-fit:cover）：
+   不要放在包裹层 <a> 上 —— grid item 默认 stretch，行高由图片内在高度决定，
+   aspect-ratio 会被忽略；而 img 的 height:100% 又找不到确定的父高度（都踩过）。 */
+html #article-container .ph-imgs--2 img,
+html .ph-imgs--2 img { aspect-ratio: 4 / 3; }
+
+html #article-container .ph-imgs--3 img,
+html .ph-imgs--3 img,
+html #article-container .ph-imgs--4 img,
+html .ph-imgs--4 img,
+html #article-container .ph-imgs--many img,
+html .ph-imgs--many img { aspect-ratio: 1; }
+
+/* 窄屏：三列太挤，降到两列；单图照旧完整显示 */
 @media screen and (max-width: 600px) {
-  html article#article-container p:has(> img ~ img),
-  html article#article-container p:has(> a:nth-of-type(2) > img) {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  html article#article-container p:has(> img ~ img) img,
-  html article#article-container p:has(> a:nth-of-type(2) > img) img {
-    height: auto;
-    max-height: 70vh;
-    object-fit: contain;
-  }
-
-  html article#article-container p:has(> a:nth-of-type(2) > img) > a {
-    height: auto;
-  }
+  html .ph-imgs--3,
+  html .ph-imgs--many { grid-template-columns: repeat(2, 1fr); }
 }
-
 
 /* ============================================================================
  * 十二、文章正文里的视频

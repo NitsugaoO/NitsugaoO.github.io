@@ -13,6 +13,9 @@
 
 'use strict';
 
+const { rewriteImages } = require('./img-thumb.js');
+const { groupSections } = require('./img-group.js');
+
 /* HTML → 纯文本：文章库的「搜正文」要用。
    不引 hexo-util（pnpm 下站点根拿不到），手写足够用。 */
 function stripHtml(html) {
@@ -75,8 +78,14 @@ hexo.extend.generator.register('library_and_feed', function (locals) {
          这里统一成 "YYYY-MM-DD HH:mm" 好看一些 */
       date: dateStr.slice(0, 16).replace('T', ' '),
       ts: Date.parse(dateStr) || 0,
-      /* 说说正文要渲染成 HTML：支持 Markdown、图片、Hexo 标签 */
-      html: hexo.render.renderSync({ text: item.content || '', engine: 'markdown' }),
+      /* 说说正文要渲染成 HTML：支持 Markdown、图片、Hexo 标签。
+         「连续图片行」先过 groupSections 换成带缩略图的图片组（与主题
+         /shuoshuo/ 页走的是同一个函数），再用 rewriteImages 兵一道
+         「文字 + 行内图片」这类没分组的图。 */
+      html: rewriteImages(hexo.render.renderSync({
+        text: groupSections(item.content || '', item.layout),
+        engine: 'markdown'
+      })),
       tags: item.tags || []
     });
   });
