@@ -1,6 +1,6 @@
 # 博客状态
 
-updated: 2026-11-09 · code: `ec49895`（最后一次改动站点代码/配置的提交）
+updated: 2026-11-09 · code: `15687f1`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source/css source/js _config.yml _config.butterfly.yml`
 > （不含整个 `source`：只改文章/说说/图片的内容提交不算代码变动，早期判据会误报。）
 > `master` 与 `origin/master` 是否同步，开工时自己看 `git status` / `git log`。
@@ -45,6 +45,10 @@ updated: 2026-11-09 · code: `ec49895`（最后一次改动站点代码/配置�
   - 顺手修了 `line` 字段被写回 `shuoshuo.yml` 的老 bug（`app.js` 保存前 delete）
   - `home.js` 的时间流头像补 `no-lightbox`：它是脚本建的，没这个类就会被
     bindLightbox 包进 gallery，翻说说卡片时灯箱第一张是 cloud.jpg（主题说说页本来就标了）
+  - **首屏重排 CLS 0.13 → 0.02**：右栏 `flex-shrink: 0`（原来被主区挤到 160px）、
+    `min-width: 0` 打到底、图片组列宽 `minmax(0,1fr)`、`home-mode` 提前到 `<head>`
+    （选择器改成 `html.home-mode`）、骨架期隐藏右栏作者卡、歌词卡预留高度。
+    剩 0.018 是「歌词卡搬进吸附区」那一下，见 `docs/agent/01` 的「首屏不能有二次重排」
 - 最近完成（10-31，`bb0e888`）：作者卡 / 手机侧滑栏的「文章·标签·分类」三格 → `/library/`
   （`custom.js` 的 `linkSiteDataToLibrary()`，两处 DOM 都要覆盖）；公告换行改由
   `custom.css` 的 `white-space: pre-wrap` 保住（`home.js` 用 textContent，不吃 `\n`）；
