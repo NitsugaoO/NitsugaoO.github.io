@@ -1,6 +1,6 @@
 # 博客状态
 
-updated: 2026-11-09 · code: `15687f1`（最后一次改动站点代码/配置的提交）
+updated: 2026-11-10 · code: `c5a5a1e`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source/css source/js _config.yml _config.butterfly.yml`
 > （不含整个 `source`：只改文章/说说/图片的内容提交不算代码变动，早期判据会误报。）
 > `master` 与 `origin/master` 是否同步，开工时自己看 `git status` / `git log`。
