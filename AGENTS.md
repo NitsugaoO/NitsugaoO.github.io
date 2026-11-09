@@ -86,6 +86,22 @@ bash scripts/sync.sh --check '#78818a'            # 查旧色值残留（排查"
 gh run list --limit 3                             # 发布后确认 CI 结果
 ```
 
+### 验证亮色模式（截图看不到时）★
+
+主题的明暗切换**不写 localStorage**、也不会自动切回，无头截图只能看到
+`display_mode` 的默认值（本站是 dark）。要截亮色页，别去改 `_config.butterfly.yml`
+（要 clean + 重启，慢），直接改生成物：
+
+```bash
+pnpm exec hexo generate
+sed -i 's/data-theme="dark"/data-theme="light"/' public/index.html
+python -m http.server 4100 -d public        # 另开一个静态服务，不动 hexo server
+# 截图 http://localhost:4100/  →  完了重新 generate 复原
+```
+
+`public/` 已在 `.gitignore`，改完不留痕；但变完记得重新 `hexo generate`，
+否则下次启动 `hexo server` 前那份 public 是旧主题。
+
 ## 收尾清单
 
 1. `hexo generate` 通过（改过配置/脚本先 `clean`）
