@@ -1,6 +1,6 @@
 # 博客状态
 
-updated: 2026-11-09 · code: `daedc16`（最后一次改动站点代码/配置的提交）
+updated: 2026-11-09 · code: `ec49895`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source/css source/js _config.yml _config.butterfly.yml`
 > （不含整个 `source`：只改文章/说说/图片的内容提交不算代码变动，早期判据会误报。）
 > `master` 与 `origin/master` 是否同步，开工时自己看 `git status` / `git log`。
@@ -43,6 +43,8 @@ updated: 2026-11-09 · code: `daedc16`（最后一次改动站点代码/配置�
   - 管理页说说卡片：「插入图片」内嵌图库面板（搜索 + 引用状态，点图插入光标处，可连点成组）
     +「图片：自动 / 单列 / 两列 / 三列 / 四列」下拉（写 YAML 的 `layout`）
   - 顺手修了 `line` 字段被写回 `shuoshuo.yml` 的老 bug（`app.js` 保存前 delete）
+  - `home.js` 的时间流头像补 `no-lightbox`：它是脚本建的，没这个类就会被
+    bindLightbox 包进 gallery，翻说说卡片时灯箱第一张是 cloud.jpg（主题说说页本来就标了）
 - 最近完成（10-31，`bb0e888`）：作者卡 / 手机侧滑栏的「文章·标签·分类」三格 → `/library/`
   （`custom.js` 的 `linkSiteDataToLibrary()`，两处 DOM 都要覆盖）；公告换行改由
   `custom.css` 的 `white-space: pre-wrap` 保住（`home.js` 用 textContent，不吃 `\n`）；
