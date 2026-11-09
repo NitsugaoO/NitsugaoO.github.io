@@ -56,7 +56,9 @@
     var card = el('article', 'feed-item feed-shuoshuo');
 
     var head = el('header', 'feed-head');
-    var avatar = el('img', 'feed-avatar');
+    /* no-lightbox：头像是装饰图，不能进 fancybox 的 gallery 序列
+       （主题的说说页也是这么标的，见 shuoshuo.pug） */
+    var avatar = el('img', 'feed-avatar no-lightbox');
     avatar.src = AVATAR;
     avatar.alt = '';
     avatar.loading = 'lazy';
