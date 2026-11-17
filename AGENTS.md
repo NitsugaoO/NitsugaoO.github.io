@@ -58,7 +58,9 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
 13. **列表用的是缩略图**（`source/images/thumbs/*.webp`，`tools/make-thumbs.py` 生成）：
     原图 17 MB / 6144×8192 直接进首页会把滚动搞卡。上传 / 替换 / 改名会自动补单张；
     **手动把图拷进 `source/images/` 后要去管理页「图片 → 重建缩略图」跑一次**。
-    缩略图缺失时站点脚本自动回退原图，不会坏。
+    缩略图缺失时站点脚本自动回退原图，不会坏。`tools/make-thumbs.py` 依赖本机 **Python + Pillow**
+   （`pip install pillow`），CI 不跑这个脚本 —— 缩略图是提交进仓库的；换机器或删了
+   `tools/.thumb-manifest.json` 都能重跑，只是得先装 Pillow。
 14. **首页三栏的布局约束**（动之前先读 `docs/agent/01` 的「首屏不能有二次重排」）：
     · `home-mode` 决定首页专用样式，必须由 `_config.butterfly.yml` 的 head 内联脚本加在
       `<html>` 上，选择器写 `html.home-mode` —— 写成 `body.home-mode` 会晚一拍，

@@ -74,14 +74,8 @@ updated: 2026-11-10 · code: `c5a5a1e`（最后一次改动站点代码/配置�
 
 ## 未完成
 
-- **亚克力只做了静态截图验证，滚动帧率没实测**：桌面 Edge 无头截图看不出掉帧。
-  下次用 DevTools Performance 滚一遍首页时间流和文章库；真掉帧就先砍 `.feed-item` 的 blur。
 - **亮色模式的卡片边框几乎看不见**：`--ef-bg3`（#edeada）在米白玻璃 + 浅色壁纸上边界很淡，
   要不要给亮色单独加深一档，等看几天观感再定。
-- **管理页单图上传上限（17 MB）仍未实测**：`server.js` 的 `MAX_BODY_CHARS` 与 `content.js` 的
-  `MAX_IMAGE_BYTES` **必须成对改**，只改一边不生效；改完要真的传一张接近上限的图验一次。
-- **缩略图依赖本机 Python + Pillow**：`tools/make-thumbs.py` 只在本地跑（CI 不跑，缩略图提交进仓库）。
-  换机器或清了 `tools/.thumb-manifest.json` 都能重跑，但要先 `pip install pillow`。
 
 ## 入口
 
