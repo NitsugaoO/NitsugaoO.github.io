@@ -15,4 +15,8 @@
       descr: 极简好自定义的 Agent
 - class_name: 朋友
   class_desc: ''
-  link_list: []
+  link_list:
+    - name: aClosure's 奇妙的妙妙据点
+      link: https://aclosure.github.io
+      avatar: https://aclosure.github.io/images/avatar.jpg
+      descr: Ciallo～(∠・ω< )⌒★
