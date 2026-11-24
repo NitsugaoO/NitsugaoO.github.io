@@ -102,6 +102,13 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
 .prow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .prow input{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--tx);font-family:inherit;font-size:13px}
 .prow input::placeholder{color:#55617a}
+.cloud{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.cloud h4{margin:0 0 8px;font-size:14px;color:var(--tx)}
+.cloud input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--tx);font-family:inherit;font-size:13px;margin-bottom:8px}
+.cloud input::placeholder{color:#55617a}
+.cloud .st{font-size:12px;color:var(--dim);margin-top:6px;line-height:1.6}
+.cloud .st b{color:var(--tx)}
+.cloud .dot{color:var(--yel)}
 @media (max-width:640px){
   .top{padding:12px 14px 4px}
   .title{font-size:15.5px}
@@ -181,6 +188,24 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
       <button class="ghost" id="pexport">导出进度（下载 json）</button>
       <button class="ghost" id="pimport">导入进度</button>
       <input type="file" id="pfile" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="cloud">
+      <h4>云同步 · GitHub Gist</h4>
+      <div id="cloudOff">
+        <input id="ctoken" type="password" placeholder="粘贴 GitHub Token（github_pat_… / ghp_…）或同步码（wgs1:…）">
+        <div class="prow" style="margin-top:0"><button class="ghost" id="cconnect">连接 / 创建</button></div>
+        <div class="st">Token 只存在本机浏览器；建议用 fine-grained token，仅勾选 <b>Gists: Read and write</b>，并设个过期时间。</div>
+      </div>
+      <div id="cloudOn" class="hide">
+        <div class="st" id="cinfo"></div>
+        <div class="prow">
+          <button class="ghost" id="cupload">上传到 Gist</button>
+          <button class="ghost" id="cdownload">从 Gist 下载</button>
+          <button class="ghost" id="ccode">复制同步码</button>
+          <button class="ghost" id="cdisconnect">断开</button>
+        </div>
+        <div class="st" id="cmsg"></div>
+      </div>
     </div>
     <div class="hint" style="margin-top:12px">每个存档独立记录进度，互不影响。考前想从零再过一遍，就新建一个存档。<br>换浏览器 / 换域名（本地文件 ↔ 线上 blog）时，用「导出 → 导入」搬进度。</div>
   </div>
@@ -625,7 +650,7 @@ function grade(g){
   const k=dayKey(Date.now());
   p.days[k]=(p.days[k]||0)+1;
   if(g===3) p.stats.right++; else p.stats.wrong++;
-  saveDB();
+  saveDB(); markDirty();
   next();
 }
 
@@ -649,7 +674,7 @@ function renderPanel(){
       +'</button>';
   }).join('');
 }
-function openPanel(){ renderPanel(); $('#panel').classList.remove('hide'); }
+function openPanel(){ renderPanel(); renderCloud(); $('#panel').classList.remove('hide'); }
 function closePanel(){ $('#panel').classList.add('hide'); }
 
 /* ---------- 事件 ---------- */
@@ -678,7 +703,7 @@ $('#btnMode').addEventListener('click',()=>{
 $('#btnReset').addEventListener('click',()=>{
   if(!confirm('重置「'+curP().name+'」的全部学习记录？（其他存档不受影响）')) return;
   curP().cards={}; curP().stats={right:0,wrong:0}; curP().days={};
-  RUSH=0; saveDB(); $('#done').classList.add('hide'); next();
+  RUSH=0; saveDB(); markDirty(); $('#done').classList.add('hide'); next();
 });
 
 $('#btnProfile').addEventListener('click',openPanel);
@@ -695,7 +720,7 @@ $('#pnew').addEventListener('click',()=>{
   const name=(inp.value||'').trim()||('第 '+(DB.profiles.length+1)+' 遍');
   const p=newProfile(name);
   DB.profiles.push(p); DB.current=p.id; inp.value='';
-  RUSH=0; saveDB(); renderPanel(); $('#done').classList.add('hide'); next();
+  RUSH=0; saveDB(); markDirty(); renderPanel(); $('#done').classList.add('hide'); next();
 });
 $('#prename').addEventListener('click',()=>{
   const p=curP();
@@ -703,9 +728,12 @@ $('#prename').addEventListener('click',()=>{
   if(n && n.trim()){ p.name=n.trim(); saveDB(); renderPanel(); updateStats(); }
 });
 /* ---------- 导出 / 导入进度 ---------- */
+function snapshot(){
+  return {app:'wangan-cards', v:2, exportedAt:new Date().toISOString(),
+          current:DB.current, ui:DB.ui, profiles:DB.profiles};
+}
 function exportProgress(){
-  const data={app:'wangan-cards', v:2, exportedAt:new Date().toISOString(),
-              current:DB.current, ui:DB.ui, profiles:DB.profiles};
+  const data=snapshot();
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -719,25 +747,172 @@ function importProgress(file){
     let j;
     try{ j=JSON.parse(r.result); }
     catch(e){ alert('导入失败：不是合法的 JSON 文件'); return; }
-    if(!j || !Array.isArray(j.profiles) || !j.profiles.length){ alert('导入失败：文件里没有存档数据'); return; }
-    const n=j.profiles.length;
-    const learned=j.profiles.map(p=>Object.values(p.cards||{}).filter(s=>s&&s.st&&s.st!=='new').length).reduce((a,b)=>a+b,0);
-    if(!confirm('导入会用文件里的 '+n+' 个存档（共 '+learned+' 张已学）覆盖当前所有存档，确定？')) return;
-    const profs=j.profiles.map(p=>({
-      id:p.id||('p'+Math.random().toString(36).slice(2)),
-      name:p.name||'导入存档',
-      created:p.created||Date.now(),
-      cards:p.cards||{}, stats:p.stats||{right:0,wrong:0}, days:p.days||{}
-    }));
-    DB={current:(j.current&&profs.some(x=>x.id===j.current))?j.current:profs[0].id,
-        profiles:profs, ui:j.ui||DB.ui};
-    if(DB.ui.deck!=='all' && !(DB.ui.deck in DECK_LABEL)) DB.ui.deck='all';
-    if(DB.ui.cat!=='all' && !(DB.ui.cat in CAT_LABEL)) DB.ui.cat='all';
-    saveDB(); RUSH=0; closePanel(); $('#done').classList.add('hide'); next();
-    alert('导入成功：'+n+' 个存档，'+learned+' 张已学。');
+    if(!applySnapshot(j,'文件')) return;
+    alert('导入成功。');
   };
   r.readAsText(file);
 }
+function normalizeSnapshot(j){
+  if(!j || !Array.isArray(j.profiles) || !j.profiles.length) throw new Error('没有存档数据');
+  const profs=j.profiles.map(p=>({
+    id:p.id||('p'+Math.random().toString(36).slice(2)),
+    name:p.name||'导入存档',
+    created:p.created||Date.now(),
+    cards:p.cards||{}, stats:p.stats||{right:0,wrong:0}, days:p.days||{}
+  }));
+  return {current:(j.current&&profs.some(x=>x.id===j.current))?j.current:profs[0].id,
+          profiles:profs, ui:(j.ui&&typeof j.ui==='object')?j.ui:{deck:'all',cat:'all',mode:'cloze'}};
+}
+function applySnapshot(j, srcLabel){
+  let d;
+  try{ d=normalizeSnapshot(j); }catch(e){ alert('数据无效：'+e.message); return false; }
+  const n=d.profiles.length;
+  const learned=d.profiles.map(p=>Object.values(p.cards).filter(s=>s&&s.st&&s.st!=='new').length).reduce((a,b)=>a+b,0);
+  if(!confirm('用'+srcLabel+'的 '+n+' 个存档（共 '+learned+' 张已学）覆盖当前所有存档，确定？')) return false;
+  DB=d;
+  if(DB.ui.deck!=='all' && !(DB.ui.deck in DECK_LABEL)) DB.ui.deck='all';
+  if(DB.ui.cat!=='all' && !(DB.ui.cat in CAT_LABEL)) DB.ui.cat='all';
+  saveDB(); RUSH=0; closePanel(); $('#done').classList.add('hide'); next();
+  markDirty();
+  return true;
+}
+
+/* ---------- 云同步（GitHub Gist，手动） ---------- */
+const SYNC_KEY='wangan-sync-v1';
+const GIST_FILE='wangan-progress.json';
+let SYNC={token:'', gistId:'', login:'', lastUp:0, lastDown:0, dirty:false};
+
+function loadSync(){
+  try{
+    const j=JSON.parse(localStorage.getItem(SYNC_KEY)||'null');
+    if(j && typeof j==='object') SYNC=Object.assign(SYNC,j);
+  }catch(e){}
+}
+function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(SYNC)); }catch(e){} }
+function markDirty(){
+  if(!SYNC.token || SYNC.dirty) return;
+  SYNC.dirty=true; saveSync(); renderCloudInfo();
+}
+
+function cloudMsg(t){ const el=$('#cmsg'); if(el) el.textContent=t; }
+function renderCloudInfo(){
+  const on=!!(SYNC.token&&SYNC.gistId);
+  $('#cloudOff').classList.toggle('hide',on);
+  $('#cloudOn').classList.toggle('hide',!on);
+  if(!on) return;
+  const f=t=>t?new Date(t).toLocaleString('zh-CN',{hour12:false}):'—';
+  $('#cinfo').innerHTML='Gist <b>'+(SYNC.gistId||'').slice(0,8)+'</b>'
+    +(SYNC.login?' · <b>'+esc(SYNC.login)+'</b>':'')
+    +' · 上次上传 <b>'+f(SYNC.lastUp)+'</b> · 上次下载 <b>'+f(SYNC.lastDown)+'</b>'
+    +(SYNC.dirty?' <span class="dot">● 有未上传改动</span>':'');
+}
+function renderCloud(){ renderCloudInfo(); cloudMsg(''); }
+
+async function gh(path, opts){
+  opts=opts||{};
+  const r=await fetch('https://api.github.com'+path,{
+    method:opts.method||'GET',
+    headers:Object.assign({
+      'Authorization':'Bearer '+SYNC.token,
+      'Accept':'application/vnd.github+json',
+      'Content-Type':'application/json'
+    }, opts.headers||{}),
+    body:opts.body
+  });
+  if(!r.ok){
+    let t=''; try{ t=await r.text(); }catch(e){}
+    const hint = r.status===401 ? '（Token 无效或无 Gists 权限）'
+               : r.status===403 ? '（权限不足或被限流）'
+               : r.status===404 ? '（Gist 不存在）' : '';
+    throw new Error('HTTP '+r.status+' '+hint+' '+t.slice(0,100));
+  }
+  return r.json();
+}
+
+async function cloudConnect(){
+  const inp=$('#ctoken'), v=(inp.value||'').trim();
+  if(!v){ alert('请先粘贴 Token 或同步码'); return; }
+  if(v.startsWith('wgs1:')){
+    try{
+      const o=JSON.parse(atob(v.slice(5)));
+      SYNC.token=o.t||''; SYNC.gistId=o.g||''; SYNC.login=o.u||'';
+      if(!SYNC.token||!SYNC.gistId) throw new Error('同步码不完整');
+      saveSync(); inp.value=''; renderCloudInfo();
+      cloudMsg('已从同步码恢复配置，可点「下载」拉取进度。');
+      return;
+    }catch(e){ alert('同步码无效：'+e.message); return; }
+  }
+  SYNC.token=v; SYNC.gistId=''; SYNC.login='';
+  const btn=$('#cconnect'); btn.disabled=true; cloudMsg('连接中…');
+  try{
+    const u=await gh('/user');
+    SYNC.login=u.login||'';
+    saveSync();
+    const found=await findGist();
+    if(found){ SYNC.gistId=found; saveSync(); cloudMsg('已找到现有 Gist，可点「下载」拉取。'); }
+    else { await cloudCreate(); }
+    inp.value=''; renderCloudInfo();
+  }catch(e){ cloudMsg('失败：'+e.message); alert('连接失败：'+e.message); }
+  finally{ btn.disabled=false; }
+}
+async function findGist(){
+  const list=await gh('/gists?per_page=100');
+  const hit=(list||[]).find(g=>g.files && g.files[GIST_FILE]);
+  return hit?hit.id:null;
+}
+async function cloudCreate(){
+  const body={description:'wangan-cards 复习进度（自动同步）', public:false, files:{}};
+  body.files[GIST_FILE]={content:JSON.stringify(snapshot())};
+  const j=await gh('/gists',{method:'POST',body:JSON.stringify(body)});
+  SYNC.gistId=j.id; SYNC.lastUp=Date.now(); SYNC.dirty=false; saveSync();
+  cloudMsg('已创建 Gist 并上传当前进度。');
+}
+async function cloudUpload(){
+  if(!SYNC.token){ cloudMsg('未连接'); return; }
+  const btn=$('#cupload'); btn.disabled=true; cloudMsg('上传中…');
+  try{
+    if(!SYNC.gistId){ await cloudCreate(); }
+    else{
+      const body={files:{}};
+      body.files[GIST_FILE]={content:JSON.stringify(snapshot())};
+      await gh('/gists/'+SYNC.gistId,{method:'PATCH',body:JSON.stringify(body)});
+      SYNC.lastUp=Date.now(); SYNC.dirty=false; saveSync();
+      cloudMsg('上传成功 · '+new Date().toLocaleTimeString('zh-CN',{hour12:false}));
+    }
+    renderCloudInfo();
+  }catch(e){ cloudMsg('上传失败：'+e.message); }
+  finally{ btn.disabled=false; }
+}
+async function cloudDownload(){
+  if(!SYNC.gistId){ alert('还没有 Gist，请先「连接 / 创建」'); return; }
+  const btn=$('#cdownload'); btn.disabled=true; cloudMsg('下载中…');
+  try{
+    const j=await gh('/gists/'+SYNC.gistId);
+    const f=j.files[GIST_FILE]||Object.values(j.files||{})[0];
+    if(!f) throw new Error('Gist 里没有进度文件');
+    let content=f.content;
+    if(f.truncated && f.raw_url){ content=await (await fetch(f.raw_url)).text(); }
+    const obj=JSON.parse(content);
+    if(applySnapshot(obj,'云端')){ SYNC.lastDown=Date.now(); saveSync(); cloudMsg('下载成功并已应用。'); }
+    else cloudMsg('已取消。');
+    renderCloudInfo();
+  }catch(e){ cloudMsg('下载失败：'+e.message); }
+  finally{ btn.disabled=false; }
+}
+function cloudCode(){
+  if(!SYNC.token||!SYNC.gistId){ alert('请先连接'); return; }
+  const code='wgs1:'+btoa(JSON.stringify({t:SYNC.token,g:SYNC.gistId,u:SYNC.login}));
+  const done=()=>cloudMsg('同步码已复制，粘到另一台设备的输入框即可。');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(done).catch(()=>prompt('复制这段同步码：',code));
+  } else prompt('复制这段同步码：',code);
+}
+function cloudDisconnect(){
+  if(!confirm('断开云同步？（不影响本地进度，Token 会从本机删除）')) return;
+  SYNC={token:'',gistId:'',login:'',lastUp:0,lastDown:0,dirty:false};
+  saveSync(); renderCloudInfo(); renderPanel();
+}
+
 $('#prestore').addEventListener('click',()=>{
   const p=curP();
   const ids=Object.keys(p.cards).filter(k=>p.cards[k].st==='done');
@@ -745,8 +920,14 @@ $('#prestore').addEventListener('click',()=>{
   if(!confirm('把 '+ids.length+' 张「已掌握」的卡片放回复习队列？（立即变为可复习）')) return;
   const t=nowMs();
   ids.forEach(k=>{ const s=p.cards[k]; s.st='review'; s.step=0; s.ivl=1; s.due=t; });
-  saveDB(); renderPanel(); closePanel(); next();
+  saveDB(); markDirty(); renderPanel(); closePanel(); next();
 });
+$('#cconnect').addEventListener('click',cloudConnect);
+$('#cupload').addEventListener('click',cloudUpload);
+$('#cdownload').addEventListener('click',cloudDownload);
+$('#ccode').addEventListener('click',cloudCode);
+$('#cdisconnect').addEventListener('click',cloudDisconnect);
+$('#ctoken').addEventListener('keydown',e=>{ if(e.key==='Enter') cloudConnect(); });
 $('#pexport').addEventListener('click',exportProgress);
 $('#pimport').addEventListener('click',()=>$('#pfile').click());
 $('#pfile').addEventListener('change',e=>{
@@ -761,7 +942,7 @@ $('#pdel').addEventListener('click',()=>{
   if(!confirm('删除存档「'+p.name+'」及其全部进度？')) return;
   DB.profiles=DB.profiles.filter(x=>x.id!==p.id);
   DB.current=DB.profiles[0].id;
-  RUSH=0; saveDB(); renderPanel(); next();
+  RUSH=0; saveDB(); markDirty(); renderPanel(); next();
 });
 
 $('#doneContinue').addEventListener('click',()=>{ $('#done').classList.add('hide'); RUSH+=15*60*1000; next(); });
@@ -787,6 +968,7 @@ function initSelects(){
 }
 
 loadDB();
+loadSync();
 initSelects();
 updateStats();
 next();
