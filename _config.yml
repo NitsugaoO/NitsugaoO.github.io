@@ -30,6 +30,7 @@ code_dir: downloads/code
 i18n_dir: :lang
 skip_render:
   - 'exercise/**'   # 数分交互练习题库：独立静态页，原样复制到 public/exercise/
+  - 'wangan-cards/**' # 网安期中记忆卡：独立静态页，原样复制到 public/wangan-cards/
 
 # Writing
 new_post_name: :title.md # File name of new posts

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>网络空间安全导论 · 期中记忆卡（间隔重复）</title>
+<style>
+:root{
+  --bg:#0b0e14; --card:#151a23; --card2:#1b222e; --line:#26303f;
+  --tx:#e8ecf4; --dim:#8b95a8; --key:#7ee787; --blue:#58a6ff;
+  --red:#ff7b72; --yel:#e3b341; --grn:#3fb950;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;overflow-x:hidden}
+body{
+  background:radial-gradient(1100px 520px at 15% -12%,#16203a 0%,var(--bg) 58%) no-repeat,var(--bg);
+  color:var(--tx);
+  font:16px/1.72 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  display:flex;flex-direction:column;min-height:100vh;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+}
+.top{display:flex;align-items:center;gap:10px;padding:14px 18px 6px;flex-wrap:wrap}
+.title{font-size:18px;font-weight:700;letter-spacing:.3px}
+.title .sub{font-weight:400;font-size:12px;color:var(--dim);margin-left:8px}
+.profile-btn{
+  margin-left:auto;background:var(--card2);color:var(--tx);border:1px solid var(--line);
+  border-radius:10px;padding:7px 12px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;
+}
+.profile-btn:hover{border-color:var(--blue)}
+.stats-line{display:flex;gap:14px;flex-wrap:wrap;padding:2px 18px 8px;font-size:12.5px;color:var(--dim)}
+.stats-line b{color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:4px;background:#1a2130;margin:0 18px;border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--grn));transition:width .25s}
+.toolbar{display:flex;gap:8px;padding:10px 18px;flex-wrap:wrap;align-items:center}
+select,.ghost{
+  background:var(--card2);color:var(--tx);border:1px solid var(--line);
+  border-radius:10px;padding:7px 10px;font-size:13px;font-family:inherit;cursor:pointer;
+}
+select:hover,.ghost:hover{border-color:#3a4a63}
+.ghost.on{border-color:var(--blue);color:var(--blue)}
+main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6px 18px 10px}
+.card{
+  width:100%;max-width:820px;background:var(--card);border:1px solid var(--line);
+  border-radius:18px;padding:20px 22px 18px;box-shadow:0 18px 50px -18px #000,0 0 0 1px #ffffff05 inset;
+  min-height:min(44vh,400px);overflow-wrap:anywhere;
+}
+.chead{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.pill:empty{display:none}
+.tag:empty{display:none}
+.pill{font-size:12px;padding:2px 9px;border-radius:999px;background:#1e2736;color:var(--dim);border:1px solid #2a3547}
+.pill.deck{color:#9ecbff;border-color:#24405f;background:#152233}
+.tag{margin-left:auto;font-size:11.5px;color:#9ad0ff;background:#152233;border:1px solid #24405f;border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.tag.new{color:#ffd28a;border-color:#5a4520;background:#241d10}
+.tag.rel{color:#ff9c8f;border-color:#5c2b26;background:#2a1614}
+.q{font-size:19px;font-weight:600;line-height:1.6;margin-bottom:14px;white-space:pre-wrap;word-break:break-word}
+.q.tf{color:#ffd28a}
+.a{border-top:1px dashed var(--line);padding-top:14px;font-size:16px;line-height:1.85;min-height:64px;transition:filter .18s}
+.a .line{margin:0 0 2px}
+.a .line:empty{height:8px}
+.a.masked{filter:blur(7px);user-select:none;cursor:pointer}
+.a.masked:hover{filter:blur(5px)}
+.key{color:var(--key);font-weight:600;background:#12281a;border-radius:5px;padding:0 4px}
+.blank{
+  font-family:inherit;font-size:inherit;color:#9fc4e8;background:#16202e;
+  border:1px dashed #3d5570;border-radius:6px;padding:1px 10px;margin:0 2px;
+  cursor:pointer;line-height:1.5;min-width:4.2em;letter-spacing:.08em;
+}
+.blank:hover{background:#1c2b3d;border-color:var(--blue)}
+.hint{margin-top:14px;font-size:12px;color:#5b6678}
+.acts{display:flex;gap:10px;padding:6px 18px 16px;justify-content:center;flex-wrap:wrap}
+.btn{
+  font-family:inherit;font-size:15px;font-weight:600;color:#0b0e14;border:0;
+  border-radius:12px;padding:9px 18px;cursor:pointer;transition:transform .06s,filter .15s;
+}
+.btn:active{transform:translateY(1px)}
+.btn kbd{font:inherit;font-size:11px;opacity:.55;margin-left:6px}
+.btn small{display:block;font-size:11px;font-weight:500;opacity:.72;margin-top:1px;letter-spacing:.02em}
+.btn.blue{background:var(--blue);color:#06121f}
+.btn.red{background:var(--red)}
+.btn.yel{background:var(--yel)}
+.btn.grn{background:var(--grn)}
+.btn:hover{filter:brightness(1.08)}
+.done,.panel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05070bf2;z-index:50;padding:18px}
+.done.hide,.panel.hide{display:none}
+.done-in,.panel-in{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;max-width:480px;width:100%;}
+.panel-in{max-height:82vh;overflow:auto}
+.done-in{text-align:center}
+.done-in h2,.panel-in h3{margin:0 0 10px;font-size:19px}
+.done-in p{color:var(--dim);font-size:13.5px;margin:6px 0}
+.done-in .big{font-size:34px;font-weight:700;color:var(--grn);margin:8px 0}
+.done-in .btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.pitem{
+  display:block;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);
+  border-radius:12px;padding:10px 12px;margin-bottom:8px;color:var(--tx);font-family:inherit;cursor:pointer;
+}
+.pitem:hover{border-color:#3a4a63}
+.pitem.on{border-color:var(--blue);background:#152233}
+.pitem .pname{font-weight:600;font-size:14.5px}
+.pitem .pmeta{font-size:11.5px;color:var(--dim);margin-top:2px}
+.pbar{height:4px;background:#1a2130;border-radius:4px;margin-top:7px;overflow:hidden}
+.pbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--grn))}
+.prow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.prow input{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--tx);font-family:inherit;font-size:13px}
+.prow input::placeholder{color:#55617a}
+@media (max-width:640px){
+  .top{padding:12px 14px 4px}
+  .title{font-size:15.5px}
+  .stats-line{padding:2px 14px 8px;gap:10px;font-size:12px}
+  .bar{margin:0 14px}
+  .toolbar{padding:8px 14px;gap:6px}
+  select{max-width:148px}
+  main{padding:4px 12px 8px}
+  .card{padding:16px 15px;border-radius:15px;min-height:min(52vh,440px)}
+  .q{font-size:17px}
+  .a{font-size:15px}
+  .btn{padding:8px 10px;font-size:14px;flex:1 1 40%}
+  .acts{padding:4px 12px 12px;gap:8px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="title">网络空间安全导论 · 期中记忆卡<span class="sub">间隔重复版</span></div>
+  <button class="profile-btn" id="btnProfile"><span id="pName">—</span> ▾</button>
+</header>
+<div class="stats-line">
+  <span>已学 <b id="sLearned">0</b>/<b id="sTotal">0</b></span>
+  <span>正确率 <b id="sAcc">–</b></span>
+  <span>今日 <b id="sToday">0</b></span>
+  <span>连续 <b id="sStreak">0</b> 天</span>
+  <span>待学 <b id="sDue">0</b></span>
+</div>
+<div class="bar"><i id="barFill"></i></div>
+
+<div class="toolbar">
+  <select id="selDeck" title="按讲次筛选"></select>
+  <select id="selCat" title="按类型筛选"></select>
+  <button class="ghost" id="btnMode">挖空模式</button>
+  <button class="ghost" id="btnReset">重置本存档</button>
+</div>
+
+<main>
+  <section class="card" id="card">
+    <div class="chead">
+      <span class="pill deck" id="cDeck">—</span>
+      <span class="pill" id="cCat">—</span>
+      <span class="tag" id="cTag"></span>
+    </div>
+    <div class="q" id="cQ"></div>
+    <div class="a" id="cA"></div>
+    <div class="hint" id="cHint"></div>
+  </section>
+</main>
+
+<footer class="acts">
+  <button class="btn blue" id="btnReveal">揭开<kbd>空格</kbd></button>
+  <button class="btn red" data-g="1">不会<small>—</small></button>
+  <button class="btn yel" data-g="2">模糊<small>—</small></button>
+  <button class="btn grn" data-g="3">会<small>—</small></button>
+</footer>
+
+<div class="panel hide" id="panel">
+  <div class="panel-in">
+    <h3>学习存档</h3>
+    <div id="plist"></div>
+    <div class="prow">
+      <input id="pname" placeholder="新存档名，如：考前第 2 遍">
+      <button class="ghost" id="pnew">新建</button>
+    </div>
+    <div class="prow">
+      <button class="ghost" id="prename">重命名当前</button>
+      <button class="ghost" id="pdel">删除当前</button>
+      <button class="ghost" id="pclose">关闭</button>
+    </div>
+    <div class="hint" style="margin-top:12px">每个存档独立记录进度，互不影响。考前想从零再过一遍，就新建一个存档。</div>
+  </div>
+</div>
+
+<div class="done hide" id="done">
+  <div class="done-in">
+    <h2 id="doneTitle">本次学习完成 🎉</h2>
+    <div class="big" id="doneAcc">100%</div>
+    <p id="doneInfo"></p>
+    <p id="doneNext2"></p>
+    <div class="btns">
+      <button class="btn blue" id="doneContinue">继续（跳过等待）</button>
+      <button class="ghost" id="doneReset">重置本存档</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+/* ---------------- 术语定义 ---------------- */
+{i:'t1',d:'一',c:'term',f:'机密性（Confidentiality）',b:'保证信息不能被[[非授权访问]]，即使非授权用户得到信息也[[无法知晓其内容]]，因而不能使用；是信息安全[[一诞生就具有]]的特性。'},
+{i:'t2',d:'一',c:'term',f:'完整性（Integrity）',b:'维护信息的[[一致性]]，即信息在生成、传输、存储和使用过程中不应发生[[人为或非人为的非授权篡改]]。'},
+{i:'t3',d:'一',c:'term',f:'认证性（真实性）',b:'确保一个消息的[[来源]]或消息本身被[[正确地标识]]，同时确保该标识[[没有被伪造]]；分为[[实体认证]]和[[消息认证]]。'},
+{i:'t4',d:'一',c:'term',f:'不可否认性（不可抵赖性）',b:'能保障用户[[无法事后否认]]曾经对信息的生成、发送、接收等行为，是针对参与各方[[行为真实性]]的安全要求。'},
+{i:'t5',d:'一',c:'term',f:'可用性（Availability）',b:'指保障信息资源[[随时可提供服务]]的能力特性，即[[授权用户]]根据需要可以随时访问所需信息。'},
+{i:'t6',d:'一',c:'term',f:'可控性（Controllability）',b:'对信息及信息系统实施[[安全监控]]，以及对网络信息的[[传播及内容]]具有控制能力。'},
+{i:'t7',d:'一',c:'term',f:'可追踪性（Accountability）',b:'使用[[审计、监控和防抵赖]]等安全机制，使使用者（合法用户、攻击者、破坏者、抵赖者）行为[[有证可查]]，能为安全问题提供[[调查依据]]，利于事后追究。'},
+{i:'t8',d:'六',c:'term',f:'防火墙',b:'一种[[高级访问控制设备]]，置于[[不同网络安全域]]之间，通过相关的安全策略控制（[[允许、拒绝、记录]]）进出网络的访问行为；逻辑上是[[分离器、限制器、分析器]]。'},
+{i:'t9',d:'六',c:'term',f:'包过滤（技术）',b:'基于 [[IP 地址]]监视并过滤网络上流入和流出的 IP 包，只允许与指定 IP 地址通信，在可信与不可信网络之间[[有选择地安排数据包去向]]；依据是[[数据包头信息]]（端口、IP 源/目的地址、封装协议类型）。'},
+{i:'t10',d:'六',c:'term',f:'DMZ（隔离区）',b:'位于企业内部网络与外部网络之间的[[缓冲区]]小网络区域，放置必须[[公开的服务器]]（Web、Mail、DNS、论坛），用于解决安装防火墙后[[外部无法访问内部服务器]]的问题。'},
+{i:'t11',d:'六',c:'term',f:'VPN（虚拟专用网）',b:'通过一个[[公共网络]]建立一个[[临时的、安全和稳定的隧道]]，能提供与专用网络一样的[[功能和安全保障]]；“虚拟”指不需长途线路而基于互联网。'},
+{i:'t12',d:'六',c:'term',f:'入侵检测（IDS）',b:'对[[企图入侵、正在进行的入侵或已经发生的入侵]]进行[[识别]]的过程——在计算机网络或系统的若干关键点[[收集信息并分析]]，判断是否有违反安全策略的行为和被攻击的迹象。'},
+{i:'t13',d:'六',c:'term',f:'漏洞扫描',b:'对重要计算机信息系统进行检查，发现其中[[可被黑客利用的漏洞]]；漏洞扫描系统是能[[自动检测]]远程或本地主机系统安全性[[弱点和隐患]]的程序包。'},
+{i:'t14',d:'六',c:'term',f:'漏洞（vulnerability）',b:'指[[硬件或软件存在的安全缺陷]]，使攻击者能在[[未授权]]情况下访问、控制系统；与 Bug [[有交集但不等同]]；[[CVE]] 负责漏洞命名标准化。'},
+{i:'t15',d:'六',c:'term',f:'补丁（Patch）',b:'软件厂商发布的[[修复程序]]，主要修补软件漏洞、防范网络攻击；打补丁是当前[[“堵”漏洞最有效]]的方法。'},
+{i:'t16',d:'五',c:'term',f:'恶意软件（Malware）',b:'在[[未经授权]]的情况下，在系统中[[安装、执行]]并达到[[不正当目的]]的软件。'},
+{i:'t17',d:'五',c:'term',f:'计算机病毒',b:'《计算机信息系统安全保护条例》：指编制者在计算机程序中插入的[[破坏计算机功能或者数据]]、影响计算机使用、并且能够[[自我复制]]的一组[[计算机指令或者程序代码]]；此定义具有[[法律性、权威性]]。'},
+{i:'t18',d:'七',c:'term',f:'网络攻击',b:'任何[[非授权的攻击者]]通过计算机网络[[入侵目标系统]]的行为，包括查看、偷取、控制、修改、破坏、影响系统正常运行或服务等。'},
+{i:'t19',d:'七',c:'term',f:'木马（特洛伊木马）',b:'附着在应用程序中或单独存在的一些恶意程序，可利用网络[[远程响应]]另一端控制程序的控制命令，实现对感染机器的[[控制]]、窃取机密资料；采用[[C/S 结构]]，[[服务端在被攻击机]]、客户端在黑客机。'},
+{i:'t20',d:'七',c:'term',f:'DoS（拒绝服务攻击）',b:'阻止或[[拒绝合法使用者]]获取网络服务的一种[[破坏性攻击]]方式；通过向服务器发送大量[[虚假请求]]，使其资源耗尽而无法响应正常用户。'},
+{i:'t21',d:'四',c:'term',f:'Hash 函数（哈希/散列/杂凑函数）',b:'一种[[单向密码体制]]——明文到“密文”的[[不可逆映射]]，只有加密没有解密；把[[任意长度]]消息变换成[[固定长度]]的输出（哈希值/消息摘要），记为 h=H(M)。'},
+{i:'t22',d:'四',c:'term',f:'MAC（消息认证码）',b:'一种[[与密钥相关的]]单向哈希函数（又称消息鉴别码/消息校验和），输入除消息外还包括密钥，不同密钥产生不同 MAC；前提是收发双方[[共享对称密钥]]。'},
+{i:'t23',d:'四',c:'term',f:'数字签名（电子签名）',b:'附加在数据单元上的一些数据：先用签名算法对该数据单元进行[[关键信息提取]]（Hash），再用[[签名者的独有信息（私钥）]]签名，用于标识签名者身份及其对该数据的认可，并能被接收者用[[签名者的公开信息（公钥）]]验证其是否被[[篡改、伪造或抵赖]]。'},
+{i:'t24',d:'四',c:'term',f:'数字证书',b:'由 [[CA（认证机构）]]签发的、把[[身份与公钥绑定]]并附有 CA 数字签名的电子文件；含[[序列号、颁发者、有效期、主体名称、主体公钥]]等字段；用于保证[[公钥的真实性]]。'},
+
+/* ---------------- 清单式要点 ---------------- */
+{i:'l1',d:'一',c:'list',f:'网络空间安全的层次模型分哪四层？',b:'[[物理安全]]（设备安全、环境安全）→ [[系统安全]]（网络安全、系统安全）→ [[数据安全]]（加密保护、容灾备份）→ [[应用安全]]（内容识别、大数据隐私）；\n对应[[设备、系统、数据、应用]]四个层面。'},
+{i:'l2',d:'一',c:'list',f:'网络空间安全模型（PD2R/PDRR）的四个子过程？',b:'[[保护 Protect]]：采取可能手段实现安全目标；\n[[检测 Detect]]：检查系统漏洞与入侵行为；\n[[响应 React]]：及时处理，使损失最小；\n[[恢复 Restore]]：尽快恢复功能、尽早提供服务。\n四者构成完整的[[动态、不断循环上升]]的过程。'},
+{i:'l3',d:'一',c:'list',f:'网络空间安全发展的四个阶段及各自标志？',b:'[[通信安全]]（计算机出现前，关注传输的保密性，研究限于密码学，动力是战争）→\n[[计算机安全]]（1946 年后，出现身份认证与访问控制、DES 与公钥体制、1988 年病毒）→\n[[网络安全]]（90 年代：SSL/VPN/IPv6、防火墙/IDS/漏扫、安全操作系统、法规标准）→\n[[网络空间安全]]（继陆海空天之后的[[第五大战略空间]]）。'},
+{i:'l4',d:'一',c:'list',f:'网络空间安全“六不”目标及对应机制？',b:'[[进不来]]——身份认证机制；[[拿不走]]——访问控制机制；[[看不懂]]——加密机制；\n[[改不了]]——完整性机制；[[逃不掉]]——审计机制；[[打不跨]]——备份机制。'},
+{i:'l5',d:'一',c:'list',f:'网络空间面临的常用攻击或威胁有哪些？',b:'[[窃取]]（非法获得敏感信息）、[[篡改]]、[[假冒]]（如重放）、[[抵赖]]、[[破坏]]、[[中止服务]]（如 DoS）、[[非授权访问]]；\n还有流量分析、盗版、恐吓、社会工程学等。'},
+{i:'l6',d:'一',c:'list',f:'我国四部网络空间安全相关法律及实施时间？',b:'《网络安全法》——[[2017 年 6 月 1 日]]；\n《密码法》——[[2020 年 1 月 1 日]]；\n《数据安全法》——[[2021 年 9 月 1 日]]；\n《个人信息保护法》——[[2021 年 11 月 1 日]]。'},
+{i:'l7',d:'一',c:'list',f:'网络空间安全问题（根本原因）有哪几类？',b:'网络空间的[[漏洞或缺陷]]；[[恶意攻击]]（经济利益、政治影响）；[[人为错误]]（使用不当、安全意识差）；[[自然灾害、意外事故]]（地震、水灾、火灾）。'},
+{i:'l8',d:'二',c:'list',f:'密码系统由哪五部分组成？各部分关系？',b:'S={[[M, C, K, E, D]]}：明文、密文、加密算法、解密算法、密钥。\n关系：[[C=E_k(M)]]、[[M=D_k(C)]]；要点是“[[算法是不变的，密钥是可变的]]”。'},
+{i:'l9',d:'二',c:'list',f:'现代密码的两次飞跃与两个里程碑事件？',b:'第一次飞跃：[[1949 年 Shannon《保密系统的通信理论》]]（成为一门科学）；\n第二次飞跃：[[1976 年 Diffie-Hellman《密码学的新方向》]]（提出公钥思想）；\n里程碑 1：[[1977 年 DES 公布]]（算法公开）；\n里程碑 2：[[1978 年 RSA]]（第一个实用公钥体制）。'},
+{i:'l10',d:'二',c:'list',f:'现代密码体制的分类及分类原则？',b:'按[[加解密密钥是否相同（或能否由一个容易推出另一个）]]分为：\n[[对称密码]]——相同或易互推，又分[[分组密码]]与[[序列密码]]；\n[[非对称密码/公钥密码]]——不同，且由其一在现有计算能力下[[很难推出]]另一个。'},
+{i:'l11',d:'二',c:'list',f:'对称密码的优缺点（与公钥密码相比）？',b:'优点：[[运算速度快]]、[[密钥相对较短]]（不少于 128 位）、[[没有数据扩展]]（密文与明文等长）。\n缺点：[[密钥分发难以实现]]、[[密钥管理复杂]]（n 个用户总密钥量 [[n(n-1)/2]]）、[[难以实现数字签名]]。'},
+{i:'l12',d:'二',c:'list',f:'密码算法公开的意义（4 条）？',b:'①有利于密码技术的[[推广应用和标准化]]；②有利于[[增强密码算法的安全性]]（接受专业分析检验）；③有利于[[增强用户使用的信心]]；④有利于[[密码技术的发展]]。\n（DES 事件成为里程碑，主要贡献在于[[密码算法公开]]。）'},
+{i:'l13',d:'二',c:'list',f:'分组密码的设计原则与主要参数？',b:'参数：[[分组长度、密钥长度]]；\n[[子密钥生成算法]]；\n[[轮函数]]（核心，含[[扩散]]＝雪崩效应、[[混乱]]＝非线性可逆变换）；\n[[迭代轮数]]（使密码分析难度大于穷举搜索难度）。'},
+{i:'l14',d:'二',c:'list',f:'AES 一轮轮函数包含哪四步？',b:'[[字节代换]]（非线性/混乱）→ [[行位移]] → [[列混合]]（扩散）→ [[轮密钥加]]（异或）。'},
+{i:'l15',d:'二',c:'list',f:'序列密码的特点？',b:'加解密都只是[[模二加（异或）]]，[[加解密过程相同]]；安全强度主要依赖[[密钥序列的随机性]]。'},
+{i:'l16',d:'二',c:'list',f:'DES 与 AES 的分组/密钥长度？',b:'DES：密钥 [[56 位]]（密钥空间 2^56，已可被穷举，1999 年 22 小时破解）；\nAES：分组 [[128 位]]，密钥 [[128/192/256 位]]，2000 年由 [[Rijndael]] 胜出。'},
+{i:'l17',d:'三',c:'list',f:'公钥密码的优缺点（与对称密码相比）？',b:'优点：[[密钥分发简单]]、[[密钥管理简单]]（只需保管好私钥）、[[可以实现数字签名]]。\n不足：[[比对称密码慢]]、[[密钥位数相对较长]]（RSA 不少于 2048 位）、[[有数据扩展]]（明文与密文长度不同）。'},
+{i:'l18',d:'三',c:'list',f:'RSA 公钥密码的简评（7 条）？',b:'第一个[[实用的]]公钥密钥算法；目前[[使用最多]]；理论基础是[[欧拉定理]]；安全性依赖[[大整数素因数分解的困难性]]；[[既不能证明也不能否定]]其安全性；既能[[加密]]也能用于[[数字签名]]；目前密钥长度 [[2048 位]] 被认为是安全的。'},
+{i:'l19',d:'三',c:'list',f:'DH 密钥交换的基本原理？',b:'基础是[[模指数单向函数]] y≡g^x mod p——已知 g、p、x 求 y 容易，已知 g、p、y 求 x（[[离散对数]]）非常困难；\n双方各选 a、b，交换 [[Ka=g^a、Kb=g^b]]，各自计算 [[K=(Kb)^a=(Ka)^b]] 得到共享密钥，[[无需在信道上传递密钥]]。'},
+{i:'l20',d:'三',c:'list',f:'公钥密码的加解密模型（4 步）？',b:'①发送方[[查找接收方的公钥]]；②用接收方公钥作加密密钥[[对明文加密]]；③通过[[不安全信道]]发送密文；④接收方用自己的[[私钥解密]]还原明文。'},
+{i:'l21',d:'三',c:'list',f:'RSA 用到的两个数论结论？',b:'[[欧拉定理]]：a 与 n 互素时 a^φ(n) ≡ 1 (mod n)；\n[[欧拉函数]]：n=p·q 时 φ(n)=[[(p-1)(q-1)]]；\n逆元：gcd(a,n)=1 时 a 的模 n 逆元[[唯一存在]]。'},
+{i:'l22',d:'四',c:'list',f:'Hash 函数的性质（特点 + 安全性）？',b:'特点：输入[[任意长度]]、输出[[固定长度]]、[[容易计算]]。\n安全性：[[单向性]]（给定 h 求 M 不可行）、[[抗弱碰撞性]]（给定 M1 找 M2 难）、[[抗强碰撞性]]（找任意碰撞对难）、[[雪崩效应]]（输入微变、输出剧变）。'},
+{i:'l23',d:'四',c:'list',f:'消息认证码（MAC）的功能是什么？',b:'①验证信息的[[来源是真实的]]（而非伪造的）——消息源认证；\n②验证消息的[[完整性]]——在使用、传送、存储过程中是否被篡改。'},
+{i:'l24',d:'四',c:'list',f:'MAC 与数字签名的对比（5 个维度）？',b:'密钥分发：[[存在]]／[[不存在（但公钥需另外认证）]]；\n效率：[[高]]／[[低]]；\n完整性：[[都支持]]；\n认证性：[[仅限通信双方]]／[[可适用于可信第三方]]；\n不可否认性：[[不支持]]／[[支持]]。'},
+{i:'l25',d:'四',c:'list',f:'数字签名的安全要求（4 条）？',b:'[[不可篡改]]（完整性）；[[可验证]]（认证性）；[[不可伪造]]（除签名者外任何人包括接收者都不能伪造）；[[不可抵赖]]（争议时第三方可解决）。'},
+{i:'l26',d:'四',c:'list',f:'数字签名方案的组成与三个过程？',b:'五元组 [[{P, S, K, Sig, Ver}]]（明文空间、签名空间、密钥空间、签名算法、验证算法）；\n[[系统初始化]]（生成公私钥对）→ [[签名生成]] s=Sig_sk(m) → [[签名验证]] Ver_pk(s,m)=0 或 1。'},
+{i:'l27',d:'四',c:'list',f:'RSA 数字签名的签名式与验证式？',b:'签名（用私钥 d）：s ≡ [[h(m)^d mod n]]；\n验证（用公钥 e）：判断 [[h(m) ≡ s^e mod n]] 是否成立；\n正确性由 [[d·e ≡ 1 (mod φ(n))]] 与[[欧拉定理]]保证。'},
+{i:'l28',d:'四',c:'list',f:'n 位哈希值的强碰撞强度由什么决定？',b:'由 [[2^(n/2)]] 决定：输出共 2^n 个，计算 [[2^(n/2)]] 个输出时出现碰撞的概率已[[大于 50%]]（生日悖论/生日攻击）；攻击者的目标是[[找碰撞]]而非恢复明文。'},
+{i:'l29',d:'四',c:'list',f:'Hash 函数实现的基本方法（迭代结构）？',b:'[[MD 迭代结构]]：消息按固定长度分组（SHA-1 为 [[512 位]]）→ [[填充]]（补 1 与 0，附消息长度）→ 以 [[IV]] 为第一个链接变量 CV0 → 逐组用[[压缩函数]]迭代 → 输出定长哈希值（SHA-1 为 [[160 位]]）。'},
+{i:'l30',d:'四',c:'list',f:'Hash 函数的典型应用？',b:'[[消息认证]]、[[数字签名]]、[[口令的安全性]]（加盐 Hash）、[[文件的完整性]]、[[密码协议]]（零知识证明、比特承诺、区块链等）。'},
+{i:'l31',d:'五',c:'list',f:'恶意软件的含义与通用特征？',b:'含义：[[未经授权]]在系统中[[安装、执行]]并达到[[不正当目的]]的软件。\n特征：[[可执行代码]]、[[恶意目的]]、[[强制安装]]、[[隐蔽性]]、[[破坏性]]。'},
+{i:'l32',d:'五',c:'list',f:'计算机病毒的简评（五个趋势）？',b:'[[网络化]]（网络成为主要传播环境）、[[多样化]]（传播途径多）、[[智能化]]（加壳/加密/变形/AI，变种快）、[[黑客化]]（与黑客技术融合）、[[功利化]]（物质利益成为最大动力）。'},
+{i:'l33',d:'五',c:'list',f:'计算机病毒的生命周期（7 个阶段）？',b:'[[创造期]] → [[传播期]] → [[传染期]] → [[发病期]] → [[发现期]] → [[根除期]] → [[灭绝]]。'},
+{i:'l34',d:'五',c:'list',f:'计算机病毒的三个关键点？哪个是核心？',b:'[[传播（染）方式]]（[[核心]]）、[[寄生方式]]、[[激活方式]]。'},
+{i:'l35',d:'五',c:'list',f:'计算机病毒的特点？最基本/必备的是什么？',b:'[[传染性]]——把自身复制到其它程序的能力，是病毒[[最基本、必备]]的特征；\n此外还有[[潜伏性]]、[[隐蔽性]]、[[破坏性]]、[[可触发性]]。'},
+{i:'l36',d:'五',c:'list',f:'计算机病毒的常见传播途径？',b:'[[移动存储设备]]（U 盘、光盘、移动硬盘）、[[局域网共享]]、[[盗版或来历不明软件]]、[[系统/协议漏洞]]、[[访问可疑网站]]、[[电子邮件（尤其附件）]]、随意点击下载“执行”。'},
+{i:'l37',d:'五',c:'list',f:'四类计算机病毒的传播/寄生/激活方式？',b:'[[引导型]]：软盘传播、寄生[[引导扇区]]、系统启动或读写磁盘（大脑/小球/火炬）；\n[[文件型]]：文件复制、寄生[[可执行文件]]、文件执行（1575/CIH）；\n[[蠕虫]]：系统或协议[[漏洞]]、寄生系统目录、启动自动加载（冲击波/求职信）；\n[[U 盘病毒]]：靠 [[Autorun.inf]]、双击盘符激活。'},
+{i:'l38',d:'六',c:'list',f:'防火墙包过滤检测的内容通常包括哪些（5 项）？',b:'①[[IP 源地址]]；②[[IP 目的地址]]；③[[协议类型]]（TCP 包、UDP 包等）；④TCP/UDP 的[[目的端口]]；⑤TCP/UDP 的[[源端口]]。\n（只看 TCP/IP 报头，[[不能对应用层数据进行处理]]；规则按存储次序逐条作用。）'},
+{i:'l39',d:'六',c:'list',f:'NAT 的好处（3 条）？',b:'①[[缓解 IP 地址匮乏]]问题；②内部可用[[私有 IP 地址]]，方便网络管理与改造；③[[隐藏内部网络结构]]，提高安全性。'},
+{i:'l40',d:'六',c:'list',f:'VPN 的主要功能与主要技术？',b:'功能：[[数据保密性]]、[[数据完整性]]、[[身份认证]]（含访问控制与审计）。\n技术：[[隧道技术]]、数据加密与完整性技术（对称加密+MAC）、[[密钥管理技术]]、[[身份认证技术]]。'},
+{i:'l41',d:'六',c:'list',f:'防火墙、入侵检测、漏洞扫描各自的作用？',b:'防火墙：[[边界访问控制]]；\n入侵检测：[[识别正在进行的攻击]]；\n漏洞扫描：[[发现系统潜在危险（弱点、漏洞）]]。'},
+{i:'l42',d:'六',c:'list',f:'防火墙发展的简评（5 个方向）？',b:'[[多功能化]]、[[性能方面]]（高速处理）、[[分布式防火墙]]（延伸到主机）、[[强大的审计和自动分析]]、[[与其它网络安全技术的联动]]（被动→[[主动防御]]）。'},
+{i:'l43',d:'六',c:'list',f:'补丁管理的流程（6 步）？',b:'[[漏洞扫描]] → [[获取补丁]] → [[测试验证]] → [[备份系统]] → [[部署安装]] → [[完成后复测]]。'},
+{i:'l44',d:'六',c:'list',f:'防火墙的两类日志？',b:'[[会话日志]]（普通连接日志）：源/目的地址、源/目的端口、时间、协议、字节数、是否放行；\n[[内容日志]]（深度连接日志）：在会话日志基础上记录[[应用层命令参数和内容]]。'},
+{i:'l45',d:'七',c:'list',f:'截取、篡改、伪造、木马、阻断攻击分别针对哪种安全属性？',b:'截取 → [[机密性]]；篡改 → [[完整性]]；伪造（欺骗）→ [[认证性/真实性]]；木马 → [[可控性]]；阻断（DoS）→ [[可用性]]。'},
+{i:'l46',d:'七',c:'list',f:'木马攻击的主要实现技术（4 项）？核心技术是什么？',b:'[[植入技术]]、[[自动启动技术]]、[[隐蔽技术]]、[[远程监控技术]]；核心技术是[[植入（即传播）技术]]；\n采用方式：[[主动]]（利用漏洞、借病毒传播）与[[被动]]（诱骗：邮件附件、诱惑网页、下载不明程序）。'},
+{i:'l47',d:'七',c:'list',f:'以 TCP 三次握手为例说明 DoS 的基本思想？',b:'三次握手：[[SYN]] → [[SYN/ACK]] → [[ACK]]。\n攻击者[[伪造源地址]]大量发送 SYN；服务器回应 SYN/ACK 并放入[[半连接列表]]等待；因源地址伪造，[[ACK 永远不会来]]，服务器须等 [[SYN 超时]]（约 30 秒~2 分钟）才丢弃；\n大量半连接[[耗尽 CPU/内存/连接队列]]，[[合法用户得不到响应]]，系统崩溃。'},
+{i:'l48',d:'七',c:'list',f:'分布式拒绝服务（DDoS）攻击的六个步骤？',b:'[[探测]]（扫描找有漏洞主机）→ [[植入]]（入侵并植入僵尸程序）→ [[管理]]（选 [[Master Server]] 主控服务器）→ [[命令]]（下发攻击命令）→ [[实施]]（代理端同时攻击）→ [[结果]]（目标被伪造请求淹没）。'},
+{i:'l49',d:'七',c:'list',f:'网络攻击与计算机病毒的区别（3 点）？',b:'①[[对象]]：攻击一般有明确对象，病毒的传染[[不区分对象]]；\n②[[目标]]：攻击目的有区分（不能工作/窃取/控制），病毒的破坏[[无区分]]；\n③[[手段]]：攻击手段有差异（DoS、木马、欺骗），同种病毒的传染手段[[基本一致]]。'},
+{i:'l50',d:'七',c:'list',f:'网络攻击如何分类？哪些属于被动攻击？',b:'分[[物理攻击]]与[[非物理攻击（网络攻击）]]；网络攻击又分：\n[[被动攻击]]——[[截取]]，只是收集信息，用户[[不易觉察]]；\n[[主动攻击]]——[[篡改、伪造、木马、阻断、重放]]，用户一般能觉察。'},
+{i:'l51',d:'七',c:'list',f:'什么是僵尸网络？',b:'采用一种或多种传播手段，将大量主机感染[[僵尸程序]]，形成控制者与被感染主机之间[[一对多控制]]的网络；被感染主机通过[[控制信道]]接收指令；可作为 [[DDoS]] 的攻击平台。'},
+{i:'l52',d:'三',c:'list',f:'RSA 密钥生成的四个步骤？',b:'①选两个大素数 [[p 和 q]]（位数接近且相差较大）；\n②计算 [[n=p·q]]、[[φ(n)=(p-1)(q-1)]]；\n③随机选 e，使 [[gcd(e,φ(n))=1]]；\n④计算 d 使 [[d·e ≡ 1 (mod φ(n))]]。\n公钥 [[(n,e)]]，私钥 [[d]]；p、q 必须保密。'},
+{i:'l53',d:'三',c:'list',f:'RSA 的加密与解密运算式？',b:'加密（用公钥 e）：c ≡ [[m^e mod n]]；\n解密（用私钥 d）：m ≡ [[c^d mod n]]；\n要求 [[m < n]]（超长需先分组），且明文密文长度[[不同（有数据扩展）]]。'},
+{i:'l54',d:'三',c:'list',f:'DH 与 RSA 是什么关系？',b:'同属[[公钥密码体制]]，都解决密钥分发：\nDH 是 [[1976 年的密钥交换（协商）方案]]，基于[[离散对数]]，本身[[不加密消息也不做签名]]；\nRSA 是 [[1978 年第一个实用的公钥算法]]，基于[[大整数素因数分解]]，[[既能加密也能签名]]。\nRSA 是 DH 所开创的[[公钥思想的第一个实用实现]]，但数学原理无关；实际系统常[[配合使用]]（证书用签名认证身份，会话密钥用 DH 协商）。'},
+
+/* ---------------- 陷阱辨析 ---------------- */
+{i:'k1',d:'三',c:'trap',f:'判断：公钥密码出现以后，对称密码在实际应用中已无使用价值了。',b:'[[✘ 错]]。公钥密码比对称密码[[慢]]、[[密钥位数长]]、[[有数据扩展]]；实际系统采用[[混合体制]]——对称算法加密数据，公钥算法加密或协商密钥、做签名。'},
+{i:'k2',d:'三',c:'trap',f:'判断：在 RSA 中由 n=p×q 可以很容易地推出素数 p 和 q。',b:'[[✘ 错]]。[[大整数素因数分解的困难性]]正是 RSA 安全性的基础；若 n 被分解，立即可得 [[φ(n)=(p-1)(q-1)]]，进而求出 [[d ≡ e^(-1) mod φ(n)]]，攻击即成功。'},
+{i:'k3',d:'四',c:'trap',f:'判断：哈希函数的安全性就是指“根据已知的哈希值不能推出对应的消息原文”。',b:'[[✘ 不全面]]。单向性只是其中之一，安全性还包括[[抗弱碰撞性]]、[[抗强碰撞性]]、[[雪崩效应]]。'},
+{i:'k4',d:'四',c:'trap',f:'判断：数字签名方案中，签名值的长度与所签消息的长度有关。',b:'[[✘ 错]]。签名只覆盖[[定长摘要 h(m)]]，所以签名值长度[[与消息长度无关]]，只与算法和密钥长度有关。'},
+{i:'k5',d:'五',c:'trap',f:'判断：恶意软件是未经允许安装的软件，所以用户计算机中通常不会有恶意软件。',b:'[[✘ 错]]。恶意软件具有[[隐蔽性]]（难以在载体和运行程序中被发现）和[[强制安装]]，常在用户不知情的情况下存在。'},
+{i:'k6',d:'六',c:'trap',f:'判断：从防火墙发展来看，只要具备很强的边界访问控制能力即可，不需要强大的审计与自动分析。',b:'[[✘ 错]]。防火墙发展要求[[多功能化]]、[[强大的审计和自动分析]]（发现潜在威胁、及时调整策略）、[[分布式]]、[[与其它技术联动]]（被动→主动防御）。'},
+{i:'k7',d:'七',c:'trap',f:'判断：目前网络攻击的目的就是获取经济利益。',b:'[[✘ 错]]。还包括[[政治影响]]、[[军事与情报监控]]、[[炫耀技术]]、[[报复]]、[[隐私获取]]等；已从个人行为发展到国家级网络战。'},
+{i:'k8',d:'六',c:'trap',f:'判断：包过滤防火墙能检查并过滤应用层数据内容。',b:'[[✘ 错]]。包过滤只依据 [[TCP/IP 报头信息]]（IP 地址、协议类型、端口），[[不能对应用层数据进行处理]]；能查内容的是 [[DPI 深度包检测 / WAF]]。'},
+{i:'k9',d:'六',c:'trap',f:'判断：漏洞就是 Bug，两者完全等同。',b:'[[✘ 错]]。漏洞与 Bug [[有很大的交集但不等同]]：大部分 Bug 不涉及安全性，不构成漏洞；大部分漏洞来源于 Bug 但并非全部。'},
+{i:'k10',d:'四',c:'trap',f:'判断：数字签名可以保证消息的保密性。',b:'[[✘ 错]]。数字签名提供[[完整性、认证性、不可伪造性、不可抵赖性]]，[[不提供保密性]]；消息仍是明文，需保密须另行加密（常“先签名再加密”）。'},
+{i:'k11',d:'四',c:'trap',f:'判断：消息认证码（MAC）具有不可否认性。',b:'[[✘ 错]]。MAC 使用[[双方共享的对称密钥]]，接收方自己也能生成同样的 MAC，[[无法向第三方证明来源]]，故不具备不可否认性；只有数字签名具备。'},
+{i:'k12',d:'五',c:'trap',f:'判断：计算机病毒最基本的特征是破坏性。',b:'[[✘ 错]]。[[最基本、必备]]的特征是[[传染性]]（把自身复制到其它程序的能力）；破坏性只是常见特点之一。'},
+{i:'k13',d:'七',c:'trap',f:'判断：木马的服务端程序运行在黑客的计算机上。',b:'[[✘ 错]]。木马采用 [[C/S 结构]]：[[服务端（目标机）运行在被攻击的计算机上]]等待命令，[[客户端（控制端）在黑客计算机上]]。'},
+{i:'k14',d:'五',c:'trap',f:'判断：2003 年的“冲击波”病毒主要靠文件下载和电子邮件传播。',b:'[[✘ 错]]。冲击波利用 [[DCOM/RPC 缓冲区溢出漏洞]]（TCP [[135 端口]]）自动扫描 IP 传播，属[[蠕虫]]类，靠的是[[漏洞]]。'},
+{i:'k15',d:'四',c:'trap',f:'判断：数字证书中包含持有人的私钥。',b:'[[✘ 错]]。证书只包含[[持有人的公钥]]、[[证书机构标识]]、[[持有人姓名]]、有效期、CA 签名等，[[私钥绝不会放入证书]]。'},
+{i:'k16',d:'一',c:'trap',f:'判断：PD2R 模型即“预防、保护、检测、响应”。',b:'[[✘ 错]]。PD2R = [[保护 Protect、检测 Detect、响应 React、恢复 Restore]]；而且它是[[动态、不断循环上升]]的过程。'},
+{i:'k17',d:'一',c:'trap',f:'判断：客观上讲，网络空间安全的根本原因是网络空间存在漏洞或缺陷，并且存在网络攻击。',b:'[[✔ 对]]。漏洞/缺陷是[[内部条件]]，网络攻击是[[外部威胁]]；此外还有人为错误、自然灾害等。'},
+{i:'k18',d:'二',c:'trap',f:'判断：密码算法是公开的，保证密文不被破解的关键在于所使用密钥的安全。',b:'[[✔ 对]]（课件口径）。算法公开、密钥保密；安全性主要依赖[[密钥]]的保密与强度。'},
+{i:'k19',d:'七',c:'trap',f:'判断：DDoS 攻击是一种针对系统完整性的攻击。',b:'[[✘ 错]]。DDoS 属[[阻断攻击]]，针对[[可用性]]；针对完整性的是[[篡改]]，针对认证性的是[[伪造]]，针对机密性的是[[截取]]，针对可控性的是[[木马]]。'},
+
+/* ---------------- 简答押题 ---------------- */
+{i:'e1',d:'三',c:'exam',f:'简答：公钥密码的基本思想，以及为什么能解决密钥分发问题？',b:'①加解密密钥[[不同]]：加密密钥[[公开]]、解密密钥[[秘密保存]]；\n②发送方用接收方的[[公钥加密]]，接收方用自己的[[私钥解密]]；\n③密钥[[不需要在信道上传输]]，攻击者得不到私钥，故解决了密钥安全传递问题；\n④本质是基于[[单向陷门函数]]的新体制。'},
+{i:'e2',d:'三',c:'exam',f:'简答：公钥密码的优缺点，实际系统为何采用混合体制？',b:'优点：[[密钥分发简单]]、[[密钥管理简单]]（只保管私钥）、[[可实现数字签名]]。\n不足：[[慢]]、[[密钥位数长]]（RSA≥2048）、[[有数据扩展]]。\n混合体制原因：公钥算法太慢且只能处理短数据，因此用[[对称算法加密数据]]（快、无扩展），用[[公钥算法加密或协商会话密钥、做签名]]。'},
+{i:'e3',d:'四',c:'exam',f:'简答：为什么 MAC 能确定信息来源？为何实际多用 MAC 而少用签名？为何签名抗抵赖而 MAC 不能？',b:'①MAC 的输入含[[只有双方共享的密钥 K]]，第三方不知 K 无法算出正确 MAC，比对成功即证明来源且未被篡改；\n②MAC 基于[[对称运算]]，[[效率高]]、无需 PKI 与证书管理；签名公钥运算[[慢]]且需解决公钥真实性；\n③签名用[[签名者独有私钥]]，他人无法伪造，可用公钥验证、第三方可仲裁；MAC 用[[双方共享密钥]]，接收方自己也能生成，[[无法向第三方证明]]。'},
+{i:'e4',d:'二',c:'exam',f:'简答：对称密码的优缺点；为什么 n 个用户需要 n(n-1)/2 个密钥？',b:'优点：[[速度快]]、[[密钥短]]（≥128 位）、[[无数据扩展]]。\n缺点：[[密钥分发难]]、[[管理复杂]]、[[难实现数字签名]]。\n密钥量：每个用户要与其它 [[n-1]] 个用户通信需 n-1 个密钥，n 个用户共 n(n-1) 个，而每对用户之间的密钥[[双方共用]]，故总数为 [[n(n-1)/2]]。'},
+{i:'e5',d:'七',c:'exam',f:'简答：简要描述木马攻击的过程。',b:'①[[植入]]：把服务端程序植入被攻击机（[[主动]]：漏洞、病毒；[[被动]]：诱骗）；\n②服务端[[安装、隐蔽、打开端口]]并自动启动，等待命令；\n③客户端发起[[连接请求]]，服务端[[响应]]；\n④攻击者[[远程控制、监控]]目标机，进而[[窃取、破坏]]。'},
+{i:'e6',d:'七',c:'exam',f:'简答：DoS 与 DDoS 的区别？简述 DDoS 的攻击过程。',b:'DoS：单一来源向目标发送大量[[虚假请求]]，耗尽资源使其无法服务（针对[[可用性]]）。\nDDoS：先构建[[僵尸网络]]，由[[一对多控制]]的多个代理端同时攻击。\n过程：[[探测]]→[[植入]]→[[管理（Master Server）]]→[[命令]]→[[实施]]→[[结果]]。'},
+{i:'e7',d:'五',c:'exam',f:'简答：计算机病毒的含义、特点、生命周期与关键点。',b:'含义：编制者插入的[[破坏功能或数据]]、影响使用、能[[自我复制]]的指令或程序代码（法定定义）。\n特点：[[传染性（最基本、必备）]]、潜伏性、隐蔽性、破坏性、可触发性。\n生命周期：[[创造期→传播期→传染期→发病期→发现期→根除期→灭绝]]。\n关键点：[[传播方式（核心）]]、寄生方式、激活方式。'},
+{i:'e8',d:'四',c:'exam',f:'简答：数字签名的含义与实现过程；Hash 出现碰撞会有什么后果？',b:'含义：对数据单元做[[关键信息提取]]后用[[签名者私钥]]签名，标识身份与认可，接收者用[[公钥验证]]是否被篡改、伪造或抵赖。\n过程：[[初始化生成公私钥]]→[[签名 s=Sig_sk(h(m))]]→[[验证 Ver_pk(s,m)=0/1]]。\n碰撞后果：可用[[哈希值相同的非法消息]]替换合法消息，原签名仍验证通过 → 造成[[伪造、抵赖]]，完整性与不可否认性被破坏。'},
+{i:'e9',d:'六',c:'exam',f:'简答：防火墙、包过滤、DMZ、VPN 的含义。',b:'防火墙：置于[[不同网络安全域]]之间的[[高级访问控制设备]]，按策略控制允许/拒绝/记录。\n包过滤：依据[[IP 地址与包头信息]]监视过滤 IP 包，[[有选择地安排数据包去向]]。\nDMZ：内外网之间的[[缓冲区]]，放必须公开的服务器。\nVPN：在[[公共网络]]上建立[[临时、安全、稳定的隧道]]，提供与专网同等的功能与安全保障。'},
+{i:'e10',d:'六',c:'exam',f:'简答：入侵检测、漏洞扫描、漏洞、补丁的含义，三者作用有何区别？',b:'入侵检测：对[[企图/正在进行/已经发生]]的入侵进行[[识别]]。\n漏洞扫描：[[自动检测]]主机系统[[弱点和隐患]]、发现可被利用的漏洞。\n漏洞：硬件或软件的[[安全缺陷]]（与 Bug 有交集不等同）。\n补丁：厂商的[[修复程序]]，是“堵”漏洞最有效方法。\n区别：防火墙=[[边界访问控制]]；IDS=[[识别正在攻击]]；漏扫=[[发现潜在危险]]。'},
+{i:'e11',d:'一',c:'exam',f:'简答：什么是网络空间安全？（含义、层次与主要目标）',b:'网络空间是[[基础设施构成的动态虚拟空间]]，是第五大战略空间。\n网络空间安全涉及[[设备、系统、数据、应用]]四个层面的安全问题（物理安全、系统安全、数据安全、应用安全）。\n目标是实现信息的[[机密性、完整性、认证性、不可否认性、可用性、可控性、可追踪性]]，并要求具备[[PD2R]] 动态防护能力；与信息安全、网络安全[[时代不同、本质相同]]。'},
+{i:'e12',d:'七',c:'exam',f:'简答：网络攻击的含义，它与病毒的区别，各类攻击针对哪种安全属性？',b:'含义：[[非授权攻击者]]通过计算机网络[[入侵目标系统]]的行为。\n与病毒区别：[[对象]]（明确/不区分）、[[目标]]（有区分/无区分）、[[手段]]（有差异/基本一致）。\n属性对应：截取→[[机密性]]，篡改→[[完整性]]，伪造→[[认证性]]，木马→[[可控性]]，阻断→[[可用性]]。'},
+{i:'e13',d:'二',c:'exam',f:'简答：密码系统的组成及分类原则。',b:'组成：S={[[M,C,K,E,D]]}，[[C=E_k(M)]]、[[M=D_k(C)]]，[[算法不变、密钥可变]]。\n分类原则：按[[加解密密钥是否相同或能否易互推]]分[[对称密码]]（分组/序列）与[[非对称（公钥）密码]]。'},
+{i:'e14',d:'二',c:'exam',f:'简答：密码算法公开的意义；分组密码的设计原则。',b:'公开意义：[[推广与标准化]]、[[增强安全性]]（接受检验）、[[增强用户信心]]、[[促进技术发展]]。\n分组密码：参数为[[分组长度、密钥长度]]，需[[子密钥生成算法]]、[[轮函数]]（扩散=雪崩、混乱=非线性）、[[迭代轮数]]（分析难度>穷举难度）。'},
+{i:'e15',d:'五',c:'exam',f:'简答：计算机病毒的简评；应养成哪些好习惯避免病毒入侵？',b:'简评五化：[[网络化、多样化、智能化、黑客化、功利化]]。\n好习惯：装杀软并[[更新病毒库]]、[[及时打补丁]]、不点陌生邮件与链接、[[不用盗版与不明软件]]、U 盘先杀毒并[[关闭自动播放]]、关闭不必要共享、强口令、[[定期备份]]、提高安全意识。'},
+
+/* ---------------- 硬数字 ---------------- */
+{i:'n1',d:'三',c:'num',f:'按现在计算能力，RSA 密钥长度至少多少位才安全？',b:'[[2048 位]]（不少于 2048）。'},
+{i:'n2',d:'二',c:'num',f:'AES 的分组长度与密钥长度？',b:'分组 [[128 位]]；密钥 [[128 / 192 / 256 位]]。'},
+{i:'n3',d:'二',c:'num',f:'DES 的密钥长度？为何不安全？',b:'[[56 位]]；密钥空间 2^56，按现在计算能力可被[[穷举攻击]]（1999 年 22 小时 15 分被破解）。'},
+{i:'n4',d:'二',c:'num',f:'对称密码目前的密钥长度要求？',b:'不少于 [[128 位]]；且[[密文与明文等长]]（无数据扩展）。'},
+{i:'n5',d:'二',c:'num',f:'n 个用户两两通信，对称体制下系统总密钥量？',b:'[[n(n-1)/2]]（每个用户需 n-1 个密钥，每对共用一把）。'},
+{i:'n6',d:'四',c:'num',f:'n 位哈希值，寻找碰撞的复杂度？',b:'[[O(2^(n/2))]]（生日攻击；2^(n/2) 时碰撞概率已大于 50%）。'},
+{i:'n7',d:'四',c:'num',f:'SHA-1 的分组长度与输出长度？',b:'分组 [[512 位]]，输出 [[160 位]]（SHA-2 家族：224/256/384/512）。'},
+{i:'n8',d:'四',c:'num',f:'数字签名的签名值长度与消息长度有关吗？',b:'[[无关]]——只签[[定长摘要 h(m)]]，长度由算法与密钥长度决定。'},
+{i:'n9',d:'三',c:'num',f:'设 p=11、q=17、e=7，则 n、φ(n)、d 各为多少？',b:'n = [[187]]；φ(n) = 10×16 = [[160]]；由 7d ≡ 1 (mod 160) 得 d = [[23]]（7×23=161≡1）。'}
+];
+
+/* =========================================================
+   间隔重复内核：新卡 1min → 10min → 毕业(1天)；复习按 ease 增长
+   ========================================================= */
+const MIN=60000, DAY=86400000;
+const NEW_STEPS=[1,10];      // 学习步（分钟）
+const RELEARN_STEP=10;       // 复习卡答错后的重学步（分钟）
+const HARD_MIN=5;            // 学习中按「模糊」的间隔（分钟）
+const MAX_IVL=365;           // 间隔上限（天）
+const LS='wangan-cards-v2', OLD='wangan-midterm-cards-v1';
+
+const DECK_LABEL={'一':'第一讲 · 概述','二':'第二讲 · 密码基础','三':'第三讲 · 公钥密码','四':'第四讲 · Hash','五':'第五讲 · 恶意软件','六':'第六讲 · 防火墙','七':'第七讲 · 网络攻击'};
+const CAT_LABEL={term:'术语',list:'清单',trap:'陷阱',exam:'押题',num:'数字'};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const dayKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+function fmtDur(ms){
+  if(ms<0) ms=0;
+  if(ms<60000) return Math.max(1,Math.round(ms/1000))+' 秒';
+  if(ms<3600000) return Math.max(1,Math.round(ms/60000))+' 分钟';
+  if(ms<86400000) return (ms/3600000).toFixed(1).replace('.0','')+' 小时';
+  return Math.round(ms/86400000)+' 天';
+}
+
+let DB={current:null, profiles:[], ui:{deck:'all', cat:'all', mode:'cloze'}};
+let RUSH=0;                 // 「跳过等待」的时间偏移
+let CUR=null;               // 当前卡片
+let waitTimer=null;         // 等待倒计时
+const nowMs=()=>Date.now()+RUSH;
+
+/* ---------- 存档存取 ---------- */
+function blankState(){ return {st:'new',due:0,ivl:0,ease:2.5,reps:0,lapses:0,step:0,last:0}; }
+function newProfile(name){
+  return {id:'p'+Date.now().toString(36)+Math.floor(Math.random()*99), name:name||'新存档',
+          created:Date.now(), cards:{}, stats:{right:0,wrong:0}, days:{}};
+}
+function curP(){ return DB.profiles.find(p=>p.id===DB.current) || DB.profiles[0]; }
+function stateOf(id, p){
+  const prof=p||curP();
+  if(!prof.cards[id]) prof.cards[id]=blankState();
+  return prof.cards[id];
+}
+function loadDB(){
+  try{
+    const j=JSON.parse(localStorage.getItem(LS)||'null');
+    if(j && Array.isArray(j.profiles) && j.profiles.length) DB=j;
+  }catch(e){}
+  if(!DB.profiles.length) migrate();
+  if(!DB.ui) DB.ui={deck:'all',cat:'all',mode:'cloze'};
+  DB.profiles.forEach(p=>{ if(!p.cards)p.cards={}; if(!p.stats)p.stats={right:0,wrong:0}; if(!p.days)p.days={}; });
+  if(!DB.current || !DB.profiles.some(p=>p.id===DB.current)) DB.current=DB.profiles[0].id;
+  if(DB.ui.deck!=='all' && !(DB.ui.deck in DECK_LABEL)) DB.ui.deck='all';
+  if(DB.ui.cat!=='all' && !(DB.ui.cat in CAT_LABEL)) DB.ui.cat='all';
+}
+function saveDB(){ try{ localStorage.setItem(LS, JSON.stringify(DB)); }catch(e){} }
+function migrate(){
+  let mastered=[];
+  try{
+    const o=JSON.parse(localStorage.getItem(OLD)||'{}');
+    if(Array.isArray(o.mastered)) mastered=o.mastered;
+  }catch(e){}
+  const p=newProfile('第 1 遍');
+  mastered.forEach(id=>{
+    p.cards[id]={st:'review',due:Date.now()+2*DAY,ivl:4,ease:2.5,reps:3,lapses:0,step:0,last:Date.now()};
+  });
+  DB={current:p.id, profiles:[p], ui:{deck:'all',cat:'all',mode:'cloze'}};
+  saveDB();
+}
+
+/* ---------- 调度计算（预测与实际共用同一函数） ---------- */
+function computeNext(s0, g, t){
+  const s={...s0};
+  if(g===1){                                   // 不会
+    if(s0.st==='review'||s0.st==='relearn'){
+      s.st='relearn'; s.step=0; s.lapses++; s.ivl=1;
+      s.due=t+RELEARN_STEP*MIN;
+    }else{
+      s.st='learn'; s.step=0;
+      s.due=t+NEW_STEPS[0]*MIN;
+    }
+    s.ease=clamp(s.ease-0.2,1.3,2.8);
+  }else if(g===2){                             // 模糊
+    s.ease=clamp(s.ease-0.15,1.3,2.8);
+    if(s0.st==='new'){ s.st='learn'; s.step=0; s.due=t+HARD_MIN*MIN; }
+    else if(s0.st==='learn'||s0.st==='relearn'){ s.due=t+HARD_MIN*MIN; }
+    else { s.ivl=Math.max(1,Math.round(s0.ivl*1.2)); s.due=t+s.ivl*DAY; }
+  }else{                                       // 会
+    s.ease=clamp(s.ease+0.1,1.3,2.8); s.reps=s0.reps+1;
+    if(s0.st==='new'){ s.st='learn'; s.step=1; s.due=t+NEW_STEPS[1]*MIN; }
+    else if(s0.st==='learn'){
+      const st=s0.step+1;
+      if(st>=NEW_STEPS.length){ s.st='review'; s.step=0; s.ivl=1; s.due=t+DAY; }
+      else { s.step=st; s.due=t+NEW_STEPS[st]*MIN; }
+    }
+    else if(s0.st==='relearn'){ s.st='review'; s.step=0; s.ivl=1; s.due=t+DAY; }
+    else { s.ivl=Math.min(MAX_IVL, Math.max(2, Math.round(s0.ivl*s0.ease))); s.due=t+s.ivl*DAY; }
+  }
+  return s;
+}
+function predictLabel(s,g){
+  if(!s) return '—';
+  const n=computeNext(s,g,nowMs());
+  return fmtDur(n.due-nowMs());
+}
+function tagOf(s){
+  if(s.st==='new') return {t:'新卡', c:'new'};
+  if(s.st==='learn') return {t:'学习中 · '+fmtDur(s.due-nowMs())+'后', c:''};
+  if(s.st==='relearn') return {t:'重学 · '+fmtDur(s.due-nowMs())+'后', c:'rel'};
+  return {t:'间隔 '+s.ivl+' 天 · 第 '+Math.max(1,s.reps)+' 次', c:''};
+}
+
+/* ---------- 池子与选卡 ---------- */
+function pool(){
+  return CARDS.filter(c=>(DB.ui.deck==='all'||c.d===DB.ui.deck)&&(DB.ui.cat==='all'||c.c===DB.ui.cat));
+}
+function counts(p){
+  const prof=p||curP(), t=nowMs();
+  let learned=0,due=0,fresh=0;
+  const ps=pool();
+  for(const c of ps){
+    const s=prof.cards[c.i];
+    if(!s||s.st==='new'){ fresh++; continue; }
+    learned++;
+    if(s.due<=t) due++;
+  }
+  return {total:ps.length, learned, due, fresh, waiting:due+fresh};
+}
+function pick(){
+  const t=nowMs(), prof=curP();
+  const due=[], news=[];
+  for(const c of pool()){
+    const s=stateOf(c.i);
+    if(s.st==='new') news.push(c);
+    else if(s.due<=t) due.push(c);
+  }
+  const rank=s=>s.st==='relearn'?0:(s.st==='learn'?1:2);
+  due.sort((a,b)=>{
+    const ra=rank(prof.cards[a.i]), rb=rank(prof.cards[b.i]);
+    if(ra!==rb) return ra-rb;
+    return prof.cards[a.i].due-prof.cards[b.i].due;
+  });
+  if(due.length) return due[0];
+  if(news.length) return news[Math.floor(Math.random()*news.length)];
+  return null;
+}
+function nextDueTime(){
+  const t=nowMs(), prof=curP(); let min=Infinity;
+  for(const c of pool()){
+    const s=prof.cards[c.i];
+    if(s && s.st!=='new' && s.due>t) min=Math.min(min,s.due);
+  }
+  return isFinite(min)?min:0;
+}
+
+/* ---------- 渲染 ---------- */
+function buildAnswer(c, revealAll){
+  const showKeys=(DB.ui.mode==='qa')||revealAll;
+  return c.b.split('\n').map(line=>{
+    const segs=line.split(/(\[\[[^\]]*\]\])/g);
+    let html='';
+    for(const s of segs){
+      if(!s) continue;
+      if(s.startsWith('[[')&&s.endsWith(']]')){
+        const t=s.slice(2,-2);
+        if(showKeys) html+='<b class="key">'+esc(t)+'</b>';
+        else html+='<button class="blank" data-t="'+esc(t)+'">…</button>';
+      }else html+=esc(s);
+    }
+    return '<div class="line">'+html+'</div>';
+  }).join('');
+}
+
+function revealAll(){
+  if(!CUR) return;
+  const a=$('#cA');
+  a.classList.remove('masked');
+  a.innerHTML=buildAnswer(CUR,true);
+}
+
+function updateStats(){
+  const c=counts(), p=curP();
+  const tot=p.stats.right+p.stats.wrong;
+  const today=p.days[dayKey(Date.now())]||0;
+  let streak=0, d=new Date();
+  for(let i=0;i<3650;i++){
+    const k=dayKey(d.getTime());
+    if(p.days[k]){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  $('#sLearned').textContent=c.learned;
+  $('#sTotal').textContent=c.total;
+  $('#sAcc').textContent=tot?Math.round(p.stats.right/tot*100)+'%':'–';
+  $('#sToday').textContent=today;
+  $('#sStreak').textContent=streak;
+  $('#sDue').textContent=c.waiting;
+  $('#barFill').style.width=(c.total?(c.learned/c.total*100):0)+'%';
+  $('#pName').textContent=p.name;
+  $('#btnMode').textContent=DB.ui.mode==='cloze'?'挖空模式':'翻卡模式';
+  $('#btnMode').classList.toggle('on',DB.ui.mode==='cloze');
+}
+
+function renderCard(){
+  clearInterval(waitTimer); waitTimer=null;
+  const c=CUR, s=stateOf(c.i), tag=tagOf(s);
+  $('#cDeck').textContent=DECK_LABEL[c.d]||c.d;
+  $('#cCat').textContent=CAT_LABEL[c.c]||c.c;
+  const tg=$('#cTag'); tg.textContent=tag.t; tg.className='tag '+tag.c;
+  const q=$('#cQ'); q.textContent=c.f; q.classList.toggle('tf',c.c==='trap');
+  const a=$('#cA');
+  a.classList.remove('masked');
+  a.innerHTML=buildAnswer(c,false);
+  if(DB.ui.mode==='qa') a.classList.add('masked');
+  $('#cHint').textContent=(DB.ui.mode==='qa')
+    ? '点答案区或按空格揭开 · 1 不会 / 2 模糊 / 3 会'
+    : '点「…」揭示该空，空格揭示全部 · 1 不会 / 2 模糊 / 3 会';
+  document.querySelector('[data-g="1"] small').textContent=predictLabel(s,1);
+  document.querySelector('[data-g="2"] small').textContent=predictLabel(s,2);
+  document.querySelector('[data-g="3"] small').textContent=predictLabel(s,3);
+  updateStats();
+}
+
+function renderWait(ts){
+  clearInterval(waitTimer);
+  $('#cDeck').textContent='等待';
+  $('#cCat').textContent='';
+  const tg=$('#cTag'); tg.textContent=''; tg.className='tag';
+  const tick=()=>{
+    const left=ts-nowMs();
+    if(left<=0){ clearInterval(waitTimer); next(); return; }
+    $('#cQ').textContent='本批学完了，下一张 '+fmtDur(left)+' 后到期';
+  };
+  tick();
+  $('#cA').innerHTML='<div class="line"><button class="ghost" id="skipWait">跳过等待，立即复习</button></div>';
+  $('#cHint').textContent='也可以先去喝口水，到点会自动出现（间隔按正常规则计算）';
+  updateStats();
+  waitTimer=setInterval(tick,1000);
+}
+
+function renderDone(){
+  clearInterval(waitTimer); waitTimer=null;
+  $('#cDeck').textContent='完成';
+  $('#cCat').textContent='';
+  const tg=$('#cTag'); tg.textContent=''; tg.className='tag';
+  $('#cQ').textContent='本存档这一轮全部学完了 🎉';
+  const c=counts(), p=curP(), tot=p.stats.right+p.stats.wrong;
+  $('#cA').innerHTML='<div class="line">已学 '+c.learned+'/'+c.total+' 张 · 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）</div>'
+    +'<div class="line">正确率 '+(tot?Math.round(p.stats.right/tot*100):0)+'%</div>'
+    +'<div class="line"><button class="ghost" id="skipWait">再来一轮（重置本存档）</button></div>';
+  $('#cHint').textContent='可以去「存档」里新建一个「考前第 2 遍」，从零再刷一遍。';
+  updateStats();
+  setTimeout(showDone,150);
+}
+
+function showDone(){
+  const c=counts(), p=curP(), tot=p.stats.right+p.stats.wrong;
+  $('#doneTitle').textContent='本存档这一轮完成 🎉';
+  $('#doneAcc').textContent=(tot?Math.round(p.stats.right/tot*100):0)+'%';
+  $('#doneInfo').textContent='已学 '+c.learned+'/'+c.total+' 张 · 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）';
+  let soon=0; const t=nowMs()+DAY;
+  for(const card of pool()){ const s=p.cards[card.i]; if(s&&s.st!=='new'&&s.due<=t&&s.due>nowMs()) soon++; }
+  $('#doneNext2').textContent='24 小时内还会到期 '+soon+' 张';
+  $('#done').classList.remove('hide');
+}
+
+function next(){
+  CUR=pick();
+  if(CUR){ renderCard(); window.scrollTo({top:0,behavior:'smooth'}); return; }
+  const nd=nextDueTime();
+  if(nd) renderWait(nd);
+  else renderDone();
+}
+
+/* ---------- 评分 ---------- */
+function grade(g){
+  if(!CUR) return;
+  const p=curP(), s=stateOf(CUR.i), t=nowMs();
+  Object.assign(s, computeNext(s,g,t));
+  s.last=t;
+  const k=dayKey(Date.now());
+  p.days[k]=(p.days[k]||0)+1;
+  if(g===3) p.stats.right++; else p.stats.wrong++;
+  saveDB();
+  next();
+}
+
+/* ---------- 存档面板 ---------- */
+function renderPanel(){
+  const el=$('#plist');
+  const t=nowMs(), ps=pool();
+  el.innerHTML=DB.profiles.map(p=>{
+    let learned=0;
+    for(const c of ps){ const s=p.cards[c.i]; if(s&&s.st!=='new') learned++; }
+    const tot=(p.stats.right||0)+(p.stats.wrong||0);
+    const acc=tot?Math.round((p.stats.right||0)/tot*100):0;
+    return '<button class="pitem '+(p.id===DB.current?'on':'')+'" data-id="'+p.id+'">'
+      +'<div class="pname">'+esc(p.name)+(p.id===DB.current?' · 当前':'')+'</div>'
+      +'<div class="pmeta">已学 '+learned+'/'+ps.length+' · 正确率 '+acc+'% · 建于 '+new Date(p.created).toLocaleDateString()+'</div>'
+      +'<div class="pbar"><i style="width:'+(ps.length?learned/ps.length*100:0)+'%"></i></div>'
+      +'</button>';
+  }).join('');
+}
+function openPanel(){ renderPanel(); $('#panel').classList.remove('hide'); }
+function closePanel(){ $('#panel').classList.add('hide'); }
+
+/* ---------- 事件 ---------- */
+$('#cA').addEventListener('click',e=>{
+  const b=e.target.closest('.blank');
+  if(b){
+    const span=document.createElement('b');
+    span.className='key'; span.textContent=b.dataset.t;
+    b.replaceWith(span);
+    return;
+  }
+  if(e.target.id==='skipWait'){
+    if($('#cQ').textContent.indexOf('全部学完')>=0){ $('#btnReset').click(); return; }
+    RUSH+=15*60*1000; next(); return;
+  }
+  if($('#cA').classList.contains('masked')) revealAll();
+});
+$('#btnReveal').addEventListener('click',revealAll);
+document.querySelectorAll('[data-g]').forEach(b=>b.addEventListener('click',()=>grade(Number(b.dataset.g))));
+
+$('#btnMode').addEventListener('click',()=>{
+  DB.ui.mode=DB.ui.mode==='cloze'?'qa':'cloze'; saveDB();
+  if(CUR) renderCard(); else updateStats();
+});
+
+$('#btnReset').addEventListener('click',()=>{
+  if(!confirm('重置「'+curP().name+'」的全部学习记录？（其他存档不受影响）')) return;
+  curP().cards={}; curP().stats={right:0,wrong:0}; curP().days={};
+  RUSH=0; saveDB(); $('#done').classList.add('hide'); next();
+});
+
+$('#btnProfile').addEventListener('click',openPanel);
+$('#pclose').addEventListener('click',closePanel);
+$('#panel').addEventListener('click',e=>{ if(e.target.id==='panel') closePanel(); });
+
+$('#plist').addEventListener('click',e=>{
+  const it=e.target.closest('.pitem');
+  if(!it) return;
+  DB.current=it.dataset.id; RUSH=0; saveDB(); closePanel(); $('#done').classList.add('hide'); next();
+});
+$('#pnew').addEventListener('click',()=>{
+  const inp=$('#pname');
+  const name=(inp.value||'').trim()||('第 '+(DB.profiles.length+1)+' 遍');
+  const p=newProfile(name);
+  DB.profiles.push(p); DB.current=p.id; inp.value='';
+  RUSH=0; saveDB(); renderPanel(); $('#done').classList.add('hide'); next();
+});
+$('#prename').addEventListener('click',()=>{
+  const p=curP();
+  const n=prompt('存档名称：',p.name);
+  if(n && n.trim()){ p.name=n.trim(); saveDB(); renderPanel(); updateStats(); }
+});
+$('#pdel').addEventListener('click',()=>{
+  if(DB.profiles.length<=1){ alert('至少保留一个存档。'); return; }
+  const p=curP();
+  if(!confirm('删除存档「'+p.name+'」及其全部进度？')) return;
+  DB.profiles=DB.profiles.filter(x=>x.id!==p.id);
+  DB.current=DB.profiles[0].id;
+  RUSH=0; saveDB(); renderPanel(); next();
+});
+
+$('#doneContinue').addEventListener('click',()=>{ $('#done').classList.add('hide'); RUSH+=15*60*1000; next(); });
+$('#doneReset').addEventListener('click',()=>{ $('#done').classList.add('hide'); $('#btnReset').click(); });
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(!$('#panel').classList.contains('hide')) return;
+  if(e.code==='Space'||e.key===' '){ e.preventDefault(); revealAll(); return; }
+  if(e.key==='1'||e.key==='2'||e.key==='3'){ e.preventDefault(); grade(Number(e.key)); }
+});
+
+/* ---------- 启动 ---------- */
+function initSelects(){
+  const d=$('#selDeck'), c=$('#selCat');
+  d.innerHTML='<option value="all">全部讲次</option>'+
+    Object.keys(DECK_LABEL).map(k=>'<option value="'+k+'">'+DECK_LABEL[k]+'</option>').join('');
+  c.innerHTML='<option value="all">全部类型</option>'+
+    Object.keys(CAT_LABEL).map(k=>'<option value="'+k+'">'+CAT_LABEL[k]+'</option>').join('');
+  d.value=DB.ui.deck; c.value=DB.ui.cat;
+  d.addEventListener('change',()=>{ DB.ui.deck=d.value; saveDB(); RUSH=0; next(); });
+  c.addEventListener('change',()=>{ DB.ui.cat=c.value; saveDB(); RUSH=0; next(); });
+}
+
+loadDB();
+initSelects();
+updateStats();
+next();
+</script>
+</body>
+</html>
