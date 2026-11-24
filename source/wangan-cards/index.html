@@ -205,6 +205,12 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
           <button class="ghost" id="cdisconnect">断开</button>
         </div>
         <div class="st" id="cmsg"></div>
+        <div id="codeBox" class="hide" style="margin-top:8px">
+          <div class="st">📱 手机打开这个链接即可自动配置（推荐，不用粘贴）：</div>
+          <input id="clink" type="text" readonly>
+          <div class="st">或手动粘贴同步码：</div>
+          <input id="ccodeval" type="text" readonly>
+        </div>
       </div>
     </div>
     <div class="hint" style="margin-top:12px">每个存档独立记录进度，互不影响。考前想从零再过一遍，就新建一个存档。<br>换浏览器 / 换域名（本地文件 ↔ 线上 blog）时，用「导出 → 导入」搬进度。</div>
@@ -752,6 +758,16 @@ function importProgress(file){
   };
   r.readAsText(file);
 }
+function parseSyncCode(raw){
+  let s=String(raw||'').trim().replace(/[\s\u3000]/g,'').replace(/：/g,':');
+  if(!/^wgs1:/i.test(s)) throw new Error('不是同步码（应以 wgs1: 开头）');
+  if(s.slice(0,5)!=='wgs1:') s='wgs1:'+s.slice(5);   // 修正大小写 WGS1:
+  let o;
+  try{ o=JSON.parse(atob(s.slice(5))); }
+  catch(e){ throw new Error('同步码内容损坏或没复制全'); }
+  if(!o.t||!o.g) throw new Error('同步码缺少 token 或 gist id');
+  return o;
+}
 function normalizeSnapshot(j){
   if(!j || !Array.isArray(j.profiles) || !j.profiles.length) throw new Error('没有存档数据');
   const profs=j.profiles.map(p=>({
@@ -830,17 +846,27 @@ async function gh(path, opts){
 }
 
 async function cloudConnect(){
-  const inp=$('#ctoken'), v=(inp.value||'').trim();
-  if(!v){ alert('请先粘贴 Token 或同步码'); return; }
-  if(v.startsWith('wgs1:')){
-    try{
-      const o=JSON.parse(atob(v.slice(5)));
-      SYNC.token=o.t||''; SYNC.gistId=o.g||''; SYNC.login=o.u||'';
-      if(!SYNC.token||!SYNC.gistId) throw new Error('同步码不完整');
-      saveSync(); inp.value=''; renderCloudInfo();
-      cloudMsg('已从同步码恢复配置，可点「下载」拉取进度。');
-      return;
-    }catch(e){ alert('同步码无效：'+e.message); return; }
+  const inp=$('#ctoken'), raw=(inp.value||'').trim();
+  if(!raw){ alert('请先粘贴 Token 或同步码'); return; }
+  // 去掉所有空白（含全角空格），并把全角冒号纠正成半角——手机输入法最容易在这里出错
+  const v=raw.replace(/[\s\u3000]/g,'').replace(/：/g,':');
+
+  // A. 同步码
+  if(/^wgs1:/i.test(v)){
+    let o;
+    try{ o=parseSyncCode(v); }
+    catch(e){ alert('同步码无效：'+e.message); return; }
+    SYNC.token=o.t; SYNC.gistId=o.g; SYNC.login=o.u||'';
+    saveSync(); inp.value=''; renderCloudInfo();
+    cloudMsg('已配置云同步，点「从 Gist 下载」拉取进度。');
+    return;
+  }
+
+  // B. 既不像 token 也不像同步码 → 直接点明原因，别再拿去当 token 验证
+  const looksToken=/^(ghp_|gho_|ghu_|ghs_|ghr_|github_pat_)/i.test(v);
+  if(!looksToken){
+    alert('这串内容不像 GitHub Token（应以 ghp_ 或 github_pat_ 开头），也不像同步码（应以 wgs1: 开头）。\n\n常见原因：\n· 冒号被输入法改成了全角「：」（本次已自动纠正）\n· 开头/结尾多了字符，或没复制全\n· 手机上没粘进输入框就点了按钮\n\n💡 更省事的办法：在电脑上点「复制同步码」，用里面的**一键链接**，手机直接打开就能自动配置。');
+    return;
   }
   SYNC.token=v; SYNC.gistId=''; SYNC.login='';
   const btn=$('#cconnect'); btn.disabled=true; cloudMsg('连接中…');
@@ -902,10 +928,15 @@ async function cloudDownload(){
 function cloudCode(){
   if(!SYNC.token||!SYNC.gistId){ alert('请先连接'); return; }
   const code='wgs1:'+btoa(JSON.stringify({t:SYNC.token,g:SYNC.gistId,u:SYNC.login}));
-  const done=()=>cloudMsg('同步码已复制，粘到另一台设备的输入框即可。');
+  const link=location.origin+location.pathname+'?sync='+encodeURIComponent(code);
+  $('#codeBox').classList.remove('hide');
+  $('#clink').value=link;
+  $('#ccodeval').value=code;
+  try{ $('#clink').focus(); $('#clink').select(); }catch(e){}
+  const done=()=>cloudMsg('已复制一键链接：手机打开它就会自动配置，不用手动粘贴。');
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(code).then(done).catch(()=>prompt('复制这段同步码：',code));
-  } else prompt('复制这段同步码：',code);
+    navigator.clipboard.writeText(link).then(done).catch(()=>cloudMsg('请手动复制下面的链接（长按输入框全选）。'));
+  } else cloudMsg('请手动复制下面的链接（长按输入框全选）。');
 }
 function cloudDisconnect(){
   if(!confirm('断开云同步？（不影响本地进度，Token 会从本机删除）')) return;
@@ -928,6 +959,10 @@ $('#cdownload').addEventListener('click',cloudDownload);
 $('#ccode').addEventListener('click',cloudCode);
 $('#cdisconnect').addEventListener('click',cloudDisconnect);
 $('#ctoken').addEventListener('keydown',e=>{ if(e.key==='Enter') cloudConnect(); });
+['clink','ccodeval'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('focus',e=>{ try{e.target.select();}catch(_){} });
+});
 $('#pexport').addEventListener('click',exportProgress);
 $('#pimport').addEventListener('click',()=>$('#pfile').click());
 $('#pfile').addEventListener('change',e=>{
@@ -969,6 +1004,19 @@ function initSelects(){
 
 loadDB();
 loadSync();
+(function autoSyncFromUrl(){
+  const m=location.search.match(/[?&]sync=([^&]*)/);
+  if(!m || !m[1]) return;
+  try{
+    const o=parseSyncCode(decodeURIComponent(m[1]));
+    SYNC.token=o.t; SYNC.gistId=o.g; SYNC.login=o.u||'';
+    saveSync();
+    try{ history.replaceState(null,'',location.pathname); }catch(e){}
+    setTimeout(function(){
+      alert('已通过链接配置云同步（'+SYNC.login+'）。\n\n下一步：点右上「'+curP().name+' ▾」→「从 Gist 下载」拉取进度。');
+    },400);
+  }catch(e){ console.warn('sync link invalid:',e); }
+})();
 initSelects();
 updateStats();
 next();
