@@ -109,6 +109,14 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
 .cloud .st{font-size:12px;color:var(--dim);margin-top:6px;line-height:1.6}
 .cloud .st b{color:var(--tx)}
 .cloud .dot{color:var(--yel)}
+details>summary{font-size:12px;color:var(--dim);cursor:pointer;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:'▸ ';color:var(--dim)}
+details[open]>summary::before{content:'▾ '}
+details[open]>summary{color:var(--tx)}
+.drow{display:flex;gap:8px;align-items:center;margin-top:6px}
+.drow>span{flex:1;font-size:12px;color:var(--dim);line-height:1.5;margin:0}
+.drow>button{flex:0 0 auto;padding:3px 9px;font-size:12px}
 @media (max-width:640px){
   .top{padding:12px 14px 4px}
   .title{font-size:15.5px}
@@ -128,7 +136,7 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
 <body>
 
 <header class="top">
-  <div class="title">网络空间安全导论 · 期中记忆卡<span class="sub">间隔重复版</span></div>
+  <div class="title">网络空间安全导论 · 期中记忆卡<span class="sub">间隔重复 · v3</span></div>
   <button class="profile-btn" id="btnProfile"><span id="pName">—</span> ▾</button>
 </header>
 <div class="stats-line">
@@ -184,6 +192,10 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
     <div class="prow">
       <button class="ghost" id="prestore">恢复「已掌握」（0 张）</button>
     </div>
+    <details id="doneList" style="margin-top:6px">
+      <summary>查看已掌握清单</summary>
+      <div id="doneItems" style="margin-top:8px;max-height:240px;overflow:auto"></div>
+    </details>
     <div class="prow">
       <button class="ghost" id="pexport">导出进度（下载 json）</button>
       <button class="ghost" id="pimport">导入进度</button>
@@ -453,7 +465,7 @@ function computeNext(s0, g, t){
     else if(s0.st==='learn'||s0.st==='relearn'){ s.due=t+HARD_MIN*MIN; }
     else { s.ivl=Math.max(1,Math.round(s0.ivl*1.2)); s.due=t+s.ivl*DAY; }
   }else{                                       // 会
-    s.ease=clamp(s.ease+0.1,1.3,2.8); s.reps=s0.reps+1;
+    s.ease=clamp(s.ease+0.1,1.3,2.8); s.reps=(Number(s0.reps)||0)+1;
     if(s.reps>=MASTER_REPS){                    // 两次“会”→已掌握，不再进入循环
       s.st='done'; s.step=0; s.ivl=0; s.due=8.64e15; return s;
     }
@@ -664,8 +676,20 @@ function grade(g){
 function renderPanel(){
   const el=$('#plist');
   (function(){
-    let n=0; for(const k in curP().cards){ if(curP().cards[k].st==='done') n++; }
-    const b=$('#prestore'); if(b) b.textContent='恢复「已掌握」（'+n+' 张）';
+    const ids=Object.keys(curP().cards).filter(k=>curP().cards[k].st==='done');
+    const b=$('#prestore'); if(b) b.textContent='恢复「已掌握」（'+ids.length+' 张）';
+    const sum=$('#doneList') && $('#doneList').querySelector('summary');
+    if(sum) sum.textContent='查看已掌握清单（'+ids.length+' 张）';
+    const box=$('#doneItems');
+    if(box){
+      box.innerHTML = ids.length
+        ? ids.map(id=>{
+            const c=CARDS.find(x=>x.i===id);
+            if(!c) return '';
+            return '<div class="drow"><span>'+esc(c.f)+'</span><button class="ghost" data-restore="'+id+'">恢复</button></div>';
+          }).join('')
+        : '<div class="st" style="margin:0">还没有「已掌握」的卡片。</div>';
+    }
   })();
   const t=nowMs(), ps=pool();
   el.innerHTML=DB.profiles.map(p=>{
@@ -962,6 +986,14 @@ $('#ctoken').addEventListener('keydown',e=>{ if(e.key==='Enter') cloudConnect();
 ['clink','ccodeval'].forEach(id=>{
   const el=document.getElementById(id);
   el.addEventListener('focus',e=>{ try{e.target.select();}catch(_){} });
+});
+$('#doneItems').addEventListener('click',e=>{
+  const b=e.target.closest('[data-restore]');
+  if(!b) return;
+  const id=b.dataset.restore, s=curP().cards[id];
+  if(!s) return;
+  s.st='review'; s.step=0; s.ivl=1; s.due=nowMs();
+  saveDB(); markDirty(); renderPanel();
 });
 $('#pexport').addEventListener('click',exportProgress);
 $('#pimport').addEventListener('click',()=>$('#pfile').click());
