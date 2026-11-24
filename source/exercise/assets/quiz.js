@@ -53,6 +53,11 @@
   function htmlToText(html) {
     var d = document.createElement('div');
     d.innerHTML = html || '';
+    // KaTeX 输出里带 MathML 与 TeX 源码注释，摘要在纯文本里去掉它们
+    var junk = d.querySelectorAll('annotation, .katex-mathml');
+    Array.prototype.forEach.call(junk, function (n) {
+      if (n.parentNode) n.parentNode.removeChild(n);
+    });
     return (d.textContent || '').replace(/\s+/g, ' ').trim();
   }
   function byId(id) {
@@ -671,9 +676,15 @@
         );
       })
       .join('');
+    // 只滚动网格自身，避免带动整个页面
     var curEl = grid.querySelector('.cur');
-    if (curEl && curEl.scrollIntoView)
-      curEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (curEl) {
+      var gr = grid.getBoundingClientRect();
+      var cr = curEl.getBoundingClientRect();
+      if (cr.top < gr.top || cr.bottom > gr.bottom) {
+        grid.scrollTop += cr.top - gr.top - (gr.height - cr.height) / 2;
+      }
+    }
   }
 
   /* ---------------- 错题本 ---------------- */
