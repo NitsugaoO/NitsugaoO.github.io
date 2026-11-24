@@ -18,7 +18,7 @@
     view: 'practice',
     progress: {}, // qid -> {status:'ok'|'no', pick, inputs, fieldOk, revealed, ts}
     fe: {}, // feid -> {stepFound, whyOk, tried:[], whyWrong:[], ts}
-    filter: { chapter: 'all', type: 'all' },
+    filter: { course: 'all', chapter: 'all', type: 'all' },
     feFilter: { chapter: 'all' },
     cur: { practice: 0, find: 0 },
   };
@@ -71,6 +71,8 @@
   /* ---------------- 列表 / 筛选 ---------------- */
   function filteredQuestions() {
     return D.questions.filter(function (q) {
+      if (state.filter.course !== 'all' && q.course !== state.filter.course)
+        return false;
       if (state.filter.chapter !== 'all' && q.chapter !== state.filter.chapter)
         return false;
       if (state.filter.type !== 'all' && q.type !== state.filter.type)
@@ -178,21 +180,52 @@
   }
 
   /* ---------------- 练习视图 ---------------- */
+  var COURSE_NAME = { analysis: '数分', linear: '线代' };
+
   function renderChapterChips() {
+    // 课程 chips
+    var cbox = $('#course-filter');
+    if (cbox) {
+      var courses = [
+        ['all', '全部课程'],
+        ['analysis', '工科数学分析'],
+        ['linear', '线性代数'],
+      ];
+      cbox.innerHTML = courses
+        .map(function (c) {
+          return (
+            '<button type="button" class="chip" data-act="filter-course" data-course="' +
+            c[0] +
+            '" aria-pressed="' +
+            (state.filter.course === c[0]) +
+            '">' +
+            c[1] +
+            '</button>'
+          );
+        })
+        .join('');
+    }
+
     var box = $('#chapter-filter');
     if (!box) return;
+    var list = D.chapters.filter(function (c) {
+      return state.filter.course === 'all' || c.course === state.filter.course;
+    });
     var html =
       '<button type="button" class="chip" data-act="filter-chapter" data-ch="all" aria-pressed="' +
       (state.filter.chapter === 'all') +
       '">全部章节</button>';
-    D.chapters.forEach(function (c) {
+    list.forEach(function (c) {
+      var label =
+        (state.filter.course === 'all' && c.course === 'linear' ? '线代·' : '') +
+        c.title.replace(/^第\s*\d+\s*章\s*/, '');
       html +=
         '<button type="button" class="chip" data-act="filter-chapter" data-ch="' +
         c.id +
         '" aria-pressed="' +
         (state.filter.chapter === c.id) +
         '">' +
-        c.title.replace(/^第\s*\d+\s*章\s*/, '') +
+        label +
         '</button>';
     });
     box.innerHTML = html;
@@ -414,8 +447,8 @@
     );
     var head =
       '<header class="q-head">' +
-      '<span class="qno">宋 ' +
-      q.no +
+      '<span class="qno">' +
+      q.badge +
       '</span>' +
       '<span class="tag type">' +
       TYPE_NAME[q.type] +
@@ -477,21 +510,26 @@
         var cls = 'gcell';
         if (p) cls += p.status === 'ok' ? ' ok' : ' no';
         if (cur && cur.id === q.id) cls += ' cur';
+        if (q.course === 'linear') cls += ' la';
         return (
           '<button type="button" class="' +
           cls +
           '" data-act="goto-q" data-idx="' +
           i +
-          '" title="宋 ' +
-          q.no +
+          '" title="' +
+          q.badge +
           ' · ' +
           q.topic +
           '">' +
-          q.no +
+          q.grid +
           '</button>'
         );
       })
       .join('');
+    // 让当前题在网格里可见（网格有固定高度、可滚动）
+    var curEl = grid.querySelector('.cur');
+    if (curEl && curEl.scrollIntoView)
+      curEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   /* ---------------- 找错视图 ---------------- */
@@ -673,8 +711,8 @@
           '<div class="wi-title">' +
           htmlToText(q.stemHtml).slice(0, 120) +
           '</div>' +
-          '<div class="wi-meta">宋 ' +
-          q.no +
+          '<div class="wi-meta">' +
+          q.badge +
           ' · ' +
           q.topic +
           ' · <span class="badge-kind">' +
@@ -695,77 +733,139 @@
     var box = $('#topics-list');
     if (!box) return;
     var html = '';
-    D.chapters.forEach(function (ch) {
-      var qs = D.questions.filter(function (q) {
-        return q.chapter === ch.id;
+
+    ['analysis', 'linear'].forEach(function (cid) {
+      var chs = D.chapters.filter(function (c) {
+        return c.course === cid;
       });
-      if (!qs.length) return;
-      // 按首次出现顺序聚合 topic
-      var order = [];
-      var map = {};
-      qs.forEach(function (q) {
-        if (!map[q.topic]) {
-          map[q.topic] = [];
-          order.push(q.topic);
-        }
-        map[q.topic].push(q);
-      });
+      if (!chs.length) return;
+      var total = D.questions.filter(function (q) {
+        return q.course === cid;
+      }).length;
       html +=
-        '<div class="topic-chapter"><h3>' +
-        ch.title +
+        '<section class="course-block"><h2 class="course-title">' +
+        (cid === 'linear' ? '线性代数' : '工科数学分析（上）') +
         '<small>' +
-        ch.sub +
-        ' · ' +
-        qs.length +
-        ' 题</small></h3>';
-      order.forEach(function (topic, ti) {
-        var list = map[topic];
-        var points = [];
-        var seen = {};
-        list.forEach(function (q) {
-          (q.notes || []).forEach(function (n) {
-            var key = q.topic + '|' + n.html;
-            if (seen[key]) return;
-            seen[key] = 1;
-            points.push(
-              '<div class="topic-point"><span class="tp-from">宋 ' +
-                q.no +
-                ' · ' +
-                n.label +
-                '</span>' +
-                n.html +
-                '</div>'
-            );
-          });
+        total +
+        ' 题 · ' +
+        chs.length +
+        ' 章</small></h2>';
+
+      chs.forEach(function (ch) {
+        var qs = D.questions.filter(function (q) {
+          return q.chapter === ch.id;
         });
+        // 按首次出现顺序聚合 topic
+        var order = [];
+        var map = {};
+        qs.forEach(function (q) {
+          if (!map[q.topic]) {
+            map[q.topic] = [];
+            order.push(q.topic);
+          }
+          map[q.topic].push(q);
+        });
+        var tips = D.tips.filter(function (t) {
+          return t.chapter === ch.id;
+        });
+
         html +=
-          '<details class="topic"' +
-          (ti === 0 ? ' open' : '') +
-          '><summary>' +
-          topic +
-          '<span class="tcount">' +
-          list.length +
-          ' 题</span></summary>' +
-          '<div class="topic-body">' +
-          (points.length
-            ? points.join('')
-            : '<p class="hint">这道题的小结见题目解析（点下方题号查看）。</p>') +
-          '<div class="qlinks">' +
-          list
-            .map(function (q) {
-              return (
-                '<button type="button" class="qlink" data-act="goto-qid" data-qid="' +
-                q.id +
-                '">宋 ' +
-                q.no +
-                '</button>'
+          '<div class="topic-chapter"><h3>' +
+          ch.title +
+          '<small>' +
+          ch.sub +
+          ' · ' +
+          qs.length +
+          ' 题</small></h3>';
+
+        // 本章技巧卡
+        tips.forEach(function (t, ti) {
+          html +=
+            '<details class="tip"' +
+            (ti === 0 ? ' open' : '') +
+            '><summary>' +
+            t.titleHtml +
+            '</summary><div class="tip-body">' +
+            t.bodyHtml +
+            '</div></details>';
+        });
+
+        // 知识点
+        order.forEach(function (topic, ti) {
+          var list = map[topic];
+          var points = [];
+          var seen = {};
+          list.forEach(function (q) {
+            (q.notes || []).forEach(function (n) {
+              var key = q.topic + '|' + n.html;
+              if (seen[key]) return;
+              seen[key] = 1;
+              points.push(
+                '<div class="topic-point"><span class="tp-from">' +
+                  q.badge +
+                  ' · ' +
+                  n.label +
+                  '</span>' +
+                  n.html +
+                  '</div>'
               );
-            })
-            .join('') +
-          '</div></div></details>';
+            });
+          });
+          html +=
+            '<details class="topic"' +
+            (ti === 0 && !tips.length ? ' open' : '') +
+            '><summary>' +
+            topic +
+            '<span class="tcount">' +
+            list.length +
+            ' 题</span></summary>' +
+            '<div class="topic-body">' +
+            (points.length
+              ? points.join('')
+              : '<p class="hint">' +
+                (cid === 'linear'
+                  ? '完整推导见题目解析（点下方题号查看），本章套路见上方技巧卡。'
+                  : '这道题的小结见题目解析（点下方题号查看）。') +
+                '</p>') +
+            '<div class="qlinks">' +
+            list
+              .map(function (q) {
+                return (
+                  '<button type="button" class="qlink" data-act="goto-qid" data-qid="' +
+                  q.id +
+                  '">' +
+                  q.badge +
+                  '</button>'
+                );
+              })
+              .join('') +
+            '</div></div></details>';
+        });
+        html += '</div>';
       });
-      html += '</div>';
+      html += '</section>';
     });
+
+    // 通用技巧（不属于某一章）
+    var general = D.tips.filter(function (t) {
+      return !t.chapter;
+    });
+    if (general.length) {
+      html +=
+        '<section class="course-block"><h2 class="course-title">通用技巧<small>' +
+        general.length +
+        ' 张</small></h2>';
+      general.forEach(function (t) {
+        html +=
+          '<details class="tip" open><summary>' +
+          t.titleHtml +
+          '</summary><div class="tip-body">' +
+          t.bodyHtml +
+          '</div></details>';
+      });
+      html += '</section>';
+    }
+
     box.innerHTML = html || '<div class="empty">暂无知识点。</div>';
   }
 
@@ -805,6 +905,7 @@
       return q.id;
     }).indexOf(qid);
     if (idx < 0) {
+      state.filter.course = 'all';
       state.filter.chapter = 'all';
       state.filter.type = 'all';
       renderChapterChips();
@@ -931,8 +1032,20 @@
 
     if (act === 'theme') return toggleTheme();
 
+    if (act === 'filter-course') {
+      state.filter.course = t.dataset.course;
+      state.filter.chapter = 'all';
+      state.cur.practice = 0;
+      renderChapterChips();
+      renderPracticeStage();
+      return;
+    }
     if (act === 'filter-chapter') {
       state.filter.chapter = t.dataset.ch;
+      var curCh = D.chapters.filter(function (c) {
+        return c.id === state.filter.chapter;
+      })[0];
+      if (curCh) state.filter.course = curCh.course;
       state.cur.practice = 0;
       renderChapterChips();
       renderPracticeStage();
@@ -1139,6 +1252,7 @@
       }).indexOf(id);
       if (idx >= 0) state.cur.practice = idx;
       else {
+        state.filter.course = 'all';
         state.filter.chapter = 'all';
         state.filter.type = 'all';
         renderChapterChips();
