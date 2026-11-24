@@ -173,7 +173,12 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
       <button class="ghost" id="pdel">删除当前</button>
       <button class="ghost" id="pclose">关闭</button>
     </div>
-    <div class="hint" style="margin-top:12px">每个存档独立记录进度，互不影响。考前想从零再过一遍，就新建一个存档。</div>
+    <div class="prow">
+      <button class="ghost" id="pexport">导出进度（下载 json）</button>
+      <button class="ghost" id="pimport">导入进度</button>
+      <input type="file" id="pfile" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="hint" style="margin-top:12px">每个存档独立记录进度，互不影响。考前想从零再过一遍，就新建一个存档。<br>换浏览器 / 换域名（本地文件 ↔ 线上 blog）时，用「导出 → 导入」搬进度。</div>
   </div>
 </div>
 
@@ -679,6 +684,50 @@ $('#prename').addEventListener('click',()=>{
   const n=prompt('存档名称：',p.name);
   if(n && n.trim()){ p.name=n.trim(); saveDB(); renderPanel(); updateStats(); }
 });
+/* ---------- 导出 / 导入进度 ---------- */
+function exportProgress(){
+  const data={app:'wangan-cards', v:2, exportedAt:new Date().toISOString(),
+              current:DB.current, ui:DB.ui, profiles:DB.profiles};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='wangan-progress-'+dayKey(Date.now())+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function importProgress(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    let j;
+    try{ j=JSON.parse(r.result); }
+    catch(e){ alert('导入失败：不是合法的 JSON 文件'); return; }
+    if(!j || !Array.isArray(j.profiles) || !j.profiles.length){ alert('导入失败：文件里没有存档数据'); return; }
+    const n=j.profiles.length;
+    const learned=j.profiles.map(p=>Object.values(p.cards||{}).filter(s=>s&&s.st&&s.st!=='new').length).reduce((a,b)=>a+b,0);
+    if(!confirm('导入会用文件里的 '+n+' 个存档（共 '+learned+' 张已学）覆盖当前所有存档，确定？')) return;
+    const profs=j.profiles.map(p=>({
+      id:p.id||('p'+Math.random().toString(36).slice(2)),
+      name:p.name||'导入存档',
+      created:p.created||Date.now(),
+      cards:p.cards||{}, stats:p.stats||{right:0,wrong:0}, days:p.days||{}
+    }));
+    DB={current:(j.current&&profs.some(x=>x.id===j.current))?j.current:profs[0].id,
+        profiles:profs, ui:j.ui||DB.ui};
+    if(DB.ui.deck!=='all' && !(DB.ui.deck in DECK_LABEL)) DB.ui.deck='all';
+    if(DB.ui.cat!=='all' && !(DB.ui.cat in CAT_LABEL)) DB.ui.cat='all';
+    saveDB(); RUSH=0; closePanel(); $('#done').classList.add('hide'); next();
+    alert('导入成功：'+n+' 个存档，'+learned+' 张已学。');
+  };
+  r.readAsText(file);
+}
+$('#pexport').addEventListener('click',exportProgress);
+$('#pimport').addEventListener('click',()=>$('#pfile').click());
+$('#pfile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(f) importProgress(f);
+  e.target.value='';
+});
+
 $('#pdel').addEventListener('click',()=>{
   if(DB.profiles.length<=1){ alert('至少保留一个存档。'); return; }
   const p=curP();
