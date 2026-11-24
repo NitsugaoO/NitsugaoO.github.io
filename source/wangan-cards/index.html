@@ -489,8 +489,14 @@ function predictLabel(s,g){
 function tagOf(s){
   if(s.st==='done') return {t:'已掌握', c:''};
   if(s.st==='new') return {t:'新卡', c:'new'};
-  if(s.st==='learn') return {t:'学习中 · '+fmtDur(s.due-nowMs())+'后', c:''};
-  if(s.st==='relearn') return {t:'重学 · '+fmtDur(s.due-nowMs())+'后', c:'rel'};
+  if(s.st==='learn'){
+    const need=Math.max(1, MASTER_REPS-(Number(s.reps)||0));
+    return {t:'学习中 · 再答对 '+need+' 次即归档（'+fmtDur(s.due-nowMs())+'后）', c:''};
+  }
+  if(s.st==='relearn'){
+    const need=Math.max(1, MASTER_REPS-(Number(s.reps)||0));
+    return {t:'重学 · 再答对 '+need+' 次即归档（'+fmtDur(s.due-nowMs())+'后）', c:'rel'};
+  }
   return {t:'间隔 '+s.ivl+' 天 · 第 '+Math.max(1,s.reps)+' 次', c:''};
 }
 
