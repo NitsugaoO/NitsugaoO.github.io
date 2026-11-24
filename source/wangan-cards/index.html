@@ -126,6 +126,7 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
 </header>
 <div class="stats-line">
   <span>已学 <b id="sLearned">0</b>/<b id="sTotal">0</b></span>
+  <span>已掌握 <b id="sDone">0</b></span>
   <span>正确率 <b id="sAcc">–</b></span>
   <span>今日 <b id="sToday">0</b></span>
   <span>连续 <b id="sStreak">0</b> 天</span>
@@ -172,6 +173,9 @@ main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:6
       <button class="ghost" id="prename">重命名当前</button>
       <button class="ghost" id="pdel">删除当前</button>
       <button class="ghost" id="pclose">关闭</button>
+    </div>
+    <div class="prow">
+      <button class="ghost" id="prestore">恢复「已掌握」（0 张）</button>
     </div>
     <div class="prow">
       <button class="ghost" id="pexport">导出进度（下载 json）</button>
@@ -337,6 +341,7 @@ const NEW_STEPS=[1,10];      // 学习步（分钟）
 const RELEARN_STEP=10;       // 复习卡答错后的重学步（分钟）
 const HARD_MIN=5;            // 学习中按「模糊」的间隔（分钟）
 const MAX_IVL=365;           // 间隔上限（天）
+const MASTER_REPS=2;         // 累计答对 2 次 → 归档为「已掌握」
 const LS='wangan-cards-v2', OLD='wangan-midterm-cards-v1';
 
 const DECK_LABEL={'一':'第一讲 · 概述','二':'第二讲 · 密码基础','三':'第三讲 · 公钥密码','四':'第四讲 · Hash','五':'第五讲 · 恶意软件','六':'第六讲 · 防火墙','七':'第七讲 · 网络攻击'};
@@ -418,6 +423,9 @@ function computeNext(s0, g, t){
     else { s.ivl=Math.max(1,Math.round(s0.ivl*1.2)); s.due=t+s.ivl*DAY; }
   }else{                                       // 会
     s.ease=clamp(s.ease+0.1,1.3,2.8); s.reps=s0.reps+1;
+    if(s.reps>=MASTER_REPS){                    // 两次“会”→已掌握，不再进入循环
+      s.st='done'; s.step=0; s.ivl=0; s.due=8.64e15; return s;
+    }
     if(s0.st==='new'){ s.st='learn'; s.step=1; s.due=t+NEW_STEPS[1]*MIN; }
     else if(s0.st==='learn'){
       const st=s0.step+1;
@@ -432,9 +440,11 @@ function computeNext(s0, g, t){
 function predictLabel(s,g){
   if(!s) return '—';
   const n=computeNext(s,g,nowMs());
+  if(n.st==='done') return '已掌握';
   return fmtDur(n.due-nowMs());
 }
 function tagOf(s){
+  if(s.st==='done') return {t:'已掌握', c:''};
   if(s.st==='new') return {t:'新卡', c:'new'};
   if(s.st==='learn') return {t:'学习中 · '+fmtDur(s.due-nowMs())+'后', c:''};
   if(s.st==='relearn') return {t:'重学 · '+fmtDur(s.due-nowMs())+'后', c:'rel'};
@@ -447,21 +457,24 @@ function pool(){
 }
 function counts(p){
   const prof=p||curP(), t=nowMs();
-  let learned=0,due=0,fresh=0;
+  let studied=0,done=0,due=0,fresh=0;
   const ps=pool();
   for(const c of ps){
     const s=prof.cards[c.i];
     if(!s||s.st==='new'){ fresh++; continue; }
-    learned++;
+    studied++;
+    if(s.st==='done'){ done++; continue; }
     if(s.due<=t) due++;
   }
-  return {total:ps.length, learned, due, fresh, waiting:due+fresh};
+  return {total:ps.length, studied, done, due, fresh, waiting:due+fresh,
+          learned:studied};
 }
 function pick(){
   const t=nowMs(), prof=curP();
   const due=[], news=[];
   for(const c of pool()){
     const s=stateOf(c.i);
+    if(s.st==='done') continue;
     if(s.st==='new') news.push(c);
     else if(s.due<=t) due.push(c);
   }
@@ -479,7 +492,7 @@ function nextDueTime(){
   const t=nowMs(), prof=curP(); let min=Infinity;
   for(const c of pool()){
     const s=prof.cards[c.i];
-    if(s && s.st!=='new' && s.due>t) min=Math.min(min,s.due);
+    if(s && s.st!=='new' && s.st!=='done' && s.due>t) min=Math.min(min,s.due);
   }
   return isFinite(min)?min:0;
 }
@@ -519,13 +532,14 @@ function updateStats(){
     if(p.days[k]){ streak++; d.setDate(d.getDate()-1); }
     else break;
   }
-  $('#sLearned').textContent=c.learned;
+  $('#sLearned').textContent=c.studied;
   $('#sTotal').textContent=c.total;
+  $('#sDone').textContent=c.done;
   $('#sAcc').textContent=tot?Math.round(p.stats.right/tot*100)+'%':'–';
   $('#sToday').textContent=today;
   $('#sStreak').textContent=streak;
   $('#sDue').textContent=c.waiting;
-  $('#barFill').style.width=(c.total?(c.learned/c.total*100):0)+'%';
+  $('#barFill').style.width=(c.total?(c.studied/c.total*100):0)+'%';
   $('#pName').textContent=p.name;
   $('#btnMode').textContent=DB.ui.mode==='cloze'?'挖空模式':'翻卡模式';
   $('#btnMode').classList.toggle('on',DB.ui.mode==='cloze');
@@ -575,7 +589,7 @@ function renderDone(){
   const tg=$('#cTag'); tg.textContent=''; tg.className='tag';
   $('#cQ').textContent='本存档这一轮全部学完了 🎉';
   const c=counts(), p=curP(), tot=p.stats.right+p.stats.wrong;
-  $('#cA').innerHTML='<div class="line">已学 '+c.learned+'/'+c.total+' 张 · 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）</div>'
+  $('#cA').innerHTML='<div class="line">已学 '+c.studied+'/'+c.total+' 张（已掌握 '+c.done+'）· 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）</div>'
     +'<div class="line">正确率 '+(tot?Math.round(p.stats.right/tot*100):0)+'%</div>'
     +'<div class="line"><button class="ghost" id="skipWait">再来一轮（重置本存档）</button></div>';
   $('#cHint').textContent='可以去「存档」里新建一个「考前第 2 遍」，从零再刷一遍。';
@@ -587,9 +601,9 @@ function showDone(){
   const c=counts(), p=curP(), tot=p.stats.right+p.stats.wrong;
   $('#doneTitle').textContent='本存档这一轮完成 🎉';
   $('#doneAcc').textContent=(tot?Math.round(p.stats.right/tot*100):0)+'%';
-  $('#doneInfo').textContent='已学 '+c.learned+'/'+c.total+' 张 · 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）';
+  $('#doneInfo').textContent='已学 '+c.studied+'/'+c.total+' 张（已掌握 '+c.done+'）· 累计作答 '+tot+' 次（会 '+p.stats.right+' / 需加强 '+p.stats.wrong+'）';
   let soon=0; const t=nowMs()+DAY;
-  for(const card of pool()){ const s=p.cards[card.i]; if(s&&s.st!=='new'&&s.due<=t&&s.due>nowMs()) soon++; }
+  for(const card of pool()){ const s=p.cards[card.i]; if(s&&s.st!=='new'&&s.st!=='done'&&s.due<=t&&s.due>nowMs()) soon++; }
   $('#doneNext2').textContent='24 小时内还会到期 '+soon+' 张';
   $('#done').classList.remove('hide');
 }
@@ -618,15 +632,19 @@ function grade(g){
 /* ---------- 存档面板 ---------- */
 function renderPanel(){
   const el=$('#plist');
+  (function(){
+    let n=0; for(const k in curP().cards){ if(curP().cards[k].st==='done') n++; }
+    const b=$('#prestore'); if(b) b.textContent='恢复「已掌握」（'+n+' 张）';
+  })();
   const t=nowMs(), ps=pool();
   el.innerHTML=DB.profiles.map(p=>{
-    let learned=0;
-    for(const c of ps){ const s=p.cards[c.i]; if(s&&s.st!=='new') learned++; }
+    let learned=0, doneN=0;
+    for(const c of ps){ const s=p.cards[c.i]; if(s&&s.st!=='new'){ learned++; if(s.st==='done') doneN++; } }
     const tot=(p.stats.right||0)+(p.stats.wrong||0);
     const acc=tot?Math.round((p.stats.right||0)/tot*100):0;
     return '<button class="pitem '+(p.id===DB.current?'on':'')+'" data-id="'+p.id+'">'
       +'<div class="pname">'+esc(p.name)+(p.id===DB.current?' · 当前':'')+'</div>'
-      +'<div class="pmeta">已学 '+learned+'/'+ps.length+' · 正确率 '+acc+'% · 建于 '+new Date(p.created).toLocaleDateString()+'</div>'
+      +'<div class="pmeta">已学 '+learned+'/'+ps.length+'（已掌握 '+doneN+'） · 正确率 '+acc+'% · 建于 '+new Date(p.created).toLocaleDateString()+'</div>'
       +'<div class="pbar"><i style="width:'+(ps.length?learned/ps.length*100:0)+'%"></i></div>'
       +'</button>';
   }).join('');
@@ -720,6 +738,15 @@ function importProgress(file){
   };
   r.readAsText(file);
 }
+$('#prestore').addEventListener('click',()=>{
+  const p=curP();
+  const ids=Object.keys(p.cards).filter(k=>p.cards[k].st==='done');
+  if(!ids.length){ alert('当前存档没有「已掌握」的卡片。'); return; }
+  if(!confirm('把 '+ids.length+' 张「已掌握」的卡片放回复习队列？（立即变为可复习）')) return;
+  const t=nowMs();
+  ids.forEach(k=>{ const s=p.cards[k]; s.st='review'; s.step=0; s.ivl=1; s.due=t; });
+  saveDB(); renderPanel(); closePanel(); next();
+});
 $('#pexport').addEventListener('click',exportProgress);
 $('#pimport').addEventListener('click',()=>$('#pfile').click());
 $('#pfile').addEventListener('change',e=>{
