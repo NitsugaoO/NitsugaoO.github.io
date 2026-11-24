@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数分交互练习题库 · 工科数学分析</title>
+    <meta
+      name="description"
+      content="工科数学分析交互式练习题库：按章节知识点整理，在线作答、即时反馈、找错题、错题本。可离线打开。"
+    />
+    <link rel="stylesheet" href="./assets/katex.min.css" />
+    <link rel="stylesheet" href="./assets/quiz.css" />
+    <script>
+      // 提前确定主题，避免首屏闪烁
+      (function () {
+        try {
+          var t = localStorage.getItem('gksx-quiz-theme');
+          if (!t)
+            t = window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light'
+              : 'dark';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到题目</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">∫</span>
+        <div class="brand-text">
+          <h1>数分练习题库</h1>
+          <p>工科数学分析（上）· 极限 / 连续 / 导数 / 中值定理</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="mini-stats" id="mini-stats" aria-live="polite"></div>
+        <button class="icon-btn" id="theme-toggle" type="button" title="切换亮/暗色">
+          <span class="theme-icon"></span>
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="模块切换">
+      <button type="button" role="tab" data-view="practice" class="tab">
+        练习<span class="badge">70</span>
+      </button>
+      <button type="button" role="tab" data-view="find" class="tab">
+        找错<span class="badge">13</span>
+      </button>
+      <button type="button" role="tab" data-view="wrong" class="tab">
+        错题本<span class="badge bad" id="wrong-count">0</span>
+      </button>
+      <button type="button" role="tab" data-view="topics" class="tab">知识点</button>
+      <button type="button" role="tab" data-view="about" class="tab">关于</button>
+    </nav>
+
+    <main id="main">
+      <section class="view" id="view-practice">
+        <div class="toolbar">
+          <div class="chips" id="chapter-filter" data-group="chapter"></div>
+          <div class="chips" id="type-filter" data-group="type"></div>
+          <div class="toolbar-right">
+            <button type="button" class="btn ghost" data-act="random">随机一题</button>
+            <button type="button" class="btn ghost" data-act="reset">重置进度</button>
+          </div>
+        </div>
+        <div class="layout">
+          <div class="stage" id="stage"></div>
+          <aside class="side">
+            <div class="side-head">
+              <span>题目导航</span>
+              <span class="side-progress" id="grid-progress"></span>
+            </div>
+            <div class="grid" id="qgrid" role="navigation" aria-label="题目导航"></div>
+            <ul class="legend">
+              <li><i class="dot ok"></i>答对 / 自评算对</li>
+              <li><i class="dot no"></i>答错 / 自评算错</li>
+              <li><i class="dot mid"></i>进行中</li>
+              <li><i class="dot"></i>未作答</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-find">
+        <div class="toolbar">
+          <div class="chips" id="find-chapter-filter" data-group="find-chapter"></div>
+          <div class="toolbar-right">
+            <span class="hint">找出 AI 解答里出错的那一步，再选出错因</span>
+          </div>
+        </div>
+        <div class="layout">
+          <div class="stage" id="find-stage"></div>
+          <aside class="side">
+            <div class="side-head">
+              <span>找错导航</span>
+              <span class="side-progress" id="find-progress"></span>
+            </div>
+            <div class="grid" id="fegrid" role="navigation" aria-label="找错题导航"></div>
+            <ul class="legend">
+              <li><i class="dot ok"></i>已找出并答对错因</li>
+              <li><i class="dot mid"></i>找到错误步骤</li>
+              <li><i class="dot"></i>未完成</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-wrong">
+        <div class="panel-head">
+          <h2>错题本</h2>
+          <p>答错的题与自评「算错了」的题会自动收进来，数据只存在本机浏览器。</p>
+        </div>
+        <div id="wrong-list"></div>
+      </section>
+
+      <section class="view" id="view-topics">
+        <div class="panel-head">
+          <h2>知识点</h2>
+          <p>按章节和知识点归集；每条要点都来自对应题目的小结与易错提示。</p>
+        </div>
+        <div id="topics-list"></div>
+      </section>
+
+      <section class="view" id="view-about">
+        <div class="panel-head">
+          <h2>关于这个题库</h2>
+        </div>
+        <div class="about">
+          <div class="card prose">
+            <h3>它是什么</h3>
+            <p>
+              工科数学分析（上）期中范围的交互式练习题库，覆盖<strong>极限、连续与间断、导数与微分、
+              中值定理与泰勒公式</strong>四章。每道题都能在线作答、即时判分，并给出完整解析。
+              另有 <strong>找错题</strong>：给出一段 AI 的解答，请你指出它错在哪一步、错在什么原因。
+            </p>
+            <h3>三种题型</h3>
+            <ul>
+              <li><strong>选择</strong>：点选项立刻判分，标出正确项与错误项。</li>
+              <li><strong>填数值</strong>：填结果（支持 <code>3/4</code>、<code>e^-4</code>、<code>100!</code>、<code>\frac{1}{12}</code>、<code>sqrt{2}</code>），逐空判分。</li>
+              <li><strong>自评</strong>：求导、求极限、证明这类表达式题目，自己算完再展开答案，对照后点「我算对了 / 我算错了」。</li>
+            </ul>
+            <h3>怎么用</h3>
+            <ul>
+              <li>顶部按章节、题型筛选；右侧题号格可跳题，颜色表示作答情况。</li>
+              <li>键盘：<kbd>←</kbd><kbd>→</kbd> 上一题 / 下一题，<kbd>1</kbd>–<kbd>4</kbd> 选选项，<kbd>Enter</kbd> 提交。</li>
+              <li>进度、错题、找错记录都存在浏览器 <code>localStorage</code>，换设备或清缓存会丢失；「重置进度」可清空。</li>
+            </ul>
+            <h3>离线可用</h3>
+            <p>
+              整页只依赖同目录下的 <code>assets/</code>（含 KaTeX 字体），双击 <code>index.html</code>
+              即可离线使用，不加载任何第三方脚本或 CDN。
+            </p>
+            <h3>来源与声明</h3>
+            <p>
+              题目改编自宋浩主编《高等数学（上册）精选 750 题》（人民邮电出版社，2023）第 1–3 章，
+              题号沿用原书编号；解析为本作品整理。找错题中的「AI 解答」为教学设计的错误示例，
+              用于训练审错能力。数学内容若有疏漏，以教材与课堂为准。
+            </p>
+            <p class="muted">构建日期：2026-11-24 · 静态页面，无需后端。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>数智实践大作业 · B2 交互式练习题库</span>
+      <span id="foot-stats"></span>
+    </footer>
+
+    <script src="./assets/eval-expr.js"></script>
+    <script src="./assets/data.js"></script>
+    <script src="./assets/quiz.js"></script>
+  </body>
+</html>
