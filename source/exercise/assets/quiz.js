@@ -1,4 +1,4 @@
-/* 数分练习题库 · 前端逻辑（无依赖，经典脚本，可离线打开）
+/* 数学练习题库 · 前端逻辑（无依赖，经典脚本，可离线打开）
  * 数据来自 assets/data.js（构建期已把 KaTeX 渲染成 HTML，运行时不需要公式引擎）
  */
 (function () {
@@ -11,16 +11,18 @@
   var LS_DATA = 'gksx-quiz-v1';
   var LS_THEME = 'gksx-quiz-theme';
 
-  var TYPE_NAME = { choice: '选择', expr: '填数值', self: '自评' };
+  var TYPE_NAME = { choice: '选择', expr: '填数值', self: '自评', find: '找错' };
   var LEVEL_NAME = { 1: '基础', 2: '进阶', 3: '综合' };
+  var WEIGHT_NAME = { 3: '必考', 2: '重点', 1: '常规' };
+  var COURSE_NAME = { analysis: '工科数学分析（上）', linear: '线性代数' };
 
   var state = {
     view: 'practice',
-    progress: {}, // qid -> {status:'ok'|'no', pick, inputs, fieldOk, revealed, ts}
-    fe: {}, // feid -> {stepFound, whyOk, tried:[], whyWrong:[], ts}
-    filter: { course: 'all', chapter: 'all', type: 'all' },
-    feFilter: { chapter: 'all' },
-    cur: { practice: 0, find: 0 },
+    progress: {}, // qid -> 作答记录（按题型存不同字段）
+    filter: { course: 'all', chapter: 'all', type: 'all', weight: 'all', q: '' },
+    mode: 'normal', // normal | drill
+    drillIds: [],
+    cur: 0,
   };
 
   /* ---------------- 持久化 ---------------- */
@@ -29,16 +31,12 @@
       var raw = JSON.parse(localStorage.getItem(LS_DATA) || '{}');
       if (raw && typeof raw === 'object') {
         state.progress = raw.progress || {};
-        state.fe = raw.fe || {};
       }
     } catch (e) {}
   }
   function saveState() {
     try {
-      localStorage.setItem(
-        LS_DATA,
-        JSON.stringify({ progress: state.progress, fe: state.fe })
-      );
+      localStorage.setItem(LS_DATA, JSON.stringify({ progress: state.progress }));
     } catch (e) {}
   }
 
@@ -57,19 +55,48 @@
     d.innerHTML = html || '';
     return (d.textContent || '').replace(/\s+/g, ' ').trim();
   }
-  function qProg(id) {
-    return state.progress[id] || null;
+  function byId(id) {
+    for (var i = 0; i < D.questions.length; i++) {
+      if (D.questions[i].id === id) return D.questions[i];
+    }
+    return null;
   }
-  function feProg(id) {
-    return state.fe[id] || null;
+  function chapterTitle(id) {
+    for (var i = 0; i < D.chapters.length; i++) {
+      if (D.chapters[i].id === id) return D.chapters[i].title;
+    }
+    return id;
   }
-  function isCorrectChoice(q) {
-    var p = qProg(q.id);
-    return !!(p && p.pick === q.key);
+  function chapterOf(id) {
+    for (var i = 0; i < D.chapters.length; i++) {
+      if (D.chapters[i].id === id) return D.chapters[i];
+    }
+    return null;
+  }
+
+  function statusOf(q) {
+    var p = state.progress[q.id];
+    if (!p) return null;
+    if (q.type === 'find') {
+      if (p.whyOk) return 'ok';
+      if ((p.whyWrong || []).length) return 'no';
+      if (p.stepFound) return 'mid';
+      return null;
+    }
+    if (p.status) return p.status;
+    if (p.revealed) return 'mid';
+    return null;
   }
 
   /* ---------------- 列表 / 筛选 ---------------- */
   function filteredQuestions() {
+    if (state.mode === 'drill') {
+      var ids = state.drillIds;
+      return D.questions.filter(function (q) {
+        return ids.indexOf(q.id) >= 0;
+      });
+    }
+    var qs = state.filter.q.trim().toLowerCase();
     return D.questions.filter(function (q) {
       if (state.filter.course !== 'all' && q.course !== state.filter.course)
         return false;
@@ -77,65 +104,47 @@
         return false;
       if (state.filter.type !== 'all' && q.type !== state.filter.type)
         return false;
+      if (state.filter.weight !== 'all') {
+        var w = Number(state.filter.weight);
+        if (w === 2) {
+          if (q.weight < 2) return false;
+        } else if (q.weight !== w) return false;
+      }
+      if (qs) {
+        var hay = q.searchText || q.badge + ' ' + q.topic;
+        if (hay.indexOf(qs) < 0) return false;
+      }
       return true;
-    });
-  }
-  function filteredFind() {
-    return D.findErrors.filter(function (f) {
-      return (
-        state.feFilter.chapter === 'all' ||
-        f.chapter === state.feFilter.chapter
-      );
     });
   }
   function currentQuestion() {
     var list = filteredQuestions();
     if (!list.length) return null;
-    state.cur.practice = clamp(state.cur.practice, 0, list.length - 1);
-    return { q: list[state.cur.practice], list: list };
-  }
-  function currentFind() {
-    var list = filteredFind();
-    if (!list.length) return null;
-    state.cur.find = clamp(state.cur.find, 0, list.length - 1);
-    return { fe: list[state.cur.find], list: list };
-  }
-  function chapterTitle(id) {
-    var c = D.chapters.filter(function (x) {
-      return x.id === id;
-    })[0];
-    return c ? c.title : id;
+    state.cur = clamp(state.cur, 0, list.length - 1);
+    return { q: list[state.cur], list: list };
   }
 
   /* ---------------- 统计 ---------------- */
   function stats() {
-    var qs = D.questions;
     var done = 0;
     var ok = 0;
     var bad = 0;
-    qs.forEach(function (q) {
-      var p = qProg(q.id);
-      if (!p) return;
+    var mid = 0;
+    D.questions.forEach(function (q) {
+      var st = statusOf(q);
+      if (!st) return;
       done++;
-      if (p.status === 'ok') ok++;
-      else bad++;
-    });
-    var feDone = 0;
-    var feOk = 0;
-    D.findErrors.forEach(function (f) {
-      var p = feProg(f.id);
-      if (p && p.stepFound) feDone++;
-      if (p && p.whyOk) feOk++;
+      if (st === 'ok') ok++;
+      else if (st === 'no') bad++;
+      else mid++;
     });
     return {
-      total: qs.length,
+      total: D.questions.length,
       done: done,
       ok: ok,
       bad: bad,
+      mid: mid,
       rate: done ? Math.round((ok / done) * 100) : 0,
-      feTotal: D.findErrors.length,
-      feDone: feDone,
-      feOk: feOk,
     };
   }
   function renderStats() {
@@ -161,29 +170,75 @@
     }
     var wc = $('#wrong-count');
     if (wc) wc.textContent = s.bad;
+    var gp = $('#grid-progress');
+    if (gp) gp.textContent = s.done + '/' + s.total;
     var fs = $('#foot-stats');
     if (fs) {
       fs.textContent =
         '题库 ' +
         s.total +
-        ' 题 · 找错 ' +
-        s.feTotal +
-        ' 题 · 找错进度 ' +
-        s.feOk +
-        '/' +
-        s.feTotal;
+        ' 题（数分 ' +
+        D.counts.byCourse.analysis +
+        ' · 线代 ' +
+        D.counts.byCourse.linear +
+        '）· 找错 ' +
+        D.counts.byType.find +
+        ' 道 · 技巧卡 ' +
+        D.counts.tips +
+        ' 张';
     }
-    var gp = $('#grid-progress');
-    if (gp) gp.textContent = s.done + '/' + s.total;
-    var fp = $('#find-progress');
-    if (fp) fp.textContent = s.feOk + '/' + s.feTotal;
   }
 
-  /* ---------------- 练习视图 ---------------- */
-  var COURSE_NAME = { analysis: '数分', linear: '线代' };
+  function renderChapterStats() {
+    var box = $('#chapter-stats');
+    if (!box) return;
+    var chs = D.chapters.filter(function (c) {
+      return state.filter.course === 'all' || c.course === state.filter.course;
+    });
+    var rows = chs.map(function (ch) {
+      var list = D.questions.filter(function (q) {
+        return q.chapter === ch.id;
+      });
+      var done = 0;
+      var ok = 0;
+      list.forEach(function (q) {
+        var st = statusOf(q);
+        if (!st) return;
+        done++;
+        if (st === 'ok') ok++;
+      });
+      var pct = list.length ? Math.round((done / list.length) * 100) : 0;
+      var acc = done ? Math.round((ok / done) * 100) : 0;
+      return (
+        '<div class="cs-row" title="' +
+        ch.title +
+        ' · 已做 ' +
+        done +
+        '/' +
+        list.length +
+        '，正确率 ' +
+        acc +
+        '%">' +
+        '<span class="cs-name">' +
+        ch.title.replace(/^第\s*\d+\s*章\s*/, '') +
+        '</span>' +
+        '<span class="cs-bar"><i style="width:' +
+        pct +
+        '%"></i></span>' +
+        '<span class="cs-num">' +
+        done +
+        '/' +
+        list.length +
+        '</span>' +
+        '</div>'
+      );
+    });
+    box.innerHTML =
+      '<div class="cs-head">章节进度</div>' + rows.join('') || '';
+  }
 
-  function renderChapterChips() {
-    // 课程 chips
+  /* ---------------- 筛选 chips ---------------- */
+  function renderFilterChips() {
     var cbox = $('#course-filter');
     if (cbox) {
       var courses = [
@@ -207,95 +262,168 @@
     }
 
     var box = $('#chapter-filter');
-    if (!box) return;
-    var list = D.chapters.filter(function (c) {
-      return state.filter.course === 'all' || c.course === state.filter.course;
-    });
-    var html =
-      '<button type="button" class="chip" data-act="filter-chapter" data-ch="all" aria-pressed="' +
-      (state.filter.chapter === 'all') +
-      '">全部章节</button>';
-    list.forEach(function (c) {
-      var label =
-        (state.filter.course === 'all' && c.course === 'linear' ? '线代·' : '') +
-        c.title.replace(/^第\s*\d+\s*章\s*/, '');
-      html +=
-        '<button type="button" class="chip" data-act="filter-chapter" data-ch="' +
-        c.id +
-        '" aria-pressed="' +
-        (state.filter.chapter === c.id) +
-        '">' +
-        label +
-        '</button>';
-    });
-    box.innerHTML = html;
+    if (box) {
+      var list = D.chapters.filter(function (c) {
+        return state.filter.course === 'all' || c.course === state.filter.course;
+      });
+      var html =
+        '<button type="button" class="chip" data-act="filter-chapter" data-ch="all" aria-pressed="' +
+        (state.filter.chapter === 'all') +
+        '">全部章节</button>';
+      list.forEach(function (c) {
+        html +=
+          '<button type="button" class="chip" data-act="filter-chapter" data-ch="' +
+          c.id +
+          '" aria-pressed="' +
+          (state.filter.chapter === c.id) +
+          '">' +
+          c.title.replace(/^第\s*\d+\s*章\s*/, '') +
+          '</button>';
+      });
+      box.innerHTML = html;
+    }
 
     var tbox = $('#type-filter');
-    var types = [
-      ['all', '全部题型'],
-      ['choice', '选择'],
-      ['expr', '填数值'],
-      ['self', '自评'],
-    ];
-    tbox.innerHTML = types
-      .map(function (t) {
-        return (
-          '<button type="button" class="chip" data-act="filter-type" data-type="' +
-          t[0] +
-          '" aria-pressed="' +
-          (state.filter.type === t[0]) +
-          '">' +
-          t[1] +
-          '</button>'
-        );
-      })
-      .join('');
+    if (tbox) {
+      var types = [
+        ['all', '全部题型'],
+        ['choice', '选择'],
+        ['expr', '填数值'],
+        ['self', '自评'],
+        ['find', '找错'],
+      ];
+      tbox.innerHTML = types
+        .map(function (t) {
+          return (
+            '<button type="button" class="chip" data-act="filter-type" data-type="' +
+            t[0] +
+            '" aria-pressed="' +
+            (state.filter.type === t[0]) +
+            '">' +
+            t[1] +
+            '</button>'
+          );
+        })
+        .join('');
+    }
+
+    var wbox = $('#weight-filter');
+    if (wbox) {
+      var weights = [
+        ['all', '全部重要性'],
+        ['3', '必考'],
+        ['2', '重点及以上'],
+        ['1', '常规'],
+      ];
+      wbox.innerHTML = weights
+        .map(function (w) {
+          return (
+            '<button type="button" class="chip" data-act="filter-weight" data-weight="' +
+            w[0] +
+            '" aria-pressed="' +
+            (state.filter.weight === w[0]) +
+            '">' +
+            w[1] +
+            '</button>'
+          );
+        })
+        .join('');
+    }
   }
 
-  function renderFilterChipsGeneric(sel, group, filterKey, chapters, allLabel) {
-    var box = $(sel);
-    if (!box) return;
-    var html =
-      '<button type="button" class="chip" data-act="' +
-      group +
-      '" data-ch="all" aria-pressed="' +
-      (state[filterKey].chapter === 'all') +
-      '">' +
-      allLabel +
-      '</button>';
-    chapters.forEach(function (c) {
-      html +=
-        '<button type="button" class="chip" data-act="' +
-        group +
-        '" data-ch="' +
-        c.id +
-        '" aria-pressed="' +
-        (state[filterKey].chapter === c.id) +
-        '">' +
-        c.title.replace(/^第\s*\d+\s*章\s*/, '') +
-        '</button>';
-    });
-    box.innerHTML = html;
-  }
-
+  /* ---------------- 交互区 ---------------- */
   function optionState(q, o) {
-    var p = qProg(q.id);
-    if (!p) return '';
+    var p = state.progress[q.id];
+    if (!p || !p.pick) return '';
     if (o.key === q.key) return 'correct';
     if (p.pick === o.key) return 'wrong';
     return 'dim';
   }
 
   function fieldStateHtml(q, i) {
-    var p = qProg(q.id);
+    var p = state.progress[q.id];
     if (!p || !p.fieldOk) return { state: '', msg: '' };
     var ok = p.fieldOk[i];
     return { state: ok ? 'correct' : 'wrong', msg: ok ? '✓ 正确' : '✗ 再算算' };
   }
 
-  function buildInteraction(q) {
-    var p = qProg(q.id);
+  function buildFindInteraction(q) {
+    var p = state.progress[q.id] || {};
+    var tried = p.tried || [];
+    var whyWrong = p.whyWrong || [];
     var html = '';
+
+    html +=
+      '<div class="hint" style="margin:4px 0 8px">点一下你认为出错的那一步：</div>';
+    html += '<div class="steps">';
+    q.steps.forEach(function (s, i) {
+      var st = '';
+      if (p.stepFound && i === q.wrong) st = 'found';
+      else if (tried.indexOf(i) >= 0) st = 'excluded';
+      var mark = st === 'found' ? '就是这一步' : st === 'excluded' ? '没问题' : '';
+      html +=
+        '<button type="button" class="step" data-act="find-step" data-i="' +
+        i +
+        '"' +
+        (st ? ' data-state="' + st + '"' : '') +
+        (p.whyOk ? ' disabled' : '') +
+        '>' +
+        '<span class="sno">' +
+        (i + 1) +
+        '</span>' +
+        '<span class="stext">' +
+        s +
+        '</span>' +
+        '<span class="smark">' +
+        mark +
+        '</span></button>';
+    });
+    html += '</div>';
+
+    if (p.stepFound && !p.whyOk) {
+      html +=
+        '<div class="verdict mid">✓ 第 ' + (q.wrong + 1) + ' 步确实有问题 —— 再选出错因</div>';
+    } else if (p.whyOk) {
+      html += '<div class="verdict ok">✓ 找到错误步骤，并选对了错因</div>';
+    } else if (tried.length) {
+      html += '<div class="verdict no">已排除 ' + tried.length + ' 步，继续找</div>';
+    }
+
+    html +=
+      '<div class="why-box" data-whybox' + (p.stepFound ? '' : ' hidden') + '>' +
+      '<p class="why-title">错因是哪一个？</p><div class="why-list">';
+    q.whyOptions.forEach(function (o) {
+      var st = '';
+      if (p.whyOk && o.key === q.why) st = 'correct';
+      else if (whyWrong.indexOf(o.key) >= 0) st = 'wrong';
+      html +=
+        '<button type="button" class="why" data-act="find-why" data-key="' +
+        o.key +
+        '"' +
+        (st ? ' data-state="' + st + '"' : '') +
+        (p.whyOk ? ' disabled' : '') +
+        '><span class="wkey">' +
+        o.key +
+        '</span><span>' +
+        o.html +
+        '</span></button>';
+    });
+    html += '</div></div>';
+
+    if (p.whyOk || (p.whyWrong || []).length) {
+      html +=
+        '<div class="actions">' +
+        '<button type="button" class="btn ghost" data-act="retry">重做这题</button>' +
+        '</div>';
+    }
+    return html;
+  }
+
+  function buildInteraction(q) {
+    var p = state.progress[q.id];
+    var html = '';
+
+    if (q.type === 'find') return buildFindInteraction(q);
 
     if (q.type === 'choice') {
       html += '<div class="options" role="group" aria-label="选项">';
@@ -306,28 +434,25 @@
           o.key +
           '"' +
           (st ? ' data-state="' + st + '"' : '') +
-          (p ? ' disabled' : '') +
-          '>' +
-          '<span class="okey">' +
+          (p && p.pick ? ' disabled' : '') +
+          '><span class="okey">' +
           o.key +
           '</span><span class="otext">' +
           o.html +
           '</span></button>';
       });
       html += '</div>';
-      if (p) {
+      if (p && p.pick) {
         html +=
           '<div class="verdict ' +
           (p.status === 'ok' ? 'ok' : 'no') +
           '">' +
-          (p.status === 'ok'
-            ? '✓ 答对了'
-            : '✗ 正确答案是 ' + q.key) +
+          (p.status === 'ok' ? '✓ 答对了' : '✗ 正确答案是 ' + q.key) +
           '</div>';
       }
       html +=
         '<div class="actions">' +
-        (p
+        (p && p.pick
           ? '<button type="button" class="btn ghost" data-act="retry">再做一次</button>'
           : '') +
         '</div>';
@@ -340,17 +465,16 @@
           i +
           '"' +
           (fs.state ? ' data-state="' + fs.state + '"' : '') +
-          '>' +
-          '<label>' +
+          '><label>' +
           (f.label ? f.label : '你的答案') +
           '</label>' +
           '<input type="text" autocomplete="off" spellcheck="false" inputmode="text" placeholder="如 3/4、e^-4" value="' +
-          (p && p.inputs && p.inputs[i] ? String(p.inputs[i]).replace(/"/g, '&quot;') : '') +
-          '" />' +
-          '<span class="fmsg">' +
+          (p && p.inputs && p.inputs[i]
+            ? String(p.inputs[i]).replace(/"/g, '&quot;')
+            : '') +
+          '" /><span class="fmsg">' +
           fs.msg +
-          '</span>' +
-          '</div>';
+          '</span></div>';
       });
       html += '</div>';
       html +=
@@ -360,7 +484,7 @@
         '</button>' +
         '<span class="hint">支持 <code>3/4</code>、<code>e^-4</code>、<code>100!</code>、<code>sqrt(2)</code>，也可直接粘 LaTeX 如 <code>\\frac{1}{12}</code></span>' +
         '</div>';
-      if (p) {
+      if (p && p.fieldOk) {
         html +=
           '<div class="verdict ' +
           (p.status === 'ok' ? 'ok' : 'no') +
@@ -370,18 +494,15 @@
       }
       html +=
         '<div class="actions">' +
-        (p
-          ? '<button type="button" class="btn ghost" data-act="retry">清空重做</button>'
-          : '') +
+        (p ? '<button type="button" class="btn ghost" data-act="retry">清空重做</button>' : '') +
         '</div>';
     } else {
-      // self 自评
+      // self
       if (!p || !p.revealed) {
         html +=
           '<div class="actions">' +
           '<button type="button" class="btn primary" data-act="reveal">先自己算，再看答案</button>' +
-          '<span class="hint">点击后展开完整解析，对照自评</span>' +
-          '</div>';
+          '<span class="hint">点击后展开完整解析，对照自评</span></div>';
       } else {
         html +=
           '<div class="verdict ' +
@@ -397,13 +518,11 @@
           html +=
             '<div class="actions">' +
             '<button type="button" class="btn primary" data-act="self-ok">我算对了</button>' +
-            '<button type="button" class="btn danger" data-act="self-bad">我算错了</button>' +
-            '</div>';
+            '<button type="button" class="btn danger" data-act="self-bad">我算错了</button></div>';
         } else {
           html +=
             '<div class="actions">' +
-            '<button type="button" class="btn ghost" data-act="retry">重做这题</button>' +
-            '</div>';
+            '<button type="button" class="btn ghost" data-act="retry">重做这题</button></div>';
         }
       }
     }
@@ -417,11 +536,9 @@
         return (
           '<div class="note ' +
           (n.label === '易错点' ? 'mistake' : '') +
-          '">' +
-          '<span class="note-label">' +
+          '"><span class="note-label">' +
           n.label +
-          '</span>' +
-          '<div>' +
+          '</span><div>' +
           n.html +
           '</div></div>'
         );
@@ -429,22 +546,29 @@
       .join('');
   }
 
+  /* ---------------- 练习卡 ---------------- */
   function renderPracticeStage() {
     var stage = $('#stage');
     if (!stage) return;
     var cur = currentQuestion();
     if (!cur) {
       stage.innerHTML =
-        '<div class="empty">这个筛选下没有题目，换个章节或题型试试。</div>';
+        '<div class="empty">' +
+        (state.mode === 'drill'
+          ? '错题已经清空了 —— 去「练习」继续刷题吧。'
+          : '这个筛选下没有题目，换个条件或清空搜索试试。') +
+        '</div>';
       renderGrid();
+      renderChapterStats();
       return;
     }
     var q = cur.q;
-    var p = qProg(q.id);
-    var showSol = !!(
-      p &&
-      (q.type !== 'self' || p.revealed)
-    );
+    var p = state.progress[q.id];
+    var st = statusOf(q);
+
+    var isFind = q.type === 'find';
+    var showSol = isFind ? !!(p && p.whyOk) : !!(p && (q.type !== 'self' || p.revealed));
+
     var head =
       '<header class="q-head">' +
       '<span class="qno">' +
@@ -456,61 +580,82 @@
       '<span class="tag level">' +
       (LEVEL_NAME[q.level] || '') +
       '</span>' +
+      '<span class="tag weight w' +
+      q.weight +
+      '">' +
+      (WEIGHT_NAME[q.weight] || '') +
+      '</span>' +
+      (isFind && q.related
+        ? '<span class="tag">改编自宋 ' + q.related + '</span>'
+        : '') +
       '<span class="q-topic">' +
       q.topic +
       '</span>' +
       '</header>';
+
+    var body = isFind
+      ? '<h2 class="fe-title">' +
+        q.title +
+        '</h2><div class="fe-prompt">' +
+        q.promptHtml +
+        '</div>'
+      : '<div class="q-body">' + q.stemHtml + '</div>';
+
+    var solBody = isFind ? q.explainHtml : q.answerHtml;
 
     var html =
       '<article class="card" data-qid="' +
       q.id +
       '">' +
       head +
-      '<div class="q-body">' +
-      q.stemHtml +
-      '</div>' +
+      body +
       buildInteraction(q) +
       '<div class="solution" data-sol' +
       (showSol ? '' : ' hidden') +
       '>' +
-      '<div class="sol-head">答案与解析</div>' +
-      '<div class="sol-body">' +
-      q.answerHtml +
+      '<div class="sol-head">' +
+      (isFind ? '正解与要点' : '答案与解析') +
       '</div>' +
-      buildNotes(q) +
+      '<div class="sol-body">' +
+      solBody +
+      '</div>' +
+      (isFind ? '' : buildNotes(q)) +
       '</div>' +
       '<div class="pager">' +
       '<button type="button" class="btn ghost" data-act="prev"' +
-      (state.cur.practice === 0 ? ' disabled' : '') +
+      (state.cur === 0 ? ' disabled' : '') +
       '>← 上一题</button>' +
       '<span class="pos">' +
-      (state.cur.practice + 1) +
+      (state.cur + 1) +
       ' / ' +
       cur.list.length +
       ' · ' +
       chapterTitle(q.chapter) +
       '</span>' +
       '<button type="button" class="btn ghost" data-act="next"' +
-      (state.cur.practice >= cur.list.length - 1 ? ' disabled' : '') +
+      (state.cur >= cur.list.length - 1 ? ' disabled' : '') +
       '>下一题 →</button>' +
-      '</div>' +
-      '</article>';
+      '</div></article>';
     stage.innerHTML = html;
     renderGrid();
+    renderChapterStats();
   }
 
   function renderGrid() {
     var grid = $('#qgrid');
     if (!grid) return;
     var list = filteredQuestions();
-    var cur = list[state.cur.practice];
+    var cur = list[state.cur];
     grid.innerHTML = list
       .map(function (q, i) {
-        var p = qProg(q.id);
+        var st = statusOf(q);
         var cls = 'gcell';
-        if (p) cls += p.status === 'ok' ? ' ok' : ' no';
-        if (cur && cur.id === q.id) cls += ' cur';
+        if (st === 'ok') cls += ' ok';
+        else if (st === 'no') cls += ' no';
+        else if (st === 'mid') cls += ' mid';
         if (q.course === 'linear') cls += ' la';
+        if (q.type === 'find') cls += ' fe';
+        if (cur && cur.id === q.id) cls += ' cur';
         return (
           '<button type="button" class="' +
           cls +
@@ -526,206 +671,110 @@
         );
       })
       .join('');
-    // 让当前题在网格里可见（网格有固定高度、可滚动）
     var curEl = grid.querySelector('.cur');
     if (curEl && curEl.scrollIntoView)
       curEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
-  /* ---------------- 找错视图 ---------------- */
-  function renderFindStage() {
-    var stage = $('#find-stage');
-    if (!stage) return;
-    var cur = currentFind();
-    if (!cur) {
-      stage.innerHTML = '<div class="empty">这个章节下暂时没有找错题。</div>';
-      renderFeGrid();
-      return;
-    }
-    var fe = cur.fe;
-    var p = feProg(fe.id) || {};
-    var tried = p.tried || [];
-    var whyWrong = p.whyWrong || [];
-    var stepHtml = fe.stepsHtml
-      .map(function (s, i) {
-        var st = '';
-        if (p.stepFound && i === fe.wrong) st = 'found';
-        else if (tried.indexOf(i) >= 0) st = 'excluded';
-        var mark = st === 'found' ? '就是这一步' : st === 'excluded' ? '没问题' : '';
-        return (
-          '<button type="button" class="step" data-act="fe-step" data-i="' +
-          i +
-          '"' +
-          (st ? ' data-state="' + st + '"' : '') +
-          (p.stepFound ? ' disabled' : '') +
-          '>' +
-          '<span class="sno">' +
-          (i + 1) +
-          '</span>' +
-          '<span class="stext">' +
-          s +
-          '</span>' +
-          '<span class="smark">' +
-          mark +
-          '</span></button>'
-        );
-      })
-      .join('');
-
-    var whyHtml = fe.whyOptions
-      .map(function (o) {
-        var st = '';
-        if (p.whyOk && o.key === fe.why) st = 'correct';
-        else if (whyWrong.indexOf(o.key) >= 0) st = 'wrong';
-        return (
-          '<button type="button" class="why" data-act="fe-why" data-key="' +
-          o.key +
-          '"' +
-          (st ? ' data-state="' + st + '"' : '') +
-          (p.whyOk ? ' disabled' : '') +
-          '>' +
-          '<span class="wkey">' +
-          o.key +
-          '</span><span>' +
-          o.html +
-          '</span></button>'
-        );
-      })
-      .join('');
-
-    var verdict = '';
-    if (p.stepFound && !p.whyOk) {
-      verdict = '<div class="verdict mid">✓ 第 ' + (fe.wrong + 1) + ' 步确实有问题 —— 再选出错因</div>';
-    } else if (p.whyOk) {
-      verdict = '<div class="verdict ok">✓ 找到错误步骤，并选对了错因</div>';
-    } else if (tried.length) {
-      verdict = '<div class="verdict no">已排除 ' + tried.length + ' 步，继续找</div>';
-    }
-
-    stage.innerHTML =
-      '<article class="card" data-feid="' +
-      fe.id +
-      '">' +
-      '<header class="q-head">' +
-      '<span class="qno">找错 ' +
-      fe.order +
-      '</span>' +
-      '<span class="tag type">找错</span>' +
-      '<span class="tag level">' +
-      (LEVEL_NAME[fe.level] || '') +
-      '</span>' +
-      (fe.related ? '<span class="tag">改编自宋 ' + fe.related + '</span>' : '') +
-      '<span class="q-topic">' +
-      fe.topic +
-      '</span>' +
-      '</header>' +
-      '<h2 class="fe-title">' +
-      fe.title +
-      '</h2>' +
-      '<div class="fe-prompt">' +
-      fe.promptHtml +
-      '</div>' +
-      '<div class="hint" style="margin-bottom:8px">点一下你认为出错的那一步：</div>' +
-      '<div class="steps">' +
-      stepHtml +
-      '</div>' +
-      verdict +
-      '<div class="why-box" data-whybox' +
-      (p.stepFound ? '' : ' hidden') +
-      '>' +
-      '<p class="why-title">错因是哪一个？</p>' +
-      '<div class="why-list">' +
-      whyHtml +
-      '</div>' +
-      '</div>' +
-      '<div class="solution" data-sol' +
-      (p.whyOk ? '' : ' hidden') +
-      '>' +
-      '<div class="sol-head">正解与要点</div>' +
-      '<div class="sol-body">' +
-      fe.explainHtml +
-      '</div>' +
-      '</div>' +
-      '<div class="pager">' +
-      '<button type="button" class="btn ghost" data-act="fe-prev"' +
-      (state.cur.find === 0 ? ' disabled' : '') +
-      '>← 上一题</button>' +
-      '<span class="pos">' +
-      (state.cur.find + 1) +
-      ' / ' +
-      cur.list.length +
-      '</span>' +
-      '<button type="button" class="btn ghost" data-act="fe-next"' +
-      (state.cur.find >= cur.list.length - 1 ? ' disabled' : '') +
-      '>下一题 →</button>' +
-      '</div>' +
-      '</article>';
-    renderFeGrid();
-  }
-
-  function renderFeGrid() {
-    var grid = $('#fegrid');
-    if (!grid) return;
-    var list = filteredFind();
-    var cur = list[state.cur.find];
-    grid.innerHTML = list
-      .map(function (f, i) {
-        var p = feProg(f.id);
-        var cls = 'gcell';
-        if (p && p.whyOk) cls += ' ok';
-        else if (p && p.stepFound) cls += ' mid';
-        if (cur && cur.id === f.id) cls += ' cur';
-        return (
-          '<button type="button" class="' +
-          cls +
-          '" data-act="goto-fe" data-idx="' +
-          i +
-          '" title="' +
-          f.title +
-          '">' +
-          f.order +
-          '</button>'
-        );
-      })
-      .join('');
-  }
-
   /* ---------------- 错题本 ---------------- */
+  function wrongList() {
+    return D.questions.filter(function (q) {
+      return statusOf(q) === 'no';
+    });
+  }
+
   function renderWrong() {
     var box = $('#wrong-list');
     if (!box) return;
-    var items = D.questions.filter(function (q) {
-      var p = qProg(q.id);
-      return p && p.status === 'no';
-    });
+    var items = wrongList();
     if (!items.length) {
       box.innerHTML =
-        '<div class="empty">错题本是空的 —— 去「练习」里答几题吧。<br /><span class="hint">答错或自评「算错了」的题会自动收进来。</span></div>';
+        '<div class="empty">错题本是空的 —— 去「练习」里答几题吧。<br /><span class="hint">答错、自评「算错了」、找错题选错错因，都会自动收进来。</span></div>';
       return;
     }
     box.innerHTML = items
       .map(function (q) {
+        var title =
+          q.type === 'find' ? q.title : htmlToText(q.stemHtml).slice(0, 120);
         return (
           '<div class="wrong-item">' +
-          '<div class="wi-main">' +
-          '<div class="wi-title">' +
-          htmlToText(q.stemHtml).slice(0, 120) +
-          '</div>' +
-          '<div class="wi-meta">' +
+          '<div class="wi-main"><div class="wi-title">' +
+          title +
+          '</div><div class="wi-meta">' +
           q.badge +
           ' · ' +
           q.topic +
           ' · <span class="badge-kind">' +
           TYPE_NAME[q.type] +
-          '</span></div>' +
-          '</div>' +
+          '</span></div></div>' +
           '<button type="button" class="btn primary" data-act="goto-qid" data-qid="' +
           q.id +
-          '">去重做</button>' +
-          '</div>'
+          '">去重做</button></div>'
         );
       })
       .join('');
+  }
+
+  function startDrill() {
+    var items = wrongList();
+    if (!items.length) {
+      window.alert('错题本是空的，先去练习吧。');
+      return;
+    }
+    state.mode = 'drill';
+    state.drillIds = items.map(function (q) {
+      return q.id;
+    });
+    state.cur = 0;
+    setView('practice');
+    updateDrillBanner();
+    renderPracticeStage();
+  }
+  function exitDrill() {
+    state.mode = 'normal';
+    state.drillIds = [];
+    state.cur = 0;
+    updateDrillBanner();
+    renderPracticeStage();
+  }
+  function updateDrillBanner() {
+    var banner = $('#drill-banner');
+    if (!banner) return;
+    if (state.mode !== 'drill') {
+      banner.hidden = true;
+      return;
+    }
+    banner.hidden = false;
+    var left = state.drillIds.filter(function (id) {
+      var q = byId(id);
+      return q && statusOf(q) === 'no';
+    }).length;
+    $('#drill-text').textContent =
+      '错题重练中 · 本轮 ' +
+      state.drillIds.length +
+      ' 题 · 还剩 ' +
+      left +
+      ' 题未攻克';
+  }
+
+  function exportProgress() {
+    var payload = {
+      exportedAt: new Date().toISOString(),
+      stats: stats(),
+      progress: state.progress,
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'quiz-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 0);
   }
 
   /* ---------------- 知识点 ---------------- */
@@ -743,8 +792,10 @@
         return q.course === cid;
       }).length;
       html +=
-        '<section class="course-block"><h2 class="course-title">' +
-        (cid === 'linear' ? '线性代数' : '工科数学分析（上）') +
+        '<section class="course-block" data-course="' +
+        cid +
+        '"><h2 class="course-title">' +
+        COURSE_NAME[cid] +
         '<small>' +
         total +
         ' 题 · ' +
@@ -755,7 +806,6 @@
         var qs = D.questions.filter(function (q) {
           return q.chapter === ch.id;
         });
-        // 按首次出现顺序聚合 topic
         var order = [];
         var map = {};
         qs.forEach(function (q) {
@@ -766,7 +816,7 @@
           map[q.topic].push(q);
         });
         var tips = D.tips.filter(function (t) {
-          return t.chapter === ch.id;
+          return t.course === cid && t.chapter === ch.id;
         });
 
         html +=
@@ -778,19 +828,15 @@
           qs.length +
           ' 题</small></h3>';
 
-        // 本章技巧卡
         tips.forEach(function (t, ti) {
           html +=
-            '<details class="tip"' +
-            (ti === 0 ? ' open' : '') +
-            '><summary>' +
+            '<details class="tip"><summary>' +
             t.titleHtml +
             '</summary><div class="tip-body">' +
             t.bodyHtml +
             '</div></details>';
         });
 
-        // 知识点
         order.forEach(function (topic, ti) {
           var list = map[topic];
           var points = [];
@@ -818,14 +864,11 @@
             topic +
             '<span class="tcount">' +
             list.length +
-            ' 题</span></summary>' +
-            '<div class="topic-body">' +
+            ' 题</span></summary><div class="topic-body">' +
             (points.length
               ? points.join('')
-              : '<p class="hint">' +
-                (cid === 'linear'
-                  ? '完整推导见题目解析（点下方题号查看），本章套路见上方技巧卡。'
-                  : '这道题的小结见题目解析（点下方题号查看）。') +
+              : '<p class="hint">完整推导见题目解析（点下方题号查看）' +
+                (tips.length ? '，本章套路见上方技巧卡。' : '。') +
                 '</p>') +
             '<div class="qlinks">' +
             list
@@ -843,37 +886,32 @@
         });
         html += '</div>';
       });
-      html += '</section>';
-    });
 
-    // 通用技巧（不属于某一章）
-    var general = D.tips.filter(function (t) {
-      return !t.chapter;
-    });
-    if (general.length) {
-      html +=
-        '<section class="course-block"><h2 class="course-title">通用技巧<small>' +
-        general.length +
-        ' 张</small></h2>';
-      general.forEach(function (t) {
-        html +=
-          '<details class="tip" open><summary>' +
-          t.titleHtml +
-          '</summary><div class="tip-body">' +
-          t.bodyHtml +
-          '</div></details>';
+      // 本课程通用技巧
+      var general = D.tips.filter(function (t) {
+        return t.course === cid && !t.chapter;
       });
+      if (general.length) {
+        html += '<h3 class="sub-title">通用技巧</h3>';
+        general.forEach(function (t) {
+          html +=
+            '<details class="tip" open><summary>' +
+            t.titleHtml +
+            '</summary><div class="tip-body">' +
+            t.bodyHtml +
+            '</div></details>';
+        });
+      }
       html += '</section>';
-    }
+    });
 
     box.innerHTML = html || '<div class="empty">暂无知识点。</div>';
   }
 
-  /* ---------------- 视图切换 ---------------- */
+  /* ---------------- 视图 ---------------- */
   function setView(view, opts) {
     opts = opts || {};
-    if (['practice', 'find', 'wrong', 'topics', 'about'].indexOf(view) < 0)
-      view = 'practice';
+    if (['practice', 'wrong', 'topics', 'about'].indexOf(view) < 0) view = 'practice';
     state.view = view;
     $$('.tab').forEach(function (t) {
       t.setAttribute('aria-selected', String(t.dataset.view === view));
@@ -881,8 +919,10 @@
     $$('.view').forEach(function (v) {
       v.classList.toggle('active', v.id === 'view-' + view);
     });
-    if (view === 'practice') renderPracticeStage();
-    if (view === 'find') renderFindStage();
+    if (view === 'practice') {
+      renderPracticeStage();
+      updateDrillBanner();
+    }
     if (view === 'wrong') renderWrong();
     if (view === 'topics') renderTopics();
     renderStats();
@@ -890,35 +930,34 @@
   }
 
   function gotoQuestion(qid) {
-    var list = D.questions;
-    var idxAll = -1;
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id === qid) {
-        idxAll = i;
-        break;
-      }
-    }
-    if (idxAll < 0) return;
-    // 保证该题在当前筛选结果里
-    var f = filteredQuestions();
-    var idx = f.map(function (q) {
-      return q.id;
-    }).indexOf(qid);
+    var list = filteredQuestions();
+    var idx = list
+      .map(function (q) {
+        return q.id;
+      })
+      .indexOf(qid);
     if (idx < 0) {
+      if (state.mode === 'drill') exitDrill();
       state.filter.course = 'all';
       state.filter.chapter = 'all';
       state.filter.type = 'all';
-      renderChapterChips();
-      f = filteredQuestions();
-      idx = f.map(function (q) {
-        return q.id;
-      }).indexOf(qid);
+      state.filter.weight = 'all';
+      state.filter.q = '';
+      var input = $('#search-input');
+      if (input) input.value = '';
+      renderFilterChips();
+      list = filteredQuestions();
+      idx = list
+        .map(function (q) {
+          return q.id;
+        })
+        .indexOf(qid);
     }
-    state.cur.practice = Math.max(0, idx);
+    state.cur = Math.max(0, idx);
     setView('practice');
   }
 
-  /* ---------------- 作答逻辑 ---------------- */
+  /* ---------------- 作答 ---------------- */
   function recordAnswer(qid, patch) {
     var p = state.progress[qid] || {};
     for (var k in patch) p[k] = patch[k];
@@ -926,15 +965,13 @@
     state.progress[qid] = p;
     saveState();
     renderStats();
+    updateDrillBanner();
   }
 
   function pickOption(q, key) {
-    var p = qProg(q.id);
-    if (p) return;
-    recordAnswer(q.id, {
-      pick: key,
-      status: key === q.key ? 'ok' : 'no',
-    });
+    var p = state.progress[q.id];
+    if (p && p.pick) return;
+    recordAnswer(q.id, { pick: key, status: key === q.key ? 'ok' : 'no' });
     renderPracticeStage();
   }
 
@@ -956,51 +993,32 @@
     renderPracticeStage();
   }
 
-  function retry(qid, isFind) {
-    if (isFind) {
-      delete state.fe[qid];
-    } else {
-      delete state.progress[qid];
-    }
+  function retry(qid) {
+    delete state.progress[qid];
     saveState();
-    if (isFind) renderFindStage();
-    else renderPracticeStage();
+    renderPracticeStage();
     renderStats();
+    updateDrillBanner();
   }
 
-  /* ---------------- 找错作答 ---------------- */
-  function feStep(id, i) {
-    var fe = D.findErrors.filter(function (f) {
-      return f.id === id;
-    })[0];
-    var p = state.fe[id] || { tried: [], whyWrong: [] };
+  function findStep(qid, i) {
+    var q = byId(qid);
+    var p = state.progress[qid] || {};
     p.tried = p.tried || [];
-    if (i === fe.wrong) {
-      p.stepFound = true;
-    } else if (p.tried.indexOf(i) < 0) {
-      p.tried.push(i);
-    }
-    p.ts = Date.now();
-    state.fe[id] = p;
-    saveState();
-    renderFindStage();
+    if (i === q.wrong) p.stepFound = true;
+    else if (p.tried.indexOf(i) < 0) p.tried.push(i);
+    recordAnswer(qid, p);
+    renderPracticeStage();
   }
 
-  function feWhy(id, key) {
-    var fe = D.findErrors.filter(function (f) {
-      return f.id === id;
-    })[0];
-    var p = state.fe[id] || {};
+  function findWhy(qid, key) {
+    var q = byId(qid);
+    var p = state.progress[qid] || {};
     p.whyWrong = p.whyWrong || [];
-    if (key === fe.why) {
-      p.whyOk = true;
-    } else if (p.whyWrong.indexOf(key) < 0) {
-      p.whyWrong.push(key);
-    }
-    p.ts = Date.now();
-    state.fe[id] = p;
-    saveState();
-    renderFindStage();
+    if (key === q.why) p.whyOk = true;
+    else if (p.whyWrong.indexOf(key) < 0) p.whyWrong.push(key);
+    recordAnswer(qid, p);
+    renderPracticeStage();
   }
 
   /* ---------------- 主题 ---------------- */
@@ -1017,9 +1035,6 @@
 
   /* ---------------- 事件 ---------------- */
   document.addEventListener('click', function (e) {
-    var t = e.target.closest ? e.target.closest('[data-act]') : null;
-
-    // 标签页
     var tab = e.target.closest ? e.target.closest('.tab') : null;
     if (tab) {
       var v = tab.dataset.view;
@@ -1027,52 +1042,43 @@
       else setView(v);
       return;
     }
+    var t = e.target.closest ? e.target.closest('[data-act]') : null;
     if (!t) return;
     var act = t.dataset.act;
-
-    if (act === 'theme') return toggleTheme();
 
     if (act === 'filter-course') {
       state.filter.course = t.dataset.course;
       state.filter.chapter = 'all';
-      state.cur.practice = 0;
-      renderChapterChips();
+      state.cur = 0;
+      renderFilterChips();
       renderPracticeStage();
       return;
     }
     if (act === 'filter-chapter') {
       state.filter.chapter = t.dataset.ch;
-      var curCh = D.chapters.filter(function (c) {
-        return c.id === state.filter.chapter;
-      })[0];
+      var curCh = chapterOf(state.filter.chapter);
       if (curCh) state.filter.course = curCh.course;
-      state.cur.practice = 0;
-      renderChapterChips();
+      state.cur = 0;
+      renderFilterChips();
       renderPracticeStage();
       return;
     }
     if (act === 'filter-type') {
       state.filter.type = t.dataset.type;
-      state.cur.practice = 0;
-      renderChapterChips();
+      state.cur = 0;
+      renderFilterChips();
       renderPracticeStage();
       return;
     }
-    if (act === 'find-chapter') {
-      state.feFilter.chapter = t.dataset.ch;
-      state.cur.find = 0;
-      renderFilterChipsGeneric(
-        '#find-chapter-filter',
-        'find-chapter',
-        'feFilter',
-        D.chapters,
-        '全部章节'
-      );
-      renderFindStage();
+    if (act === 'filter-weight') {
+      state.filter.weight = t.dataset.weight;
+      state.cur = 0;
+      renderFilterChips();
+      renderPracticeStage();
       return;
     }
     if (act === 'goto-q') {
-      state.cur.practice = Number(t.dataset.idx) || 0;
+      state.cur = Number(t.dataset.idx) || 0;
       renderPracticeStage();
       return;
     }
@@ -1080,153 +1086,140 @@
       gotoQuestion(t.dataset.qid);
       return;
     }
-    if (act === 'goto-fe') {
-      state.cur.find = Number(t.dataset.idx) || 0;
-      renderFindStage();
-      return;
-    }
     if (act === 'prev') {
-      state.cur.practice = Math.max(0, state.cur.practice - 1);
+      state.cur = clamp(state.cur - 1, 0, Math.max(0, filteredQuestions().length - 1));
       renderPracticeStage();
       return;
     }
     if (act === 'next') {
-      state.cur.practice = Math.min(
-        filteredQuestions().length - 1,
-        state.cur.practice + 1
-      );
+      state.cur = clamp(state.cur + 1, 0, Math.max(0, filteredQuestions().length - 1));
       renderPracticeStage();
-      return;
-    }
-    if (act === 'fe-prev') {
-      state.cur.find = Math.max(0, state.cur.find - 1);
-      renderFindStage();
-      return;
-    }
-    if (act === 'fe-next') {
-      state.cur.find = Math.min(
-        filteredFind().length - 1,
-        state.cur.find + 1
-      );
-      renderFindStage();
       return;
     }
     if (act === 'random') {
       var list = filteredQuestions();
       if (list.length > 1) {
-        var n = state.cur.practice;
-        while (n === state.cur.practice)
-          n = Math.floor(Math.random() * list.length);
-        state.cur.practice = n;
+        var n = state.cur;
+        while (n === state.cur) n = Math.floor(Math.random() * list.length);
+        state.cur = n;
       }
       renderPracticeStage();
       return;
     }
     if (act === 'reset') {
-      if (window.confirm('清空本机的作答进度、错题本和找错记录？')) {
+      if (window.confirm('清空本机的作答进度和错题本？')) {
         state.progress = {};
-        state.fe = {};
         saveState();
+        exitDrill();
         renderPracticeStage();
-        renderFindStage();
         renderWrong();
         renderStats();
       }
       return;
     }
+    if (act === 'drill') {
+      startDrill();
+      return;
+    }
+    if (act === 'drill-exit') {
+      exitDrill();
+      return;
+    }
+    if (act === 'export') {
+      exportProgress();
+      return;
+    }
+    if (act === 'tips-open' || act === 'tips-close') {
+      var open = act === 'tips-open';
+      $$('.tip').forEach(function (d) {
+        d.open = open;
+      });
+      return;
+    }
 
-    // 题卡内动作
     var card = t.closest('.card');
     if (!card) return;
     var qid = card.dataset.qid;
-    var feid = card.dataset.feid;
+    if (!qid) return;
+    var q = byId(qid);
 
-    if (act === 'pick-option' && qid) {
-      var q = D.questions.filter(function (x) {
-        return x.id === qid;
-      })[0];
+    if (act === 'pick-option') {
       pickOption(q, t.dataset.key);
       return;
     }
-    if (act === 'submit-expr' && qid) {
-      var q2 = D.questions.filter(function (x) {
-        return x.id === qid;
-      })[0];
-      submitExpr(q2);
+    if (act === 'submit-expr') {
+      submitExpr(q);
       return;
     }
-    if (act === 'reveal' && qid) {
+    if (act === 'reveal') {
       recordAnswer(qid, { revealed: true });
       renderPracticeStage();
       return;
     }
-    if (act === 'self-ok' && qid) {
+    if (act === 'self-ok') {
       recordAnswer(qid, { status: 'ok', revealed: true });
       renderPracticeStage();
       return;
     }
-    if (act === 'self-bad' && qid) {
+    if (act === 'self-bad') {
       recordAnswer(qid, { status: 'no', revealed: true });
       renderPracticeStage();
       return;
     }
-    if (act === 'retry' && qid) {
-      delete state.progress[qid];
-      saveState();
-      renderPracticeStage();
-      renderStats();
+    if (act === 'retry') {
+      retry(qid);
       return;
     }
-    if (act === 'fe-step' && feid) {
-      feStep(feid, Number(t.dataset.i));
+    if (act === 'find-step') {
+      findStep(qid, Number(t.dataset.i));
       return;
     }
-    if (act === 'fe-why' && feid) {
-      feWhy(feid, t.dataset.key);
+    if (act === 'find-why') {
+      findWhy(qid, t.dataset.key);
       return;
     }
   });
 
-  // 主题按钮（顶栏）
   var themeBtn = $('#theme-toggle');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
 
-  // 键盘
+  var searchInput = $('#search-input');
+  if (searchInput) {
+    var timer = null;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        state.filter.q = searchInput.value;
+        state.cur = 0;
+        renderPracticeStage();
+      }, 120);
+    });
+  }
+
   document.addEventListener('keydown', function (e) {
     var tag = (e.target.tagName || '').toLowerCase();
     var inInput = tag === 'input' || tag === 'textarea';
-
-    if (e.key === 'Enter' && inInput) {
-      var card = e.target.closest('.card');
-      if (card) {
-        var btn = $('[data-act="submit-expr"]', card);
-        if (btn) {
-          e.preventDefault();
-          btn.click();
+    if (inInput) {
+      if (e.key === 'Enter' && tag === 'input') {
+        var card0 = e.target.closest('.card');
+        if (card0) {
+          var btn = $('[data-act="submit-expr"]', card0);
+          if (btn) {
+            e.preventDefault();
+            btn.click();
+          }
         }
       }
       return;
     }
-    if (inInput) return;
-    var card2 = $('.card');
-    if (!card2) return;
-
-    if (e.key === 'ArrowLeft' && card2.dataset.qid) {
+    var card = $('.card');
+    if (!card) return;
+    if (e.key === 'ArrowLeft') {
       var prev = $('[data-act="prev"]');
       if (prev && !prev.disabled) prev.click();
-      else if (card2.dataset.feid) {
-        var pv = $('[data-act="fe-prev"]');
-        if (pv && !pv.disabled) pv.click();
-      }
-    } else if (e.key === 'ArrowRight' && card2.dataset.qid) {
+    } else if (e.key === 'ArrowRight') {
       var nx = $('[data-act="next"]');
       if (nx && !nx.disabled) nx.click();
-    } else if (e.key === 'ArrowRight' && card2.dataset.feid) {
-      var fn = $('[data-act="fe-next"]');
-      if (fn && !fn.disabled) fn.click();
-    } else if (e.key === 'ArrowLeft' && card2.dataset.feid) {
-      var fp = $('[data-act="fe-prev"]');
-      if (fp && !fp.disabled) fp.click();
     } else if (/^[1-4]$/.test(e.key)) {
       var opts = $$('.opt:not([disabled])');
       var idx = Number(e.key) - 1;
@@ -1243,32 +1236,22 @@
     var parts = h.split('/');
     var view = parts[0] || 'practice';
     var id = parts[1] || '';
-    if (['practice', 'find', 'wrong', 'topics', 'about'].indexOf(view) < 0)
+    // 旧链接兼容：#find → 练习 + 找错题型
+    if (view === 'find') {
       view = 'practice';
+      state.filter.type = 'find';
+      renderFilterChips();
+    }
+    if (['practice', 'wrong', 'topics', 'about'].indexOf(view) < 0) view = 'practice';
     if (view === 'practice' && id) {
       var f = filteredQuestions();
-      var idx = f.map(function (q) {
-        return q.id;
-      }).indexOf(id);
-      if (idx >= 0) state.cur.practice = idx;
-      else {
-        state.filter.course = 'all';
-        state.filter.chapter = 'all';
-        state.filter.type = 'all';
-        renderChapterChips();
-        var f2 = filteredQuestions();
-        var i2 = f2.map(function (q) {
+      var idx = f
+        .map(function (q) {
           return q.id;
-        }).indexOf(id);
-        if (i2 >= 0) state.cur.practice = i2;
-      }
-    }
-    if (view === 'find' && id) {
-      var l = filteredFind();
-      var fi = l.map(function (f) {
-        return f.id;
-      }).indexOf(id);
-      if (fi >= 0) state.cur.find = fi;
+        })
+        .indexOf(id);
+      if (idx >= 0) state.cur = idx;
+      else gotoQuestion(id);
     }
     setView(view, { noScroll: true });
   }
@@ -1276,14 +1259,7 @@
 
   /* ---------------- 启动 ---------------- */
   loadState();
-  renderChapterChips();
-  renderFilterChipsGeneric(
-    '#find-chapter-filter',
-    'find-chapter',
-    'feFilter',
-    D.chapters,
-    '全部章节'
-  );
+  renderFilterChips();
   applyRoute();
   renderStats();
   if (location.hash) renderPracticeStage();
