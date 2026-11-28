@@ -1,6 +1,6 @@
 # 博客状态
 
-updated: 2026-11-28 · code: `751fa2e`（最后一次改动站点代码/配置的提交）
+updated: 2026-11-28 · code: `a9f3dba`（最后一次改动站点代码/配置的提交）
 > 判据：`git log -1 -- admin tools scripts source/css source/js source/exercise source/wangan-cards _config.yml _config.butterfly.yml`
 > （不含整个 `source`：只改文章/说说/图片的内容提交不算代码变动，早期判据会误报。
 > `source/exercise` 在判据里，是因为它的 `data.js` 会随题库重新构建而变。）
