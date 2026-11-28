@@ -54,7 +54,10 @@
       body: options.body ? JSON.stringify(options.body) : undefined
     }).then(function (res) {
       return res.json().then(function (data) {
-        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        /* 失败返回是 { ok:false, step, output }（没有 error 字段），别把 stderr 丢掉 */
+        if (!res.ok) {
+          throw new Error(data.error || (data.step ? data.step + '：' + (data.output || '') : 'HTTP ' + res.status));
+        }
         return data;
       });
     });
@@ -2345,7 +2348,9 @@
     btn.textContent = '发布中…';
     api('/api/publish', { method: 'POST', body: { message: message } })
       .then(function (result) {
-        toast(result.ok ? '已推送，1~2 分钟后上线' : '发布失败', !result.ok);
+        /* 别一律说「已推送」：pushed=false 表示本来就没东西可推 */
+        if (result.pushed) toast('已推送，1~2 分钟后上线', false);
+        else toast('没有需要提交的改动，已是最新', false);
         console.log(result.output);
         refreshGit();
       })

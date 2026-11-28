@@ -9,7 +9,8 @@
 站点代码/配置的提交**，用它判过期：
 
 ```bash
-git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterfly.yml
+# 与 STATE.md 首行的判据保持一致（两边要同步；不含整个 source/，只改文章不算代码变动）
+git log -1 --format=%h -- admin tools scripts source/css source/js source/exercise source/wangan-cards _config.yml _config.butterfly.yml
 ```
 
 只改文章（`source/_posts/`）的提交不算过期。**用户可能有未提交的在途改动，先看
@@ -21,6 +22,7 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
 |---|---|
 | 改配色 / 样式 / 布局 / 组件 / 自定义代码块 / 数学公式 | [`docs/agent/01-配色与样式.md`](docs/agent/01-配色与样式.md) |
 | 文章 / 歌曲 / 说说 / 公告 / 评论 / 管理页 | [`docs/agent/02-内容与数据.md`](docs/agent/02-内容与数据.md) |
+| 练习页 `/exercise/`、记忆卡 `/wangan-cards/`（独立静态页） | 同上，末尾「独立静态页」一节 |
 | 生成 / 预览 / 发布 / 不能碰的约束 | [`docs/agent/03-构建与发布.md`](docs/agent/03-构建与发布.md) |
 | 怎么写作、日常三条命令、数据文件字段 | [`README.md`](README.md)（给用户看的） |
 | 现在做到哪、未完成 | `STATE.md` |
@@ -75,6 +77,10 @@ git log -1 --format=%h -- source scripts admin tools _config.yml _config.butterf
       否则它会永远不透明，除非你把它加进 `custom.css` 第十四节的选择器组；
     · 模糊只给「大面板」：列表行（`.lib-item`）不加 blur，按钮 / 输入框 / chip 保持实色；
       `@supports not` 的回退里 `--card-bg` 与 `background` **要成对改回**。
+16. **`source/exercise/` 与 `source/wangan-cards/` 是独立静态页**：必须在 `_config.yml` 的
+    `skip_render` 里（`exercise/**`、`wangan-cards/**`），否则会被当成页面去渲染。改练习题库走
+    `~/Desktop/数学相关作业/quiz-build` 构建，**别手改 6 MB 的 `data.js`**；记忆卡直接编辑那一个 HTML。
+    `skip_render` 一处管两个目录，下线一个时只删自己那一行。
 
 ## 改完怎么生效 + 怎么验证
 

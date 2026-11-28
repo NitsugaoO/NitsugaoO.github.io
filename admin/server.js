@@ -566,21 +566,35 @@ const server = http.createServer(async function (req, res) {
       const add = await execGit(['add', '-A']);
       if (add.code !== 0) return sendJSON(res, 500, { ok: false, step: 'add', output: add.stderr });
 
-      /* 没有改动就别 commit（git commit 会报错） */
+      /* 没有改动就别 commit（git commit 会报错）。
+         但「工作区干净 + 有本地提交没推」是真实状态（上次 push 失败、或在 VSCode 里只 commit），
+         这种时候必须照样 push —— 早期版本在这里直接 return ok，导致卡住的提交永远推不上去。 */
       const diff = await execGit(['diff', '--cached', '--quiet']);
-      if (diff.code === 0) {
-        return sendJSON(res, 200, { ok: true, output: '没有需要提交的改动。' });
+      const hasStaged = diff.code !== 0;
+      const ahead = await execGit(['rev-list', '--count', 'origin/master..HEAD']);
+      /* 读不到 origin/master（首次推送 / 引用缺失）时按「有东西要推」处理，让 push 自己报真错 */
+      const aheadCount = ahead.code === 0 ? (Number(ahead.stdout) || 0) : 1;
+
+      if (!hasStaged && aheadCount === 0) {
+        return sendJSON(res, 200, { ok: true, pushed: false, output: '没有需要提交的改动，已是最新。' });
       }
 
-      const commit = await execGit(['commit', '-m', message]);
-      if (commit.code !== 0) return sendJSON(res, 500, { ok: false, step: 'commit', output: commit.stderr });
+      const outs = [];
+      if (hasStaged) {
+        const commit = await execGit(['commit', '-m', message]);
+        if (commit.code !== 0) return sendJSON(res, 500, { ok: false, step: 'commit', output: commit.stderr });
+        outs.push(commit.stdout);
+      }
 
       const push = await execGit(['push']);
       if (push.code !== 0) return sendJSON(res, 500, { ok: false, step: 'push', output: push.stderr });
 
+      outs.push(push.stderr || push.stdout);
       return sendJSON(res, 200, {
         ok: true,
-        output: [commit.stdout, push.stderr || push.stdout].filter(Boolean).join('\n')
+        pushed: true,
+        committed: hasStaged,
+        output: outs.filter(Boolean).join('\n')
       });
     }
 
